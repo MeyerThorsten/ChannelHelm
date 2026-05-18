@@ -12,10 +12,15 @@
 import { hostname } from 'node:os';
 import { run as runAnalyzeIntelligence } from './kinds/analyze_intelligence';
 import { run as runAnalyzeVisual } from './kinds/analyze_visual';
+import { run as runClipRender } from './kinds/clip_render';
+import { run as runCollectSignal } from './kinds/collect_signal';
+import { run as runDispatch } from './kinds/dispatch';
 import { run as runFuse } from './kinds/fuse';
 import { run as runGenerateAsset } from './kinds/generate_asset';
 import { run as runIngest } from './kinds/ingest';
 import { run as runNoop } from './kinds/noop';
+import { run as runPromoteVoiceExamples } from './kinds/promote_voice_examples';
+import { run as runThumbnailConcepts } from './kinds/thumbnail_concepts';
 import { run as runTranscribeAudio } from './kinds/transcribe_audio';
 import { type JobRow, claim, complete, fail, shutdown } from './queue';
 
@@ -29,6 +34,11 @@ const HANDLERS: Record<string, Handler> = {
   fuse: runFuse,
   analyze_intelligence: runAnalyzeIntelligence,
   generate_asset: runGenerateAsset,
+  clip_render: runClipRender,
+  thumbnail_concepts: runThumbnailConcepts,
+  dispatch: runDispatch,
+  collect_signal: runCollectSignal,
+  promote_voice_examples: runPromoteVoiceExamples,
 };
 
 function parseArgs(argv: string[]): {
