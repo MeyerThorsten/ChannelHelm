@@ -71,8 +71,11 @@ export async function run(job: JobRow): Promise<void> {
 
   const payload = parseJsonStrict(result.text, `generate_asset:${assetType}`);
 
-  // Respect the brand's approval_required_for / auto_dispatch_for lists.
-  const approvalRequired = approvalRequiredFor(brand.approvalRequiredFor, assetType);
+  // Respect the brand's auto_dispatch_for list. Default is "approval required";
+  // brands can opt specific asset types into auto-dispatch via that JSONB array.
+  const autoDispatch =
+    Array.isArray(brand.autoDispatchFor) && brand.autoDispatchFor.includes(assetType);
+  const approvalRequired = !autoDispatch;
 
   const [row] = await db
     .insert(assets)
@@ -102,11 +105,6 @@ function summarizeSceneLog(sceneLog: unknown): unknown {
     end: w.end,
     text: w.text.length > 200 ? `${w.text.slice(0, 200)}…` : w.text,
   }));
-}
-
-function approvalRequiredFor(list: unknown, assetType: string): boolean {
-  if (!Array.isArray(list)) return true;
-  return list.includes(assetType);
 }
 
 function parseJsonStrict(text: string, label: string): unknown {

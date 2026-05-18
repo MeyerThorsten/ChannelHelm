@@ -84,12 +84,15 @@ export async function complete(opts: {
   if (opts.system) messages.push({ role: 'system', content: opts.system });
   messages.push({ role: 'user', content: opts.user });
 
+  // Note: we deliberately do NOT send `response_format: {type: 'json_object'}`.
+  // LM Studio's OpenAI-compatible API only accepts `json_schema` or `text`,
+  // not OpenAI's `json_object`. The prompts already instruct "JSON only", and
+  // the worker-side `parseJsonStrict` strips any stray markdown fences.
   const completion = await oa.chat.completions.create({
     model: ep.model,
     messages,
     temperature: opts.temperature ?? 0.5,
     max_tokens: opts.maxTokens ?? 1024,
-    ...(opts.responseFormat === 'json_object' ? { response_format: { type: 'json_object' } } : {}),
   });
 
   const text = completion.choices[0]?.message?.content ?? '';
