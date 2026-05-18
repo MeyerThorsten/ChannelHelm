@@ -10,6 +10,7 @@
  *   --max-iter <int>  cap iterations even without --once (default unlimited)
  */
 import { hostname } from 'node:os';
+import { run as runIngest } from './kinds/ingest';
 import { run as runNoop } from './kinds/noop';
 import { type JobRow, claim, complete, fail, shutdown } from './queue';
 
@@ -17,6 +18,7 @@ type Handler = (job: JobRow) => Promise<void>;
 
 const HANDLERS: Record<string, Handler> = {
   noop: runNoop,
+  ingest: runIngest,
 };
 
 function parseArgs(argv: string[]): {
