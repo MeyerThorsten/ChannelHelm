@@ -1,3 +1,5 @@
+import { mkdir, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { runProc } from './_proc';
 
 /**
@@ -81,4 +83,44 @@ export async function probeDurationSeconds(inputPath: string): Promise<number> {
     throw new Error(`ffprobe: could not parse duration from output: ${stdout}`);
   }
   return n;
+}
+
+/**
+ * Sample frames at a fixed fps. Writes `${outputDir}/frame_NNNNNN.jpg` and
+ * returns a manifest of `{ timestamp, path }` for every frame written.
+ *
+ * fps=1 (default) matches §5.5's standard/premium profile spec. Scene
+ * boundaries are NOT added here — they're surfaced separately by
+ * `detectScenes` and merged into the scene log by the fuse worker.
+ */
+export async function sampleFrames(opts: {
+  inputPath: string;
+  outputDir: string;
+  fps?: number;
+  jpegQuality?: number;
+}): Promise<{ timestamp: number; path: string }[]> {
+  const fps = opts.fps ?? 1;
+  await mkdir(opts.outputDir, { recursive: true });
+  await runProc(
+    'ffmpeg',
+    [
+      '-y',
+      '-i',
+      opts.inputPath,
+      '-vf',
+      `fps=${fps}`,
+      '-q:v',
+      String(opts.jpegQuality ?? 3),
+      join(opts.outputDir, 'frame_%06d.jpg'),
+    ],
+    { logCommand: true },
+  );
+
+  const files = (await readdir(opts.outputDir)).filter((f) => /^frame_\d+\.jpg$/.test(f)).sort();
+  return files.map((file, i) => ({
+    // ffmpeg's fps filter outputs frame N at t = N / fps (frame_000001 → t=0,
+    // frame_000002 → t=1/fps, …).
+    timestamp: i / fps,
+    path: join(opts.outputDir, file),
+  }));
 }
