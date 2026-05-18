@@ -10,8 +10,10 @@
  *   --max-iter <int>  cap iterations even without --once (default unlimited)
  */
 import { hostname } from 'node:os';
+import { run as runAnalyzeIntelligence } from './kinds/analyze_intelligence';
 import { run as runAnalyzeVisual } from './kinds/analyze_visual';
 import { run as runFuse } from './kinds/fuse';
+import { run as runGenerateAsset } from './kinds/generate_asset';
 import { run as runIngest } from './kinds/ingest';
 import { run as runNoop } from './kinds/noop';
 import { run as runTranscribeAudio } from './kinds/transcribe_audio';
@@ -25,6 +27,8 @@ const HANDLERS: Record<string, Handler> = {
   transcribe_audio: runTranscribeAudio,
   analyze_visual: runAnalyzeVisual,
   fuse: runFuse,
+  analyze_intelligence: runAnalyzeIntelligence,
+  generate_asset: runGenerateAsset,
 };
 
 function parseArgs(argv: string[]): {
