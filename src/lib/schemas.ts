@@ -119,3 +119,14 @@ export const AssetListQuery = z.object({
   type: z.string().optional(),
   status: z.string().optional(),
 });
+
+// ─── jobs (enqueue from the API) ─────────────────────────────────
+
+export const JobEnqueue = z.object({
+  kind: z.string().min(1),
+  payload: z.record(z.unknown()).default({}),
+  idempotencyKey: z.string().min(1).optional(),
+  priority: z.number().int().min(0).max(9).optional(),
+  runAfter: z.string().datetime().optional(),
+});
+export type JobEnqueue = z.infer<typeof JobEnqueue>;
