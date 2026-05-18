@@ -2,6 +2,7 @@ import { db } from '@/db/client';
 import { brands, packages } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { patchPackageIntelligence } from '../integrations/db_patch';
 import { complete } from '../integrations/lm_studio';
 import { loadPrompt, render } from '../integrations/prompts';
 import { type JobRow, enqueue } from '../queue';
@@ -22,6 +23,10 @@ const ASSET_TYPES = [
   'x_thread',
   'article_brief',
   'newsletter_summary',
+  // §13 step 14: clip_render consumes this. Plans live under
+  // routing.internal and never dispatch — operator approves a plan to
+  // trigger one clip_render job per entry.
+  'short_clip_plan',
 ] as const;
 
 /**
@@ -70,21 +75,20 @@ export async function run(job: JobRow): Promise<void> {
   const parsedObj =
     parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : { raw: parsed };
 
-  const nextIntelligence = {
-    ...intelligence,
-    analysis: {
-      ...parsedObj,
-      provenance: result.provenance,
+  await patchPackageIntelligence(
+    packageId,
+    {
+      analysis: {
+        ...parsedObj,
+        provenance: result.provenance,
+      },
     },
-  };
-  await db
-    .update(packages)
-    .set({ intelligence: nextIntelligence, status: 'analyzed' })
-    .where(eq(packages.id, packageId));
+    { status: 'analyzed' },
+  );
 
-  // Fan out generate_asset for every type from §13 step 9. Workers can also
-  // produce short_clip_plan once analysis is in — that's a separate kind in
-  // a later session; for now we generate the text assets in parallel.
+  // Fan out generate_asset for every type from §13 step 9 (now includes
+  // short_clip_plan). Plans remain non-dispatchable; approving a plan
+  // enqueues clip_render per entry via the approveAsset server action.
   for (const assetType of ASSET_TYPES) {
     await enqueue({
       kind: 'generate_asset',

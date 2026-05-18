@@ -5,6 +5,7 @@ import { db } from '@/db/client';
 import { packages, sources } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { patchPackageIntelligence } from '../integrations/db_patch';
 import { type JobRow, enqueue } from '../queue';
 
 const Payload = z.object({
@@ -112,11 +113,7 @@ export async function run(job: JobRow): Promise<void> {
   const sceneLogPath = join(source.localMediaPath, 'scene_log.json');
   await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
 
-  const nextIntelligence = { ...intelligence, scene_log: sceneLog };
-  await db
-    .update(packages)
-    .set({ intelligence: nextIntelligence })
-    .where(eq(packages.id, packageId));
+  await patchPackageIntelligence(packageId, { scene_log: sceneLog });
 
   await enqueue({
     kind: 'analyze_intelligence',

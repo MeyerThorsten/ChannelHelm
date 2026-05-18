@@ -55,10 +55,11 @@ for k in ingest transcribe_audio analyze_visual fuse analyze_intelligence; do
 done
 
 say "drain generate_asset queue"
-# Iteration cap is high enough to absorb a couple of retries on flaky LLM
-# JSON parses. Smoke pre-empts §6.4's exponential backoff by resetting
-# run_after on this package's pending jobs each iteration — otherwise a
-# single failure pushes its retry 2 minutes out and stalls the loop.
+# WORKER_NO_BACKOFF=1 makes the runner's fail() set run_after=now() instead
+# of the §6.4 exponential window, so a single flaky LLM JSON parse doesn't
+# stall the smoke for 2 minutes. Production must NOT set this — it's an
+# explicit test-only escape hatch defined in workers/queue.ts.
+export WORKER_NO_BACKOFF=1
 for i in $(seq 1 18); do
   PENDING=$(psql "$DB" -tAc "
     SELECT count(*) FROM jobs
@@ -70,23 +71,18 @@ for i in $(seq 1 18); do
     echo "  no more pending generate_asset jobs after $((i-1)) iterations"
     break
   fi
-  psql "$DB" -tAc "
-    UPDATE jobs
-       SET run_after = now()
-     WHERE kind = 'generate_asset'
-       AND status = 'pending'
-       AND run_after > now()
-       AND payload->>'packageId' = '$PACKAGE_ID'
-  " >/dev/null
   echo "  iter $i: $PENDING pending"
   pnpm exec tsx workers/runner.ts --kinds generate_asset --once 2>&1 | sed 's/^/    /'
 done
+unset WORKER_NO_BACKOFF
 
 # ─── verify ────────────────────────────────────────────────────────────────
 say "verify assets table"
 ASSET_COUNT=$(psql "$DB" -tAc "SELECT count(*) FROM assets WHERE package_id = '$PACKAGE_ID'")
 echo "  asset count = $ASSET_COUNT"
-[[ "$ASSET_COUNT" == "9" ]] || die "expected 9 assets, got $ASSET_COUNT"
+# 10 = 9 text assets + 1 short_clip_plan (Session 09 + the plan added when
+# the gap pass landed). Plans live alongside text assets pre-approval.
+[[ "$ASSET_COUNT" == "10" ]] || die "expected 10 assets, got $ASSET_COUNT"
 
 MISSING_PROV=$(psql "$DB" -tAc "
   SELECT count(*) FROM assets

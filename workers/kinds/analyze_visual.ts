@@ -5,6 +5,7 @@ import { db } from '@/db/client';
 import { jobs, packages, sources } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { patchPackageIntelligence } from '../integrations/db_patch';
 import { sampleFrames } from '../integrations/ffmpeg';
 import { runMlScript } from '../integrations/ml_subprocess';
 import { type JobRow, enqueue } from '../queue';
@@ -130,11 +131,7 @@ export async function run(job: JobRow): Promise<void> {
   };
   await writeFile(frameIndexPath, JSON.stringify(frameIndex, null, 2), 'utf8');
 
-  const intelligence = {
-    ...(pkg.intelligence as Record<string, unknown>),
-    frame_index: frameIndex,
-  };
-  await db.update(packages).set({ intelligence }).where(eq(packages.id, packageId));
+  await patchPackageIntelligence(packageId, { frame_index: frameIndex });
 
   await maybeEnqueueFuse({ sourceId, packageId, profile });
 }

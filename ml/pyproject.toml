@@ -8,13 +8,11 @@ dependencies = [
     "mlx-vlm>=0.1.0",
     "ocrmac>=0.5.0",
     "pillow>=10.0.0",
+    "pyannote.audio>=3.3.0",
+    # whisperx alignment is optional — pyannote diarization alone is enough
+    # for v1 speaker labels. Add whisperx when word-level alignment to
+    # speaker turns becomes a requirement.
 ]
 
 [tool.uv]
 package = false
-
-# diarize.py / pyannote-audio + whisperx come in a follow-up session — they
-# require HF model gating + tokens, so they're behind a flag rather than a
-# default dep. When ready, add:
-#   "pyannote.audio>=3.3.0",
-#   "whisperx>=3.1.0",

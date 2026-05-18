@@ -134,8 +134,15 @@ export async function complete(jobId: number): Promise<void> {
  * Record a failure. If attempts < max_attempts, requeue with exponential
  * backoff (`run_after = now() + 1 minute × 2^attempts`) per §6.4. Otherwise
  * leave at status = 'failed' for manual triage.
+ *
+ * Test escape hatch: when `WORKER_NO_BACKOFF=1`, retries become eligible
+ * immediately (run_after = now()) instead of waiting out the exponential
+ * window. Smoke scripts set this so a single flaky LLM JSON response
+ * doesn't stall the suite for 2+ minutes. Production must NOT set it —
+ * the backoff is what keeps the queue from hot-looping on a failing job.
  */
 export async function fail(jobId: number, error: string): Promise<void> {
+  const noBackoff = process.env.WORKER_NO_BACKOFF === '1';
   await pool.query(
     `
     UPDATE jobs
@@ -143,13 +150,14 @@ export async function fail(jobId: number, error: string): Promise<void> {
            last_error = $2,
            run_after = CASE
              WHEN attempts >= max_attempts THEN run_after
+             WHEN $3::boolean THEN now()
              ELSE now() + (interval '1 minute') * (2 ^ attempts)
            END,
            locked_by = NULL,
            locked_at = NULL,
            updated_at = now()
      WHERE id = $1`,
-    [jobId, error],
+    [jobId, error, noBackoff],
   );
 }
 
