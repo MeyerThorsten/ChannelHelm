@@ -11,6 +11,7 @@
  */
 import { hostname } from 'node:os';
 import { run as runAnalyzeVisual } from './kinds/analyze_visual';
+import { run as runFuse } from './kinds/fuse';
 import { run as runIngest } from './kinds/ingest';
 import { run as runNoop } from './kinds/noop';
 import { run as runTranscribeAudio } from './kinds/transcribe_audio';
@@ -23,6 +24,7 @@ const HANDLERS: Record<string, Handler> = {
   ingest: runIngest,
   transcribe_audio: runTranscribeAudio,
   analyze_visual: runAnalyzeVisual,
+  fuse: runFuse,
 };
 
 function parseArgs(argv: string[]): {
