@@ -1,0 +1,17 @@
+[project]
+name = "channelhelm-ml"
+version = "0.0.1"
+description = "MLX-bound ML CLIs for ChannelHelm (transcribe, diarize, describe_frames, ocr)"
+requires-python = ">=3.11"
+dependencies = [
+    "mlx-whisper>=0.4.0",
+]
+
+[tool.uv]
+package = false
+
+# diarize.py / pyannote-audio + whisperx come in a follow-up session — they
+# require HF model gating + tokens, so they're behind a flag rather than a
+# default dep. When ready, add:
+#   "pyannote.audio>=3.3.0",
+#   "whisperx>=3.1.0",

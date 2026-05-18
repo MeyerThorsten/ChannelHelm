@@ -12,6 +12,7 @@
 import { hostname } from 'node:os';
 import { run as runIngest } from './kinds/ingest';
 import { run as runNoop } from './kinds/noop';
+import { run as runTranscribeAudio } from './kinds/transcribe_audio';
 import { type JobRow, claim, complete, fail, shutdown } from './queue';
 
 type Handler = (job: JobRow) => Promise<void>;
@@ -19,6 +20,7 @@ type Handler = (job: JobRow) => Promise<void>;
 const HANDLERS: Record<string, Handler> = {
   noop: runNoop,
   ingest: runIngest,
+  transcribe_audio: runTranscribeAudio,
 };
 
 function parseArgs(argv: string[]): {

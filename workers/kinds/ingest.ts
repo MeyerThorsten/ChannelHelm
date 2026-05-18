@@ -1,5 +1,5 @@
 import { hostname } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -41,7 +41,10 @@ export async function run(job: JobRow): Promise<void> {
   }
 
   const mediaRoot = process.env.MEDIA_ROOT ?? '/var/channelhelm/media';
-  const outputDir = join(mediaRoot, brand.slug, sourceId);
+  // Always store an absolute path — downstream workers (transcribe_audio,
+  // analyze_visual) spawn subprocesses with cwd=ml/, so a relative path
+  // stored on `sources.local_media_path` would resolve incorrectly.
+  const outputDir = resolve(mediaRoot, brand.slug, sourceId);
 
   console.log(`[ingest] downloading ${source.originUrl} → ${outputDir}`);
   const dl = await downloadVideo({ url: source.originUrl, outputDir });
