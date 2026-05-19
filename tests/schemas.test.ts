@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   AssetStatus,
   BrandCreate,
@@ -9,6 +8,7 @@ import {
   ProcessingProfile,
   SourceCreate,
 } from '@/lib/schemas';
+import { describe, expect, it } from 'vitest';
 
 describe('ProcessingProfile', () => {
   it('accepts the three §5.5 values', () => {
@@ -49,9 +49,9 @@ describe('BrandCreate', () => {
 describe('SourceCreate', () => {
   it('requires brand_id and kind', () => {
     expect(() => SourceCreate.parse({})).toThrow();
-    expect(
-      SourceCreate.parse({ brandId: 'brd_x', kind: 'youtube_url' }),
-    ).toMatchObject({ brandId: 'brd_x' });
+    expect(SourceCreate.parse({ brandId: 'brd_x', kind: 'youtube_url' })).toMatchObject({
+      brandId: 'brd_x',
+    });
   });
   it('rejects unknown kind', () => {
     expect(() => SourceCreate.parse({ brandId: 'brd_x', kind: 'wax-cylinder' })).toThrow();

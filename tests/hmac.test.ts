@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
 import { verifyHmac } from '@/lib/hmac';
+import { describe, expect, it } from 'vitest';
 
 const SECRET = 'test-secret-do-not-use-in-prod';
 const BODY = '{"event":"post.published","_id":"evt_1"}';

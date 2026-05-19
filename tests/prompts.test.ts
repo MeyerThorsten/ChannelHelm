@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { parsePrompt, render } from '@workers/integrations/prompts';
+import { describe, expect, it } from 'vitest';
 
 describe('parsePrompt', () => {
   it('parses scalar / list / block-scalar frontmatter', () => {

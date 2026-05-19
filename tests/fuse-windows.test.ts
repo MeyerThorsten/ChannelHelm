@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { buildWindows } from '@workers/kinds/fuse';
+import { describe, expect, it } from 'vitest';
 
 const seg = (start: number, end: number, text: string) => ({ start, end, text });
 const frame = (timestamp: number, description = '', text = '') => ({

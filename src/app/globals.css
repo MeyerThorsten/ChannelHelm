@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  /* The status-pill palette. Keeps the per-status colours in CSS rather
+     than as inline TS, so the package list and detail pages reference
+     the same source. */
+  --color-status-draft: #888;
+  --color-status-analyzing: #0a7;
+  --color-status-analyzed: #0a7;
+  --color-status-ready: #b60;
+  --color-status-approved: #069;
+  --color-status-dispatching: #069;
+  --color-status-scheduled: #069;
+  --color-status-published: #0a4;
+  --color-status-rejected: #888;
+  --color-status-failed: #c33;
+}
+
+:root {
+  color-scheme: light dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: #fafafa;
+  color: #18181b;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0a0a0a;
+    color: #e5e5e5;
+  }
+}
