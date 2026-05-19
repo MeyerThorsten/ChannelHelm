@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { db } from '@/db/client';
 import { webhookEvents } from '@/db/schema';
+import { processWebhookEvent } from '@/lib/webhook-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,14 +26,26 @@ export async function POST(req: Request) {
   const externalId = typeof body.job_id === 'string' ? body.job_id : null;
 
   try {
-    await db.insert(webhookEvents).values({
+    const [row] = await db
+      .insert(webhookEvents)
+      .values({
+        source: 'dojoclaw',
+        sourceEventId,
+        eventType,
+        externalId,
+        payload: body,
+      })
+      .returning({ id: webhookEvents.id });
+    if (!row) throw new Error('webhook insert returned no row');
+
+    const applied = await processWebhookEvent({
+      webhookId: row.id,
       source: 'dojoclaw',
-      sourceEventId,
       eventType,
       externalId,
       payload: body,
     });
-    return Response.json({ accepted: true, sourceEventId });
+    return Response.json({ accepted: true, sourceEventId, applied });
   } catch (err) {
     if (err instanceof Error && /idx_webhook_source_event|unique/i.test(err.message)) {
       return Response.json({ accepted: true, duplicate: true, sourceEventId });

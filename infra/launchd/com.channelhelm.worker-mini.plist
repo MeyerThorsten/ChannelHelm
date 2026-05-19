@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.channelhelm.worker-mini</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/thorsten/Dev/ChannelHelm</string>
+
+  <!-- Mac Mini role: cheap parallelism for short LLM calls + dispatch +
+       signal collection. Mac Minis hit an LLM_HOST elsewhere on the LAN. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/pnpm</string>
+    <string>exec</string>
+    <string>tsx</string>
+    <string>workers/runner.ts</string>
+    <string>--kinds</string>
+    <string>generate_asset,dispatch,collect_signal,promote_voice_examples</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>LM_STUDIO_DEFAULT_HOST</key>
+    <string>http://m3ultra-96gb.local:1234/v1</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/channelhelm-worker-mini.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/channelhelm-worker-mini.err</string>
+</dict>
+</plist>

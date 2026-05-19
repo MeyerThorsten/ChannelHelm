@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.channelhelm.worker-llm</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/thorsten/Dev/ChannelHelm</string>
+
+  <!-- LLM Mac role (M3 Ultra 96 GB or 512 GB): transcribe, vlm, intelligence,
+       asset generation. Adjust the kinds list per machine if you want to
+       reserve the 235B model for the 512 GB box.  -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/pnpm</string>
+    <string>exec</string>
+    <string>tsx</string>
+    <string>workers/runner.ts</string>
+    <string>--kinds</string>
+    <string>transcribe_audio,analyze_visual,analyze_intelligence,generate_asset</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>LM_STUDIO_DEFAULT_HOST</key>
+    <string>http://localhost:1234/v1</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/channelhelm-worker-llm.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/channelhelm-worker-llm.err</string>
+</dict>
+</plist>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.channelhelm.worker-master</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/thorsten/Dev/ChannelHelm</string>
+
+  <!-- Master Mac role (M4 Max): ingest, fuse, clip_render, dispatch. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/pnpm</string>
+    <string>exec</string>
+    <string>tsx</string>
+    <string>workers/runner.ts</string>
+    <string>--kinds</string>
+    <string>ingest,fuse,clip_render,thumbnail_concepts,dispatch</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/channelhelm-worker-master.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/channelhelm-worker-master.err</string>
+</dict>
+</plist>

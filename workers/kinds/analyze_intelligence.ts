@@ -96,6 +96,18 @@ export async function run(job: JobRow): Promise<void> {
       idempotencyKey: `generate_asset:${packageId}:${assetType}`,
     });
   }
+
+  // §13 step 15 — thumbnail concepts are not LLM-generated assets; they're
+  // produced by extracting frames at the hook timestamps the LLM just gave
+  // us. fast_audio_only profile has no frame_index to draw from (§5.5), so
+  // skip it there. Idempotency key matches the §4 convention.
+  if (profile !== 'fast_audio_only') {
+    await enqueue({
+      kind: 'thumbnail_concepts',
+      payload: { sourceId, packageId, processingProfile: profile },
+      idempotencyKey: `thumbnail_concepts:${packageId}`,
+    });
+  }
 }
 
 /**

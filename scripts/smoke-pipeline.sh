@@ -77,12 +77,19 @@ done
 unset WORKER_NO_BACKOFF
 
 # ─── verify ────────────────────────────────────────────────────────────────
+say "drain thumbnail_concepts (orphan-fix: analyze_intelligence now enqueues it)"
+pnpm exec tsx workers/runner.ts --kinds thumbnail_concepts --once 2>&1 | sed 's/^/  /'
+
 say "verify assets table"
 ASSET_COUNT=$(psql "$DB" -tAc "SELECT count(*) FROM assets WHERE package_id = '$PACKAGE_ID'")
 echo "  asset count = $ASSET_COUNT"
-# 10 = 9 text assets + 1 short_clip_plan (Session 09 + the plan added when
-# the gap pass landed). Plans live alongside text assets pre-approval.
-[[ "$ASSET_COUNT" == "10" ]] || die "expected 10 assets, got $ASSET_COUNT"
+THUMBS=$(psql "$DB" -tAc "SELECT count(*) FROM assets WHERE package_id = '$PACKAGE_ID' AND type = 'thumbnail_concept'")
+echo "  thumbnail_concept count = $THUMBS"
+# 10 generate_asset outputs (9 text + 1 short_clip_plan) + 1 thumbnail_concept
+# under standard_audio_visual (premium would emit 3). Plans live alongside
+# text assets pre-approval.
+[[ "$ASSET_COUNT" == "11" ]] || die "expected 11 assets (10 + 1 thumbnail), got $ASSET_COUNT"
+[[ "$THUMBS" == "1" ]] || die "expected 1 thumbnail_concept, got $THUMBS"
 
 MISSING_PROV=$(psql "$DB" -tAc "
   SELECT count(*) FROM assets
