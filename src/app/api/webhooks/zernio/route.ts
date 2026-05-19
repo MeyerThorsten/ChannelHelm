@@ -1,24 +1,48 @@
 import { createHash } from 'node:crypto';
 import { db } from '@/db/client';
 import { webhookEvents } from '@/db/schema';
+import { verifyHmac } from '@/lib/hmac';
 import { processWebhookEvent } from '@/lib/webhook-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const SIG_HEADER = process.env.ZERNIO_SIGNATURE_HEADER ?? 'x-zernio-signature';
+const SECRET = process.env.ZERNIO_WEBHOOK_SECRET;
+let warnedUnverified = false;
+
 /**
- * Zernio webhook receiver. Idempotency on `(source, source_event_id)` per
- * §4: redelivered events collide on the unique index and the receiver
- * returns 200 with `duplicate: true`.
+ * Zernio webhook receiver. Two-layer trust:
+ *   1. HMAC-SHA256 of the raw body (when ZERNIO_WEBHOOK_SECRET is set —
+ *      Zernio signs every callback; we reject anything that doesn't match).
+ *   2. Unique index on (source, source_event_id) per §4: redelivered events
+ *      collide and the receiver returns 200 with `duplicate: true`.
  *
- * No bearer auth — Zernio is external. v2 will require HMAC verification
- * using a shared secret; for v1 we accept any body and rely on the unique
- * constraint as the only correctness gate.
+ * When ZERNIO_WEBHOOK_SECRET is unset the receiver still accepts requests
+ * (v1 may be deployed before Zernio publishes the secret) but logs a single
+ * warning so it's visible the path is unverified.
  */
 export async function POST(req: Request) {
+  const raw = await req.text();
+  const check = verifyHmac({
+    secret: SECRET,
+    headerName: SIG_HEADER,
+    headerValue: req.headers.get(SIG_HEADER),
+    rawBody: raw,
+  });
+  if (!check.ok) {
+    return Response.json({ error: 'invalid_signature', reason: check.reason }, { status: 401 });
+  }
+  if (check.mode === 'unverified' && !warnedUnverified) {
+    console.warn(
+      '[webhook:zernio] ZERNIO_WEBHOOK_SECRET not set — accepting unsigned webhooks. Set it to enforce signatures.',
+    );
+    warnedUnverified = true;
+  }
+
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = JSON.parse(raw) as Record<string, unknown>;
   } catch {
     return Response.json({ error: 'invalid_json' }, { status: 400 });
   }

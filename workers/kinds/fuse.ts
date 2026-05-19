@@ -122,7 +122,8 @@ export async function run(job: JobRow): Promise<void> {
   });
 }
 
-function buildWindows(opts: {
+// Exported for unit tests in tests/fuse-windows.test.ts.
+export function buildWindows(opts: {
   totalSeconds: number;
   windowSeconds: number;
   segments: TranscriptSegment[];

@@ -1,21 +1,42 @@
 import { createHash } from 'node:crypto';
 import { db } from '@/db/client';
 import { webhookEvents } from '@/db/schema';
+import { verifyHmac } from '@/lib/hmac';
 import { processWebhookEvent } from '@/lib/webhook-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const SIG_HEADER = process.env.DOJOCLAW_SIGNATURE_HEADER ?? 'x-dojoclaw-signature';
+const SECRET = process.env.DOJOCLAW_WEBHOOK_SECRET;
+let warnedUnverified = false;
+
 /**
  * DojoClaw webhook receiver. Same idempotency contract as the Zernio
- * receiver — collision on `(source, source_event_id)` returns 200 with
- * `duplicate: true`. DojoClaw is on the LAN so HMAC verification can land
- * in v2 if needed; v1 accepts any body.
+ * receiver. HMAC verification when DOJOCLAW_WEBHOOK_SECRET is set;
+ * unsigned-but-accepted (with a one-shot console warning) otherwise.
  */
 export async function POST(req: Request) {
+  const raw = await req.text();
+  const check = verifyHmac({
+    secret: SECRET,
+    headerName: SIG_HEADER,
+    headerValue: req.headers.get(SIG_HEADER),
+    rawBody: raw,
+  });
+  if (!check.ok) {
+    return Response.json({ error: 'invalid_signature', reason: check.reason }, { status: 401 });
+  }
+  if (check.mode === 'unverified' && !warnedUnverified) {
+    console.warn(
+      '[webhook:dojoclaw] DOJOCLAW_WEBHOOK_SECRET not set — accepting unsigned webhooks. Set it to enforce signatures.',
+    );
+    warnedUnverified = true;
+  }
+
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = JSON.parse(raw) as Record<string, unknown>;
   } catch {
     return Response.json({ error: 'invalid_json' }, { status: 400 });
   }

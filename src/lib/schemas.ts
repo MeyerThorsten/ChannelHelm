@@ -21,6 +21,37 @@ export const SourceKind = z.enum(['youtube_url', 'uploaded_video', 'podcast', 't
 const JsonObject = z.record(z.unknown());
 const StringArray = z.array(z.string());
 
+// ─── status enums ────────────────────────────────────────────────
+//
+// Sourced from §2.1 (assets) and §10 (packages). The pipeline workers
+// set the in-flight values (analyzing/analyzed/dispatching) themselves;
+// API consumers only ever set the terminal-ish values (approved,
+// rejected, scheduled) via the approval flow.
+
+export const PackageStatus = z.enum([
+  'draft',
+  'analyzing',
+  'analyzed',
+  'ready_for_review',
+  'approved',
+  'dispatching',
+  'published',
+  'failed',
+]);
+export type PackageStatus = z.infer<typeof PackageStatus>;
+
+export const AssetStatus = z.enum([
+  'draft',
+  'ready_for_review',
+  'approved',
+  'rejected',
+  'scheduled',
+  'dispatching',
+  'published',
+  'failed',
+]);
+export type AssetStatus = z.infer<typeof AssetStatus>;
+
 // ─── brands ──────────────────────────────────────────────────────
 
 export const BrandCreate = z.object({
@@ -61,7 +92,7 @@ export type SourceCreate = z.infer<typeof SourceCreate>;
 export const PackageCreate = z.object({
   brandId: z.string().regex(/^brd_/),
   sourceId: z.string().regex(/^src_/),
-  status: z.string().optional(),
+  status: PackageStatus.optional(),
   processingProfile: ProcessingProfile.optional(),
   intelligence: JsonObject.optional(),
   routing: JsonObject.optional(),
@@ -70,7 +101,7 @@ export type PackageCreate = z.infer<typeof PackageCreate>;
 
 export const PackageUpdate = z
   .object({
-    status: z.string(),
+    status: PackageStatus,
     processingProfile: ProcessingProfile,
     intelligence: JsonObject,
     routing: JsonObject,
@@ -84,7 +115,7 @@ export type PackageUpdate = z.infer<typeof PackageUpdate>;
 
 export const AssetUpdate = z
   .object({
-    status: z.string(),
+    status: AssetStatus,
     approvalRequired: z.boolean(),
     payload: JsonObject,
     provenance: JsonObject,
@@ -110,14 +141,14 @@ export const SourceListQuery = z.object({
 
 export const PackageListQuery = z.object({
   brandId: z.string().regex(/^brd_/),
-  status: z.string().optional(),
+  status: PackageStatus.optional(),
   sourceId: z.string().regex(/^src_/).optional(),
 });
 
 export const AssetListQuery = z.object({
   packageId: z.string().regex(/^pkg_/),
   type: z.string().optional(),
-  status: z.string().optional(),
+  status: AssetStatus.optional(),
 });
 
 // ─── jobs (enqueue from the API) ─────────────────────────────────

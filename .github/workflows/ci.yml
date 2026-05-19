@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# CI only runs the fast checks: typecheck, lint, unit tests, build.
+# The end-to-end smokes need yt-dlp + ffmpeg + LM Studio + a real
+# Postgres and aren't run in CI by design.
+jobs:
+  check:
+    name: typecheck + lint + tests + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      # We don't run smokes in CI, but Vitest doesn't need Postgres either;
+      # the integration test plan lands later. Listing the service here so
+      # adding integration tests is a one-line change.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: channelhelm_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm typecheck
+
+      - name: lint
+        run: pnpm lint
+
+      - name: test
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/channelhelm_ci
+
+      - name: build
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/channelhelm_ci
+          LOCAL_BEARER_TOKEN: ci-token
