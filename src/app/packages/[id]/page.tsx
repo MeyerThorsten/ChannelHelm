@@ -1,14 +1,15 @@
 import { join } from 'node:path';
-import { StatusPill } from '@/components/StatusPill';
-import { type GenericAsset, Studio } from '@/components/studio/Studio';
-import { AsyncActionButton } from '@/components/studio/buttons';
+import {
+  type ApprovalAsset,
+  type GenericAsset,
+  StudioShell,
+} from '@/components/studio/StudioShell';
 import { db } from '@/db/client';
 import { assets, brands, packages, sources } from '@/db/schema';
 import { readScoredList } from '@/lib/asset-payload';
 import { mediaUrlFor } from '@/lib/media-path';
-import { deletePackage, retryPackage } from '@/server-actions/studio';
+import { formatDuration, pipelineProgress } from '@/lib/pipeline';
 import { asc, eq } from 'drizzle-orm';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,16 @@ const TAB_ASSET_TYPES: Record<string, string[]> = {
   linkedin: ['linkedin_post'],
 };
 
+const READY = new Set(['ready_for_review', 'approved', 'dispatching', 'scheduled', 'published']);
+const FAILED = new Set(['failed', 'rejected']);
+
+function assetLabel(type: string): string {
+  return type
+    .replace(/_/g, ' ')
+    .replace(/\byoutube\b/i, 'YouTube')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default async function PackageDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [joined] = await db
@@ -64,7 +75,6 @@ export default async function PackageDetailPage({ params }: PageProps) {
   const byType = (t: string) => rows.find((r) => r.type === t);
   const intelligence = pkg.intelligence as Record<string, unknown>;
 
-  // Video URL: prefer the ingest-recorded path, else original.mp4 in the dir.
   const ingest = (intelligence.ingest ?? {}) as { file_path?: string };
   const videoUrl =
     (ingest.file_path && mediaUrlFor(ingest.file_path)) ||
@@ -112,59 +122,60 @@ export default async function PackageDetailPage({ params }: PageProps) {
   for (const [tab, types] of Object.entries(TAB_ASSET_TYPES)) {
     assetsByTab[tab] = rows
       .filter((r) => types.includes(r.type))
-      .map((r) => ({ id: r.id, type: r.type, payload: r.payload as Record<string, unknown> }));
+      .map((r) => ({
+        id: r.id,
+        type: r.type,
+        payload: r.payload as Record<string, unknown>,
+        status: r.status,
+      }));
   }
 
-  const retry = retryPackage.bind(null, pkg.id);
-  const del = deletePackage.bind(null, pkg.id);
+  const counts = {
+    total: rows.length,
+    ready: rows.filter((r) => READY.has(r.status)).length,
+    pending: rows.filter((r) => !READY.has(r.status) && !FAILED.has(r.status)).length,
+    failed: rows.filter((r) => FAILED.has(r.status)).length,
+  };
+
+  const approval: ApprovalAsset[] = rows.map((r) => {
+    const text = (r.payload as { text?: string }).text;
+    return {
+      id: r.id,
+      label: assetLabel(r.type),
+      sub: text ? `${text.slice(0, 48)}${text.length > 48 ? '…' : ''}` : r.type,
+      status: r.status,
+    };
+  });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-2">
-        <Link href="/" className="text-sm text-sky-700 hover:underline dark:text-sky-400">
-          ← all packages
-        </Link>
-      </div>
-      <header className="mb-6 flex items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        <div className="min-w-0">
-          <h1 className="truncate text-3xl font-bold tracking-tight">{selectedTitle}</h1>
-          <div className="mt-2 flex items-center gap-3 text-sm text-zinc-500">
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">{brand.slug}</span>
-            <span>·</span>
-            <span>{pkg.processingProfile}</span>
-            <span>·</span>
-            <StatusPill status={pkg.status} />
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <AsyncActionButton action={retry} icon="↺" pendingLabel="Retrying…">
-            Retry
-          </AsyncActionButton>
-          <AsyncActionButton action={del} variant="danger" icon="🗑" pendingLabel="Deleting…">
-            Delete
-          </AsyncActionButton>
-        </div>
-      </header>
-
-      <Studio
-        packageId={pkg.id}
-        sourceId={source.id}
-        videoUrl={videoUrl}
-        metadataText={metadataText}
-        youtube={{
-          titlesAssetId: titlesAsset?.id ?? null,
-          titles,
-          selectedIndex,
-          descriptionAssetId: descAsset?.id ?? null,
-          description,
-          tagsAssetId: tagsAsset?.id ?? null,
-          tags,
-          transcript,
-          thumbnails,
-        }}
-        tabs={TABS}
-        assetsByTab={assetsByTab}
-      />
-    </main>
+    <StudioShell
+      packageId={pkg.id}
+      sourceId={source.id}
+      pkg={{
+        status: pkg.status,
+        profile: pkg.processingProfile,
+        updatedAt: new Date(pkg.updatedAt).toISOString().slice(0, 16).replace('T', ' '),
+        duration: formatDuration(source.durationSeconds),
+      }}
+      brand={{ slug: brand.slug, name: brand.name }}
+      videoUrl={videoUrl}
+      metadataText={metadataText}
+      progress={pipelineProgress(intelligence, pkg.status)}
+      counts={counts}
+      youtube={{
+        titlesAssetId: titlesAsset?.id ?? null,
+        titles,
+        selectedIndex,
+        descriptionAssetId: descAsset?.id ?? null,
+        description,
+        tagsAssetId: tagsAsset?.id ?? null,
+        tags,
+        transcript,
+        thumbnails,
+      }}
+      tabs={TABS}
+      assetsByTab={assetsByTab}
+      approval={approval}
+    />
   );
 }

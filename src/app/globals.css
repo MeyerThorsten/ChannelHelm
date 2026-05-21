@@ -1,34 +1,202 @@
 @import "tailwindcss";
 
-@theme {
-  /* The status-pill palette. Keeps the per-status colours in CSS rather
-     than as inline TS, so the package list and detail pages reference
-     the same source. */
-  --color-status-draft: #888;
-  --color-status-analyzing: #0a7;
-  --color-status-analyzed: #0a7;
-  --color-status-ready: #b60;
-  --color-status-approved: #069;
-  --color-status-dispatching: #069;
-  --color-status-scheduled: #069;
-  --color-status-published: #0a4;
-  --color-status-rejected: #888;
-  --color-status-failed: #c33;
-}
+/* ── ChannelHelm visual system (ported from the Claude Design handoff) ──────
+   Dark-primary with a light toggle (data-theme on <html>). The redesigned
+   screens style with these CSS vars + inline styles; legacy Tailwind classes
+   still resolve via the @import above during the transition. */
 
 :root {
-  color-scheme: light dark;
-  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --accent: #0ea5e9;
+  --accent-glow: rgba(14, 165, 233, 0.18);
+  --accent-soft: rgba(14, 165, 233, 0.12);
+
+  --status-draft: #71717a;
+  --status-analyzing: #14b8a6;
+  --status-ready: #f59e0b;
+  --status-approved: #0ea5e9;
+  --status-published: #10b981;
+  --status-failed: #ef4444;
+  --status-scheduled: #a855f7;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
+}
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --bg-elev: #111114;
+  --bg-elev-2: #16161a;
+  --bg-hover: #1c1c21;
+  --panel: #111114;
+  --panel-strong: #16161a;
+  --border: #232329;
+  --border-strong: #2e2e36;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+  --text-dim: #52525b;
+  --grid-dot: rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 0 0 1px var(--border);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #fafaf9;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f4f4f2;
+  --bg-hover: #f0f0ee;
+  --panel: #ffffff;
+  --panel-strong: #fafaf9;
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-faint: #71717a;
+  --text-dim: #a1a1aa;
+  --grid-dot: rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.02) inset, 0 0 0 1px var(--border);
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
 }
 
 body {
-  background: #fafafa;
-  color: #18181b;
+  min-height: 100vh;
+  background: radial-gradient(var(--grid-dot) 1px, transparent 1px) 0 0 / 24px 24px, var(--bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #0a0a0a;
-    color: #e5e5e5;
+::selection {
+  background: var(--accent-glow);
+  color: var(--text);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Utility classes used by the redesigned screens */
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum", "zero";
+}
+.serif {
+  font-family: var(--font-serif);
+}
+.muted {
+  color: var(--text-muted);
+}
+.faint {
+  color: var(--text-faint);
+}
+.dim {
+  color: var(--text-dim);
+}
+.uppercase-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
   }
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.skel {
+  background: linear-gradient(90deg, var(--bg-elev) 0%, var(--bg-hover) 50%, var(--bg-elev) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+  border-radius: var(--radius-sm);
+}
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
