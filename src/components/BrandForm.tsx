@@ -1,4 +1,8 @@
+'use client';
+
 import type { brands } from '@/db/schema';
+import { slugify } from '@/lib/url';
+import { useState } from 'react';
 
 type Brand = typeof brands.$inferSelect;
 
@@ -26,8 +30,30 @@ export function BrandForm({
     ? (brand?.autoDispatchFor as string[]).join(', ')
     : '';
 
+  // Auto-slugify: for a new brand the slug field tracks the name (until the
+  // operator edits the slug directly). On edit the slug is immutable.
+  const isNew = !brand;
+  const [name, setName] = useState(brand?.name ?? '');
+  const [slug, setSlug] = useState(brand?.slug ?? '');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const shownSlug = isNew && !slugTouched ? slugify(name) : slug;
+
   return (
     <form action={action} className="space-y-5">
+      <div>
+        <label className={LABEL} htmlFor="name">
+          Display name
+        </label>
+        <input
+          id="name"
+          name="name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={INPUT}
+        />
+      </div>
+
       <div>
         <label className={LABEL} htmlFor="slug">
           Slug
@@ -36,19 +62,18 @@ export function BrandForm({
           id="slug"
           name="slug"
           required
-          pattern="[a-z0-9-]+"
-          defaultValue={brand?.slug ?? ''}
-          disabled={!!brand}
+          value={shownSlug}
+          onChange={(e) => {
+            setSlugTouched(true);
+            setSlug(slugify(e.target.value));
+          }}
+          disabled={!isNew}
           className={INPUT}
         />
-        <p className={HELP}>kebab-case, used in /var/channelhelm/media/&lt;slug&gt;/…</p>
-      </div>
-
-      <div>
-        <label className={LABEL} htmlFor="name">
-          Display name
-        </label>
-        <input id="name" name="name" required defaultValue={brand?.name ?? ''} className={INPUT} />
+        <p className={HELP}>
+          Auto-derived from the name; kebab-case, used in /var/channelhelm/media/&lt;slug&gt;/…
+          {!isNew && ' Immutable after creation (use “Normalize slug” to migrate).'}
+        </p>
       </div>
 
       <div>

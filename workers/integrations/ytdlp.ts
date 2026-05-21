@@ -1,5 +1,6 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { channelUrlFrom, looksLikeChannelId } from '@/lib/url';
 import { runProc } from './_proc';
 
 // Allow an explicit binary path so the Next.js server process (which may have
@@ -68,6 +69,36 @@ export async function downloadVideo(opts: {
 export async function ytDlpVersion(): Promise<string> {
   const { stdout } = await runProc(YT_DLP, ['--version']);
   return stdout.trim();
+}
+
+/**
+ * Resolve a YouTube channel handle/URL/id to its canonical UC… channel id.
+ * Returns the UC… id, or null if it can't be resolved. Already-canonical
+ * ids pass straight through without a network call.
+ */
+export async function resolveChannelId(handleOrUrl: string): Promise<string | null> {
+  if (looksLikeChannelId(handleOrUrl)) return handleOrUrl.trim();
+  const channelUrl = channelUrlFrom(handleOrUrl);
+  if (!channelUrl) return null;
+  try {
+    const { stdout } = await runProc(
+      YT_DLP,
+      [
+        '--dump-single-json',
+        '--skip-download',
+        '--playlist-items',
+        '1',
+        '--no-warnings',
+        channelUrl,
+      ],
+      { logCommand: true },
+    );
+    const info = JSON.parse(stdout) as { channel_id?: string; id?: string };
+    return info.channel_id ?? (looksLikeChannelId(info.id) ? (info.id ?? null) : null);
+  } catch (err) {
+    console.warn('[ytdlp] resolveChannelId failed:', err);
+    return null;
+  }
 }
 
 export type YtDlpChannelMeta = {
