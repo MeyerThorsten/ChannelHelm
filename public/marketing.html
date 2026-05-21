@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ChannelHelm — Drop a video. Get a publishing kit.</title>
+<meta name="description" content="ChannelHelm is a local-first video-to-publishing command center. Drop a video; it transcribes, analyzes, and drafts every asset for every platform — review, edit, approve, ship." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --status-analyzing: #14b8a6;
+    --status-ready: #f59e0b;
+    --status-published: #10b981;
+    --status-scheduled: #a855f7;
+    --bg: #0a0a0b;
+    --bg-elev: #111114;
+    --bg-elev-2: #16161a;
+    --panel: #111114;
+    --panel-strong: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --text-faint: #71717a;
+    --text-dim: #52525b;
+    --grid-dot: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(var(--grid-dot) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  .mono { font-family: var(--font-mono); font-feature-settings: "tnum"; }
+  .serif { font-family: var(--font-serif); }
+  .eyebrow {
+    text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 11px; font-weight: 500; color: var(--text-faint);
+  }
+  .accent { color: var(--accent); }
+
+  /* Nav */
+  header.nav {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--bg) 86%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 16px; height: 56px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.2px; }
+  .logo-mark {
+    width: 24px; height: 24px; border-radius: 6px; background: var(--accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 50%, white), 0 4px 16px var(--accent-glow);
+  }
+  .nav-links { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .nav-links a { padding: 7px 12px; font-size: 13px; color: var(--text-muted); border-radius: 7px; }
+  .nav-links a:hover { color: var(--text); background: var(--bg-elev-2); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg-elev); color: var(--text);
+    cursor: pointer; transition: all .14s;
+  }
+  .btn:hover { background: var(--bg-elev-2); border-color: var(--border-strong); }
+  .btn-primary {
+    color: #fff; background: var(--accent);
+    border-color: color-mix(in oklab, var(--accent) 80%, white);
+    box-shadow: 0 0 0 1px var(--accent-glow), 0 1px 0 rgba(255,255,255,0.18) inset;
+  }
+  .btn-primary:hover { filter: brightness(1.08); background: var(--accent); }
+
+  /* Hero */
+  .hero { padding: 88px 0 56px; text-align: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 9px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg-elev);
+    font-size: 12px; color: var(--text-muted); margin-bottom: 26px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--status-published); box-shadow: 0 0 0 3px color-mix(in oklab, var(--status-published) 22%, transparent); }
+  h1.hero-title {
+    font-family: var(--font-serif); font-weight: 400;
+    font-size: clamp(40px, 7vw, 76px); line-height: 1.02; letter-spacing: -1px;
+    margin: 0 0 18px;
+  }
+  h1.hero-title em { font-style: italic; color: var(--text-faint); }
+  .sub { font-size: clamp(16px, 2.2vw, 20px); color: var(--text-muted); max-width: 640px; margin: 0 auto 30px; }
+  .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero-meta { margin-top: 30px; font-size: 12px; color: var(--text-faint); }
+
+  /* Pipeline strip */
+  .pipeline {
+    margin: 56px auto 0; max-width: 880px;
+    display: grid; grid-template-columns: repeat(4, 1fr) ; gap: 0;
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    background: var(--panel);
+  }
+  .layer { padding: 22px 18px; border-right: 1px solid var(--border); position: relative; }
+  .layer:last-child { border-right: none; }
+  .layer .glyph {
+    width: 34px; height: 34px; border-radius: 8px; display: inline-flex;
+    align-items: center; justify-content: center; font-family: var(--font-mono);
+    font-size: 16px; margin-bottom: 12px;
+    color: var(--accent); background: var(--accent-soft);
+    border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  .layer h4 { margin: 0 0 4px; font-size: 14px; }
+  .layer p { margin: 0; font-size: 12.5px; color: var(--text-faint); }
+  .layer .step { position: absolute; top: 14px; right: 14px; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+
+  /* Sections */
+  section { padding: 64px 0; }
+  .section-head { max-width: 640px; margin-bottom: 36px; }
+  .section-head h2 {
+    font-family: var(--font-serif); font-weight: 400; font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -0.5px; margin: 8px 0 10px; line-height: 1.1;
+  }
+  .section-head p { margin: 0; color: var(--text-muted); font-size: 16px; }
+  .center { text-align: center; margin-left: auto; margin-right: auto; }
+
+  /* Feature grid */
+  .grid { display: grid; gap: 14px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 22px;
+    transition: border-color .14s, transform .14s;
+  }
+  .card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .card .ico { font-size: 20px; margin-bottom: 12px; display: block; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
+
+  /* Asset list */
+  .assets { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px; }
+  .asset-group h4 { font-size: 13px; margin: 0 0 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .asset-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .asset-group li { font-size: 13.5px; color: var(--text-muted); display: flex; gap: 9px; align-items: baseline; }
+  .asset-group li::before { content: "▹"; color: var(--accent); font-size: 11px; }
+
+  /* Platform chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border-radius: 999px; font-size: 13px;
+    border: 1px solid var(--border); background: var(--bg-elev); color: var(--text-muted);
+  }
+  .chip b { color: var(--text); font-weight: 500; }
+
+  /* Layouts row */
+  .layouts { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .layout-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .layout-prev { height: 130px; background: var(--bg-elev-2); border-bottom: 1px solid var(--border); padding: 12px; display: flex; gap: 6px; }
+  .layout-card .body { padding: 16px 18px; }
+  .layout-card h3 { margin: 0 0 4px; font-size: 15px; }
+  .layout-card p { margin: 0; font-size: 13px; color: var(--text-muted); }
+  .col { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; }
+
+  /* Score / status mini */
+  .score { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border-radius: 4px; color: var(--accent); background: var(--accent-soft); }
+
+  /* Steps */
+  .steps { counter-reset: step; display: grid; gap: 14px; }
+  .step-row { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  .step-row .num {
+    counter-increment: step; flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 8px; font-family: var(--font-mono); font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  .step-row .num::before { content: counter(step); }
+  .step-row h3 { margin: 2px 0 4px; font-size: 16px; }
+  .step-row p { margin: 0; font-size: 14px; color: var(--text-muted); }
+
+  /* CTA band */
+  .cta-band {
+    text-align: center; border: 1px solid var(--border-strong); border-radius: 18px;
+    padding: 56px 24px;
+    background: radial-gradient(120% 120% at 50% 0%, var(--accent-soft), transparent 60%), var(--panel);
+  }
+  .cta-band h2 { font-family: var(--font-serif); font-weight: 400; font-size: clamp(28px, 4vw, 42px); margin: 0 0 12px; letter-spacing: -0.5px; }
+  .cta-band p { color: var(--text-muted); margin: 0 auto 26px; max-width: 520px; }
+
+  footer { border-top: 1px solid var(--border); padding: 32px 0; color: var(--text-faint); font-size: 13px; }
+  .foot-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 820px) {
+    .grid-3, .layouts, .pipeline { grid-template-columns: 1fr 1fr; }
+    .assets { grid-template-columns: 1fr; }
+    .nav-links a:not(.btn) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .grid-3, .grid-2, .layouts, .pipeline { grid-template-columns: 1fr; }
+    .layer { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="#top">
+      <span class="logo-mark">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+      </span>
+      ChannelHelm
+    </a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#assets">What you get</a>
+      <a href="#studio">The Studio</a>
+      <a href="#features">Features</a>
+      <a class="btn btn-primary" href="#start">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<section class="hero wrap">
+  <span class="pill"><span class="dot"></span> Local-first · runs on your own Mac</span>
+  <h1 class="hero-title">Drop a video.<br /><em>Get a publishing kit.</em></h1>
+  <p class="sub">ChannelHelm is a video-to-publishing command center. It watches your video — audio, visuals, and meaning — and drafts every asset for every platform. You review, edit, approve, and ship.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#start">▶ Get started</a>
+    <a class="btn" href="#how">See how it works</a>
+  </div>
+  <div class="hero-meta mono">no cloud SaaS · your media never leaves your machine</div>
+
+  <div class="pipeline">
+    <div class="layer"><span class="step">01</span><span class="glyph">♬</span><h4>Audio</h4><p>Transcription + speaker diarization with word-level timing.</p></div>
+    <div class="layer"><span class="step">02</span><span class="glyph">▦</span><h4>Visual</h4><p>Scene cuts, frame descriptions, and on-screen text (OCR).</p></div>
+    <div class="layer"><span class="step">03</span><span class="glyph">⌘</span><h4>Fusion</h4><p>Audio + visual aligned into one timestamped scene log.</p></div>
+    <div class="layer"><span class="step">04</span><span class="glyph">✦</span><h4>Intelligence</h4><p>Topics, hooks, retention — the brief every asset is drafted from.</p></div>
+  </div>
+</section>
+
+<!-- Problem / value -->
+<section class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">The problem</span>
+    <h2>One video. A dozen platforms. Hours of repackaging.</h2>
+    <p>A single upload needs a YouTube title, description, chapters, tags and thumbnail; short-clip cuts; a blog draft; and a post for every social network — each on-brand, each different. ChannelHelm does the first draft of all of it, locally, in one pass.</p>
+  </div>
+  <div class="grid grid-3">
+    <div class="card"><span class="ico">🧠</span><h3>It understands the video</h3><p>Not just a transcript — a four-layer read of what's said, what's shown, and what matters, fused into a timestamped scene log.</p></div>
+    <div class="card"><span class="ico">📦</span><h3>It produces a Package</h3><p>One source video becomes a canonical Publishing Package: every derivative asset, each with full provenance (which model, prompt, and inputs made it).</p></div>
+    <div class="card"><span class="ico">🔒</span><h3>It stays on your machine</h3><p>Local-first by design. Your media and transcripts never touch a cloud SaaS — the pipeline runs on your own Mac fleet.</p></div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how" class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">How it works</span>
+    <h2>From drop to dispatch in four moves.</h2>
+  </div>
+  <div class="steps">
+    <div class="step-row"><span class="num"></span><div><h3>Ingest</h3><p>Drop a file or paste a link. For a YouTube URL, the brand is <b>auto-detected from the channel</b> — no manual picking. A package is created and the pipeline queues.</p></div></div>
+    <div class="step-row"><span class="num"></span><div><h3>Understand</h3><p>Background workers transcribe the audio, analyze the visuals, fuse them into a scene log, and extract the intelligence layer — topics, hooks, and retention windows.</p></div></div>
+    <div class="step-row"><span class="num"></span><div><h3>Review in the Studio</h3><p>Every asset is drafted and waiting. Read scored options, edit inline, regenerate a section, or generate one on demand — and watch the rest fill in as the pipeline completes.</p></div></div>
+    <div class="step-row"><span class="num"></span><div><h3>Approve &amp; ship</h3><p>Approve what's ready and dispatch: YouTube and social via your publishing API, editorial to your local service. Track each asset through to published.</p></div></div>
+  </div>
+</section>
+
+<!-- What you get -->
+<section id="assets" class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">What you get</span>
+    <h2>Every asset, drafted and on-brand.</h2>
+    <p>One ingest produces the whole kit — scored where it counts, editable everywhere.</p>
+  </div>
+  <div class="assets">
+    <div class="asset-group">
+      <h4>▶ YouTube</h4>
+      <ul>
+        <li>Title options, each scored 0–100 with a character budget</li>
+        <li>Full description with chapters and hashtags built in</li>
+        <li>Scored tags</li>
+        <li>AI thumbnail concepts pulled from your hook moments</li>
+        <li>Clean transcript</li>
+      </ul>
+    </div>
+    <div class="asset-group">
+      <h4>✂ Clips &amp; Shorts</h4>
+      <ul>
+        <li>Short-clip plans cut from the highest-retention moments</li>
+        <li>Rendered vertical clips, ready to post</li>
+        <li>Long-form highlight cuts</li>
+      </ul>
+    </div>
+    <div class="asset-group">
+      <h4>📄 Editorial</h4>
+      <ul>
+        <li>Article briefs and blog drafts from the same source</li>
+        <li>Newsletter summaries</li>
+        <li>Routed to your editorial service for publishing</li>
+      </ul>
+    </div>
+    <div class="asset-group">
+      <h4>𝕏 Social</h4>
+      <ul>
+        <li>Posts &amp; threads tailored per network</li>
+        <li>15 destinations from one analysis</li>
+        <li>Drafted in your brand voice</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:36px">
+    <div class="eyebrow" style="margin-bottom:12px">Publishes to</div>
+    <div class="chips">
+      <span class="chip"><b>YouTube</b></span><span class="chip"><b>X</b></span>
+      <span class="chip"><b>LinkedIn</b></span><span class="chip"><b>Instagram</b></span>
+      <span class="chip"><b>TikTok</b></span><span class="chip"><b>Facebook</b></span>
+      <span class="chip"><b>Threads</b></span><span class="chip"><b>Pinterest</b></span>
+      <span class="chip"><b>Reddit</b></span><span class="chip"><b>Bluesky</b></span>
+      <span class="chip"><b>Telegram</b></span><span class="chip"><b>Snapchat</b></span>
+      <span class="chip"><b>WhatsApp</b></span><span class="chip"><b>Discord</b></span>
+      <span class="chip"><b>Google Business</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- The Studio -->
+<section id="studio" class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">The Studio</span>
+    <h2>Review the way you think.</h2>
+    <p>The per-package review is where you live. Three layouts, one keystroke apart — pick the one that fits the job.</p>
+  </div>
+  <div class="layouts">
+    <div class="layout-card">
+      <div class="layout-prev">
+        <div class="col" style="width:22%"></div>
+        <div class="col" style="flex:1"></div>
+        <div class="col" style="width:30%"></div>
+      </div>
+      <div class="body"><h3>Console</h3><p>Two-pane daily review: platform rail, video + live pipeline + stacked assets, and a confident approval panel.</p></div>
+    </div>
+    <div class="layout-card">
+      <div class="layout-prev">
+        <div class="col" style="width:30%"></div>
+        <div class="col" style="flex:1"></div>
+        <div class="col" style="width:28%"></div>
+      </div>
+      <div class="body"><h3>Editor</h3><p>A file tree of every asset, a focused single-asset editor with side-by-side comparison, and a provenance inspector.</p></div>
+    </div>
+    <div class="layout-card">
+      <div class="layout-prev" style="flex-direction:column">
+        <div class="col" style="height:34%"></div>
+        <div class="col" style="flex:1"></div>
+      </div>
+      <div class="body"><h3>Atlas</h3><p>An overview canvas of every platform with completion %. Triage what's ready; click in to focus.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">Why it's different</span>
+    <h2>Built like a studio, not an admin panel.</h2>
+  </div>
+  <div class="grid grid-3">
+    <div class="card"><span class="ico">📊</span><h3>Scored, legible options</h3><p>Titles and tags carry 0–100 scores against character budgets, so the best pick is obvious at a glance — then editable inline.</p></div>
+    <div class="card"><span class="ico">✦</span><h3>Regenerate anything</h3><p>Don't like a section? Regenerate just that one. Empty section? Generate it on demand straight from the transcript.</p></div>
+    <div class="card"><span class="ico">🏷️</span><h3>Multi-brand, auto-detected</h3><p>Run many channels. Paste a link and ChannelHelm matches the right brand from the channel — falling back to the website domain.</p></div>
+    <div class="card"><span class="ico">🔌</span><h3>Bring your own model</h3><p>Configurable LLM providers: OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, or the local Codex CLI — per task or as a default.</p></div>
+    <div class="card"><span class="ico">⚡</span><h3>Pipeline you can see</h3><p>A four-layer progress indicator shows exactly what's done and what's still generating. Partially-ready is a first-class state.</p></div>
+    <div class="card"><span class="ico">🧾</span><h3>Provenance on everything</h3><p>Every generated asset records the model, provider, prompt version, and inputs that produced it. Nothing is a black box.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="start" class="wrap">
+  <div class="cta-band">
+    <h2>Drop your next video into ChannelHelm.</h2>
+    <p>Run it on your own Mac, keep your media local, and turn one upload into a complete, on-brand publishing kit.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/">▶ Open the app</a>
+      <a class="btn" href="https://github.com/MeyerThorsten/ChannelHelm">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="logo" style="font-size:14px"><span class="logo-mark" style="width:20px;height:20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>ChannelHelm</span>
+    <span class="mono">local-first video-to-publishing · <span id="year"></span></span>
+  </div>
+</footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
