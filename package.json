@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:all": "bash scripts/dev.sh",
     "build": "next build",
     "start": "next start",
     "lint": "biome check .",

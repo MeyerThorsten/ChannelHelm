@@ -19,7 +19,9 @@ pnpm smoke:schema          # inserts brand → source → package, prints, clean
 
 | Command              | What it does                                  |
 |----------------------|-----------------------------------------------|
-| `pnpm dev`           | Next.js dev server                            |
+| `pnpm dev:all`       | **Web server + worker daemon together** — generation auto-starts when you add a video. Use this for local dev. |
+| `pnpm dev`           | Next.js dev server only (no worker — queued jobs won't run until a worker is started) |
+| `pnpm worker -- --kinds ingest,transcribe_audio,…` | Worker daemon only |
 | `pnpm typecheck`     | `tsc --noEmit`                                |
 | `pnpm lint`          | Biome check                                   |
 | `pnpm db:generate`   | Generate a new Drizzle migration from schema  |
