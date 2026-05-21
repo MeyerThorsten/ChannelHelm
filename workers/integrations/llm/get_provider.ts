@@ -2,6 +2,7 @@ import { db } from '@/db/client';
 import { llmProviders } from '@/db/schema';
 import { asc, desc, eq } from 'drizzle-orm';
 import { AnthropicProvider } from './anthropic';
+import { CodexCliProvider } from './codex';
 import { OpenAICompatibleProvider } from './openai_compatible';
 import type { LlmProvider, ProviderConfig } from './types';
 
@@ -10,6 +11,7 @@ type ProviderRecord = typeof llmProviders.$inferSelect;
 /** Instantiate the right provider class for a config. */
 export function providerFromConfig(config: ProviderConfig): LlmProvider {
   if (config.type === 'anthropic') return new AnthropicProvider(config);
+  if (config.type === 'codex-cli') return new CodexCliProvider(config);
   return new OpenAICompatibleProvider(config);
 }
 

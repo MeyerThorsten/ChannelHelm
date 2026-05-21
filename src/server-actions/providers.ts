@@ -3,8 +3,21 @@
 import { db } from '@/db/client';
 import { llmProviders } from '@/db/schema';
 import { providerFromConfig } from '@workers/integrations/llm/get_provider';
+import { fetchAvailableModels } from '@workers/integrations/llm/models';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+/**
+ * List the models a provider endpoint exposes, so the form can offer a
+ * dropdown. Best-effort — returns a static fallback if the live fetch fails.
+ */
+export async function listProviderModels(input: {
+  type: string;
+  baseUrl: string;
+  apiKey: string;
+}): Promise<{ models: string[]; fallback?: boolean }> {
+  return fetchAvailableModels(input);
+}
 
 function num(v: FormDataEntryValue | null, fallback: number): number {
   const n = Number(v);
@@ -13,9 +26,13 @@ function num(v: FormDataEntryValue | null, fallback: number): number {
 
 export async function createProviderFromForm(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim();
+  const type = String(formData.get('type') ?? 'openai-compatible');
   const baseUrl = String(formData.get('baseUrl') ?? '').trim();
   const model = String(formData.get('model') ?? '').trim();
-  if (!name || !baseUrl || !model) throw new Error('name, baseUrl and model are required');
+  // codex-cli has no endpoint (it spawns the local CLI), so baseUrl is optional there.
+  if (!name || !model || (type !== 'codex-cli' && !baseUrl)) {
+    throw new Error('name, model and (for HTTP providers) baseUrl are required');
+  }
   const isDefault = formData.get('isDefault') === 'on';
 
   await db.transaction(async (tx) => {
@@ -24,7 +41,7 @@ export async function createProviderFromForm(formData: FormData): Promise<void> 
     }
     await tx.insert(llmProviders).values({
       name,
-      type: String(formData.get('type') ?? 'openai-compatible'),
+      type,
       baseUrl,
       apiKey: String(formData.get('apiKey') ?? ''),
       model,
@@ -40,9 +57,12 @@ export async function createProviderFromForm(formData: FormData): Promise<void> 
 
 export async function updateProviderFromForm(id: number, formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim();
+  const type = String(formData.get('type') ?? 'openai-compatible');
   const baseUrl = String(formData.get('baseUrl') ?? '').trim();
   const model = String(formData.get('model') ?? '').trim();
-  if (!name || !baseUrl || !model) throw new Error('name, baseUrl and model are required');
+  if (!name || !model || (type !== 'codex-cli' && !baseUrl)) {
+    throw new Error('name, model and (for HTTP providers) baseUrl are required');
+  }
   const isDefault = formData.get('isDefault') === 'on';
 
   await db.transaction(async (tx) => {
@@ -51,7 +71,7 @@ export async function updateProviderFromForm(id: number, formData: FormData): Pr
       .update(llmProviders)
       .set({
         name,
-        type: String(formData.get('type') ?? 'openai-compatible'),
+        type,
         baseUrl,
         apiKey: String(formData.get('apiKey') ?? ''),
         model,

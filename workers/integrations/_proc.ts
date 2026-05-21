@@ -14,6 +14,12 @@ export type RunProcOptions = {
   maxBufferBytes?: number;
   /** Log the resolved argv before spawning. */
   logCommand?: boolean;
+  /** Pipe this string to the child's stdin (e.g. a prompt for `codex exec`). */
+  input?: string;
+  /** Resolve (don't reject) on non-zero exit — caller inspects code/stdout. */
+  allowNonZeroExit?: boolean;
+  /** Kill the child after this many ms (SIGKILL) and reject. */
+  timeoutMs?: number;
 };
 
 export type RunProcResult = {
@@ -35,19 +41,26 @@ export async function runProc(
     const child = spawn(cmd, args, {
       cwd: opts.cwd,
       env: opts.env ?? process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: [opts.input !== undefined ? 'pipe' : 'ignore', 'pipe', 'pipe'],
     });
     let stdout = '';
     let stderr = '';
     let truncated = false;
-    child.stdout.on('data', (chunk: Buffer) => {
+    let timer: NodeJS.Timeout | undefined;
+    if (opts.timeoutMs) {
+      timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        reject(new Error(`${cmd}: timed out after ${opts.timeoutMs}ms`));
+      }, opts.timeoutMs);
+    }
+    child.stdout?.on('data', (chunk: Buffer) => {
       if (stdout.length < maxBuf) {
         stdout += chunk.toString('utf8');
       } else {
         truncated = true;
       }
     });
-    child.stderr.on('data', (chunk: Buffer) => {
+    child.stderr?.on('data', (chunk: Buffer) => {
       if (stderr.length < maxBuf) {
         stderr += chunk.toString('utf8');
       } else {
@@ -55,14 +68,16 @@ export async function runProc(
       }
     });
     child.on('error', (err) => {
+      if (timer) clearTimeout(timer);
       reject(new Error(`${cmd}: spawn failed: ${err.message}`));
     });
     child.on('close', (code) => {
+      if (timer) clearTimeout(timer);
       const exitCode = code ?? -1;
       if (truncated) {
         stderr += '\n[runProc] output truncated';
       }
-      if (exitCode !== 0) {
+      if (exitCode !== 0 && !opts.allowNonZeroExit) {
         const tailErr = stderr.slice(-2000);
         reject(
           new Error(`${cmd} exited with code ${exitCode}${tailErr ? `: ${tailErr.trim()}` : ''}`),
@@ -71,6 +86,10 @@ export async function runProc(
       }
       resolve({ stdout, stderr, code: exitCode });
     });
+    if (opts.input !== undefined) {
+      child.stdin?.write(opts.input);
+      child.stdin?.end();
+    }
   });
 }
 

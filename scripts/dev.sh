@@ -16,7 +16,8 @@ PORT="${PORT:-3000}"
 WORKER_KINDS="${WORKER_KINDS:-ingest,transcribe_audio,analyze_visual,fuse,analyze_intelligence,generate_asset,thumbnail_concepts,clip_render,dispatch,collect_signal,promote_voice_examples}"
 
 # Make sure homebrew tools (yt-dlp, ffmpeg, uv) and Postgres CLIs are on PATH.
-export PATH="/opt/homebrew/bin:/opt/homebrew/opt/postgresql@16/bin:$PATH"
+# homebrew (yt-dlp/ffmpeg/uv), Postgres CLIs, npm-global (codex), LM Studio CLI.
+export PATH="/opt/homebrew/bin:/opt/homebrew/opt/postgresql@16/bin:$HOME/.npm-global/bin:$HOME/.lmstudio/bin:$PATH"
 
 echo "▶ web   : http://localhost:$PORT"
 echo "▶ worker: $WORKER_KINDS"
