@@ -9,8 +9,11 @@ system: |
   - 35-65 characters each (YouTube cuts off ~70).
   - One of them must be the "safe" choice. One must be the "swing".
   - No clickbait, no all-caps, no "You won't believe…".
+  - Give each title a `score` from 0-100 estimating click-through potential
+    (curiosity + clarity + specificity, penalize vagueness/baiting). Order
+    the array best-first.
 
-  Output JSON: {"titles": ["...", "...", "...", "...", "..."]}.
+  Output JSON: {"titles": [{"text": "...", "score": 95}, ...]} — exactly 5.
 ---
 Analysis:
 {{intelligence.analysis}}

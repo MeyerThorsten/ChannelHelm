@@ -1,0 +1,96 @@
+import { db } from '@/db/client';
+import { brands, packages, voiceExamples } from '@/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
+import { complete } from '../integrations/lm_studio';
+import { loadPrompt, render } from '../integrations/prompts';
+
+/**
+ * Shared content generation used by BOTH the generate_asset worker (bulk
+ * pipeline) and the interactive regenerate Server Action. Loads the
+ * `prompts/{assetType}.v1.md` prompt, renders it with the package's
+ * analysis + brand + top voice examples, calls the LLM, and returns the
+ * parsed payload + §2.2 provenance. The caller decides whether to INSERT
+ * (worker) or UPDATE (regenerate) the asset row.
+ */
+export type GeneratedAsset = {
+  payload: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+};
+
+export async function generateAssetContent(opts: {
+  packageId: string;
+  assetType: string;
+  processingProfile?: string;
+}): Promise<GeneratedAsset> {
+  const { packageId, assetType } = opts;
+
+  const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
+  if (!pkg) throw new Error(`generate: package ${packageId} not found`);
+  const intelligence = pkg.intelligence as Record<string, unknown>;
+  if (!intelligence.analysis) {
+    throw new Error(
+      'generate: package.intelligence.analysis missing — analyze_intelligence must run first',
+    );
+  }
+  const [brand] = await db.select().from(brands).where(eq(brands.id, pkg.brandId)).limit(1);
+  if (!brand) throw new Error(`generate: brand ${pkg.brandId} not found`);
+  const profile = opts.processingProfile ?? pkg.processingProfile;
+
+  const examples = await db
+    .select({ text: voiceExamples.text, score: voiceExamples.performanceScore })
+    .from(voiceExamples)
+    .where(and(eq(voiceExamples.brandId, brand.id), eq(voiceExamples.assetType, assetType)))
+    .orderBy(desc(voiceExamples.performanceScore))
+    .limit(5);
+
+  const prompt = await loadPrompt(assetType, 1);
+  const sceneLogSummary = summarizeSceneLog(intelligence.scene_log);
+  const user = render(prompt, {
+    brand,
+    intelligence: { ...intelligence, scene_log_summary: sceneLogSummary },
+    voice_examples: examples.length > 0 ? examples : 'No prior voice examples for this type.',
+  });
+
+  const result = await complete({
+    profile,
+    system: prompt.system ?? undefined,
+    user,
+    promptVersion: `${prompt.name}.v${prompt.version}`,
+    inputRefs: [
+      `analysis:${packageId}`,
+      ...(examples.length > 0 ? [`voice_examples:${brand.id}:${assetType}`] : []),
+    ],
+    maxTokens: 2048,
+    temperature: assetType === 'article_brief' ? 0.55 : 0.65,
+  });
+
+  const payload = parseJsonStrict(result.text, `generate:${assetType}`);
+  return {
+    payload: payload as Record<string, unknown>,
+    provenance: result.provenance as unknown as Record<string, unknown>,
+  };
+}
+
+export function summarizeSceneLog(sceneLog: unknown): unknown {
+  if (!sceneLog || typeof sceneLog !== 'object') return null;
+  const log = sceneLog as { windows?: { start: number; end: number; text: string }[] };
+  return (log.windows ?? []).map((w) => ({
+    start: w.start,
+    end: w.end,
+    text: w.text.length > 200 ? `${w.text.slice(0, 200)}…` : w.text,
+  }));
+}
+
+export function parseJsonStrict(text: string, label: string): unknown {
+  const stripped = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim();
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    const preview = stripped.slice(0, 200);
+    throw new Error(`${label}: model did not return valid JSON. First 200 chars: ${preview}`);
+  }
+}

@@ -1,0 +1,54 @@
+'use server';
+
+import { db } from '@/db/client';
+import { assets } from '@/db/schema';
+import { generateAssetContent } from '@workers/lib/generate';
+import { eq, sql } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+
+/**
+ * Interactive single-asset regeneration. Runs the LLM call SYNCHRONOUSLY in
+ * the Server Action (a deliberate, documented carve-out from "no LLM in
+ * Server Actions" — see CLAUDE.md). This keeps the studio's per-section
+ * Regenerate snappy and self-contained: no dependency on a running
+ * generate_asset worker. The bulk pipeline still uses the queue.
+ *
+ * On success the asset row's payload + provenance are replaced and its
+ * status reset to ready_for_review. On any LLM/parse failure the row is left
+ * untouched and the error propagates to the caller (the card surfaces it).
+ */
+export async function regenerateAsset(assetId: string): Promise<void> {
+  const [asset] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
+  if (!asset) throw new Error(`regenerateAsset: ${assetId} not found`);
+
+  const { payload, provenance } = await generateAssetContent({
+    packageId: asset.packageId,
+    assetType: asset.type,
+  });
+
+  await db
+    .update(assets)
+    .set({
+      payload,
+      provenance,
+      status: 'ready_for_review',
+      updatedAt: sql`now()`,
+    })
+    .where(eq(assets.id, assetId));
+
+  revalidatePath(`/packages/${asset.packageId}`);
+}
+
+/**
+ * Save an operator's manual edit to an asset payload (inline editing in the
+ * studio cards). No LLM — just persists the new payload.
+ */
+export async function saveAssetPayload(
+  assetId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const [asset] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
+  if (!asset) throw new Error(`saveAssetPayload: ${assetId} not found`);
+  await db.update(assets).set({ payload, updatedAt: sql`now()` }).where(eq(assets.id, assetId));
+  revalidatePath(`/packages/${asset.packageId}`);
+}
