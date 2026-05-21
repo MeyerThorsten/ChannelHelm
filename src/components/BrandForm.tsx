@@ -71,15 +71,17 @@ export function BrandForm({
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
-          <label className={LABEL} htmlFor="zernioProfileId">
-            Zernio profile ID
+          <label className={LABEL} htmlFor="website">
+            Website
           </label>
           <input
-            id="zernioProfileId"
-            name="zernioProfileId"
-            defaultValue={brand?.zernioProfileId ?? ''}
+            id="website"
+            name="website"
+            placeholder="https://example.com"
+            defaultValue={brand?.website ?? ''}
             className={INPUT}
           />
+          <p className={HELP}>Auto-filled when a brand is discovered from a YouTube channel.</p>
         </div>
         <div>
           <label className={LABEL} htmlFor="youtubeChannelId">
@@ -89,6 +91,17 @@ export function BrandForm({
             id="youtubeChannelId"
             name="youtubeChannelId"
             defaultValue={brand?.youtubeChannelId ?? ''}
+            className={INPUT}
+          />
+        </div>
+        <div>
+          <label className={LABEL} htmlFor="zernioProfileId">
+            LATE / Zernio profile ID
+          </label>
+          <input
+            id="zernioProfileId"
+            name="zernioProfileId"
+            defaultValue={brand?.zernioProfileId ?? ''}
             className={INPUT}
           />
         </div>

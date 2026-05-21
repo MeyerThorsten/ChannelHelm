@@ -2,6 +2,10 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runProc } from './_proc';
 
+// Allow an explicit binary path so the Next.js server process (which may have
+// a slimmer PATH than an interactive shell) can still find yt-dlp.
+const YT_DLP = process.env.YT_DLP_BIN ?? 'yt-dlp';
+
 /**
  * yt-dlp wrapper. Spawns the system `yt-dlp` binary. Writes to
  * `${outputDir}/${baseName}.${ext}` and `${outputDir}/${baseName}.info.json`.
@@ -28,7 +32,7 @@ export async function downloadVideo(opts: {
   const outputTemplate = join(opts.outputDir, `${baseName}.%(ext)s`);
 
   await runProc(
-    'yt-dlp',
+    YT_DLP,
     [
       '--no-playlist',
       '--no-warnings',
@@ -62,6 +66,47 @@ export async function downloadVideo(opts: {
 }
 
 export async function ytDlpVersion(): Promise<string> {
-  const { stdout } = await runProc('yt-dlp', ['--version']);
+  const { stdout } = await runProc(YT_DLP, ['--version']);
   return stdout.trim();
+}
+
+export type YtDlpChannelMeta = {
+  channelId: string | null;
+  channelName: string | null;
+  channelUrl: string | null;
+  handle: string | null; // @handle from uploader_id
+  title: string | null; // the video title
+};
+
+/**
+ * Fetch a video's metadata WITHOUT downloading (fast, ~2-4s). Used at
+ * link-submit time to discover which channel — and therefore which brand —
+ * a YouTube URL belongs to.
+ */
+export async function fetchMetadata(url: string): Promise<YtDlpChannelMeta> {
+  const { stdout } = await runProc(
+    YT_DLP,
+    ['--dump-single-json', '--skip-download', '--no-warnings', '--no-playlist', url],
+    { logCommand: true },
+  );
+  const info = JSON.parse(stdout) as {
+    channel?: string;
+    channel_id?: string;
+    channel_url?: string;
+    uploader_id?: string;
+    uploader_url?: string;
+    title?: string;
+  };
+  const handle = info.uploader_id?.startsWith('@')
+    ? info.uploader_id
+    : info.uploader_url?.includes('/@')
+      ? `@${info.uploader_url.split('/@')[1]?.split('/')[0]}`
+      : null;
+  return {
+    channelId: info.channel_id ?? null,
+    channelName: info.channel ?? null,
+    channelUrl: info.channel_url ?? null,
+    handle,
+    title: info.title ?? null,
+  };
 }

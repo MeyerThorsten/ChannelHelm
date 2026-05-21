@@ -1,6 +1,6 @@
 'use client';
 
-import { createSourceFromForm } from '@/server-actions/sources';
+import { ingestYoutubeUrl } from '@/server-actions/sources';
 import { useRouter } from 'next/navigation';
 import { type DragEvent, useRef, useState, useTransition } from 'react';
 
@@ -32,17 +32,16 @@ export function UploadDashboard({ brands }: { brands: Brand[] }) {
   function submitUrl() {
     if (!url.trim()) return;
     setError(null);
-    const fd = new FormData();
-    fd.set('brandId', brandId);
-    fd.set('kind', 'youtube_url');
-    fd.set('originUrl', url.trim());
-    fd.set('processingProfile', profile);
-    fd.set('createPackage', 'on');
     startTransition(async () => {
       try {
-        await createSourceFromForm(fd); // redirects to /packages/[id]
+        // Brand is auto-discovered from the channel; the selected brand is
+        // only a fallback if yt-dlp can't read the channel. Redirects on
+        // success (the redirect surfaces here as a thrown NEXT_REDIRECT,
+        // which the transition handles).
+        await ingestYoutubeUrl(url.trim(), profile, brandId || undefined);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes('NEXT_REDIRECT')) setError(msg);
       }
     });
   }
@@ -83,7 +82,8 @@ export function UploadDashboard({ brands }: { brands: Brand[] }) {
     <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mb-4 flex flex-wrap gap-3">
         <label className="flex flex-col gap-1 text-xs text-zinc-500">
-          Brand
+          Brand{' '}
+          <span className="text-zinc-400">(auto-detected for links · used for file uploads)</span>
           <select value={brandId} onChange={(e) => setBrandId(e.target.value)} className={inputCls}>
             {brands.map((b) => (
               <option key={b.id} value={b.id}>

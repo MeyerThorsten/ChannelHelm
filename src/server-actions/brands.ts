@@ -35,6 +35,7 @@ export async function createBrandFromForm(formData: FormData): Promise<void> {
     ),
     zernioProfileId: (formData.get('zernioProfileId') as string | null) || null,
     youtubeChannelId: (formData.get('youtubeChannelId') as string | null) || null,
+    website: (formData.get('website') as string | null) || null,
     approvalRequiredFor: asJsonArray(formData.get('approvalRequiredFor')),
     autoDispatchFor: asJsonArray(formData.get('autoDispatchFor')),
   });
@@ -54,6 +55,7 @@ export async function updateBrandFromForm(brandId: string, formData: FormData): 
       ),
       zernioProfileId: (formData.get('zernioProfileId') as string | null) || null,
       youtubeChannelId: (formData.get('youtubeChannelId') as string | null) || null,
+      website: (formData.get('website') as string | null) || null,
       active: formData.get('active') === 'on',
       approvalRequiredFor: asJsonArray(formData.get('approvalRequiredFor')),
       autoDispatchFor: asJsonArray(formData.get('autoDispatchFor')),

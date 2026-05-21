@@ -18,6 +18,9 @@ export const brands = pgTable(
     zernioProfileId: text('zernio_profile_id'),
     dojoclawSites: jsonb('dojoclaw_sites').$type<unknown[]>().notNull().default(sql`'[]'::jsonb`),
     youtubeChannelId: text('youtube_channel_id'),
+    // The brand's primary website (e.g. thorstenmeyerai.com). Used as a
+    // secondary key when auto-discovering a brand from a YouTube channel.
+    website: text('website'),
     defaultPublishingSchedule: text('default_publishing_schedule').notNull().default('balanced'),
     defaultProcessingProfile: text('default_processing_profile')
       .notNull()
