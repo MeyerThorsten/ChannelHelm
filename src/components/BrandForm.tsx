@@ -8,10 +8,9 @@ type Brand = typeof brands.$inferSelect;
 
 const PROFILES = ['fast_audio_only', 'standard_audio_visual', 'premium_multimodal'] as const;
 
-const INPUT =
-  'mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-zinc-700 dark:bg-zinc-950';
-const LABEL = 'block text-sm font-medium text-zinc-700 dark:text-zinc-300';
-const HELP = 'mt-1 text-xs text-zinc-500';
+const INPUT = 'ch-input';
+const LABEL = 'ch-label';
+const HELP = 'ch-help';
 
 export function BrandForm({
   brand,

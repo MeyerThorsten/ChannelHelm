@@ -6,10 +6,9 @@ import { useState, useTransition } from 'react';
 
 type Provider = typeof llmProviders.$inferSelect;
 
-const INPUT =
-  'mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-zinc-700 dark:bg-zinc-950';
-const LABEL = 'block text-sm font-medium text-zinc-700 dark:text-zinc-300';
-const HELP = 'mt-1 text-xs text-zinc-500';
+const INPUT = 'ch-input';
+const LABEL = 'ch-label';
+const HELP = 'ch-help';
 
 const TYPES = [
   {
@@ -126,7 +125,15 @@ export function ProviderForm({
               key={p.name}
               type="button"
               onClick={() => applyPreset(p)}
-              className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              style={{
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-elev)',
+                color: 'var(--text)',
+                padding: '4px 10px',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
             >
               {p.name}
             </button>
@@ -169,7 +176,17 @@ export function ProviderForm({
       </div>
 
       {isCodex ? (
-        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
+        <p
+          style={{
+            borderRadius: 6,
+            border: '1px solid color-mix(in oklab, var(--accent) 28%, transparent)',
+            background: 'var(--accent-soft)',
+            color: 'var(--text-muted)',
+            padding: '8px 12px',
+            fontSize: 11,
+            lineHeight: 1.6,
+          }}
+        >
           Uses the local <code>codex</code> CLI with your ChatGPT subscription (OAuth). No Base URL
           or API key needed — auth is read from <code>~/.codex</code>. Make sure <code>codex</code>{' '}
           is installed and you’ve run <code>codex login</code> on the machine the worker runs on.

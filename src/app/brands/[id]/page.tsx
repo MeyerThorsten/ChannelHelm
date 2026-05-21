@@ -26,23 +26,63 @@ export default async function BrandDetailPage({ params }: Props) {
   const slugIsOff = slugify(brand.slug) !== brand.slug;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <Link href="/brands" className="text-sm text-sky-700 hover:underline dark:text-sky-400">
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: '32px 32px 80px' }}>
+      <Link
+        href="/brands"
+        style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none' }}
+      >
         ← brands
       </Link>
-      <header className="mt-3 mb-6 flex items-end justify-between border-b border-zinc-200 pb-4 dark:border-zinc-800">
+      <header
+        style={{
+          marginTop: 12,
+          marginBottom: 24,
+          paddingBottom: 16,
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+        }}
+      >
         <div>
-          <h1 className="text-2xl font-semibold">{brand.name}</h1>
-          <p className="mt-1 font-mono text-xs text-zinc-500">
-            {brand.id} · slug <code>{brand.slug}</code>
+          <h1
+            className="serif"
+            style={{ fontSize: 30, fontWeight: 400, margin: 0, letterSpacing: -0.3 }}
+          >
+            {brand.name}
+          </h1>
+          <p
+            style={{
+              marginTop: 6,
+              fontSize: 11,
+              color: 'var(--text-faint)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {brand.id} · slug {brand.slug}
           </p>
         </div>
-        <span className="text-sm text-zinc-500">{stats?.packageCount ?? 0} packages</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {stats?.packageCount ?? 0} packages
+        </span>
       </header>
 
       {slugIsOff && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950/40">
-          <span className="text-amber-800 dark:text-amber-200">
+        <div
+          style={{
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            borderRadius: 10,
+            border: '1px solid color-mix(in oklab, var(--status-ready) 36%, transparent)',
+            background: 'color-mix(in oklab, var(--status-ready) 10%, transparent)',
+            padding: '12px 14px',
+            fontSize: 12,
+          }}
+        >
+          <span style={{ color: 'var(--text-muted)' }}>
             Slug <code>{brand.slug}</code> isn't normalized — it should be{' '}
             <code>{slugify(brand.slug)}</code>. Renaming moves the media folder + rewrites paths
             (blocked while jobs are running).

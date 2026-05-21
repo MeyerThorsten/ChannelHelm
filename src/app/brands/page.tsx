@@ -1,5 +1,7 @@
+import { Avatar, Eyebrow } from '@/components/ui';
 import { db } from '@/db/client';
 import { brands } from '@/db/schema';
+import { brandColor } from '@/lib/brand-color';
 import { asc } from 'drizzle-orm';
 import Link from 'next/link';
 
@@ -8,49 +10,108 @@ export const dynamic = 'force-dynamic';
 export default async function BrandsPage() {
   const rows = await db.select().from(brands).orderBy(asc(brands.slug));
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <header className="mb-6 flex items-center justify-between">
+    <main style={{ maxWidth: 960, margin: '0 auto', padding: '32px 32px 80px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          marginBottom: 20,
+        }}
+      >
         <div>
-          <h1 className="text-2xl font-semibold">Brands</h1>
-          <p className="mt-1 text-sm text-zinc-500">{rows.length} total</p>
+          <Eyebrow>Workspace</Eyebrow>
+          <h1
+            className="serif"
+            style={{ fontSize: 32, fontWeight: 400, margin: '4px 0 2px', letterSpacing: -0.3 }}
+          >
+            Brands
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>{rows.length} total</p>
         </div>
         <Link
           href="/brands/new"
-          className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '7px 12px',
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#fff',
+            background: 'var(--accent)',
+            border: '1px solid color-mix(in oklab, var(--accent) 80%, white)',
+            borderRadius: 6,
+            textDecoration: 'none',
+            boxShadow: '0 0 0 1px var(--accent-glow)',
+          }}
         >
           + New brand
         </Link>
-      </header>
+      </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
+        <div
+          style={{
+            borderRadius: 10,
+            border: '1px dashed var(--border)',
+            padding: 32,
+            textAlign: 'center',
+            color: 'var(--text-faint)',
+            fontSize: 13,
+          }}
+        >
           No brands yet.
-        </p>
+        </div>
       ) : (
-        <ul className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {rows.map((b) => (
-            <li key={b.id}>
-              <Link
-                href={`/brands/${b.id}`}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
-              >
-                <div>
-                  <div className="font-medium">{b.name}</div>
-                  <div className="mt-0.5 text-xs text-zinc-500">
-                    {b.slug} · default {b.defaultProcessingProfile}
-                  </div>
-                </div>
-                <span
-                  className={`text-xs font-medium ${
-                    b.active ? 'text-emerald-600' : 'text-zinc-400'
-                  }`}
+            <Link
+              key={b.id}
+              href={`/brands/${b.id}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: 14,
+                background: 'var(--panel)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              <Avatar
+                glyph={b.slug.slice(0, 2).toUpperCase()}
+                color={brandColor(b.slug)}
+                size={32}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{b.name}</div>
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 11,
+                    color: 'var(--text-faint)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
                 >
-                  {b.active ? 'active' : 'inactive'}
-                </span>
-              </Link>
-            </li>
+                  {b.slug} · {b.defaultProcessingProfile}
+                  {b.website ? ` · ${b.website.replace(/^https?:\/\//, '')}` : ''}
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: b.active ? 'var(--status-published)' : 'var(--text-faint)',
+                }}
+              >
+                {b.active ? 'active' : 'inactive'}
+              </span>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
     </main>
   );

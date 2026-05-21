@@ -191,6 +191,35 @@ select:focus-visible,
   animation: shimmer 1.8s linear infinite;
   border-radius: var(--radius-sm);
 }
+
+/* Shared form controls for the redesigned settings/brand/provider forms */
+.ch-input {
+  margin-top: 4px;
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.ch-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+.ch-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.ch-help {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
 .spinner {
   display: inline-block;
   width: 12px;

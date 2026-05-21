@@ -1,19 +1,20 @@
+import { Eyebrow, StatusPill } from '@/components/ui';
 import { db } from '@/db/client';
 import { jobs } from '@/db/schema';
 import { and, desc, eq, sql } from 'drizzle-orm';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 type SearchParams = Promise<{ kind?: string; status?: string }>;
 
-const STATUSES = ['pending', 'running', 'done', 'failed'] as const;
-
-const PILL_BY_STATUS: Record<string, string> = {
-  pending: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
-  running: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
-  done: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
-  failed: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200',
-};
+const STAT_CARDS: { k: string; label: string; color: string }[] = [
+  { k: 'running', label: 'Running', color: 'var(--status-analyzing)' },
+  { k: 'pending', label: 'Pending', color: 'var(--text-faint)' },
+  { k: 'done', label: 'Done', color: 'var(--status-published)' },
+  { k: 'failed', label: 'Failed', color: 'var(--status-failed)' },
+  { k: 'all', label: 'All', color: 'var(--text)' },
+];
 
 export default async function JobsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -23,111 +24,235 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
   const where = filters.length === 0 ? undefined : and(...filters);
 
   const rows = await db.select().from(jobs).where(where).orderBy(desc(jobs.id)).limit(100);
+  const statusRows = await db
+    .select({ status: jobs.status, n: sql<number>`count(*)::int` })
+    .from(jobs)
+    .groupBy(jobs.status);
+  const byStatus = new Map(statusRows.map((s) => [s.status, s.n]));
+  const total = statusRows.reduce((a, s) => a + s.n, 0);
+  const count = (k: string) => (k === 'all' ? total : (byStatus.get(k) ?? 0));
+
   const kindRows = await db
     .select({ kind: jobs.kind, n: sql<number>`count(*)::int` })
     .from(jobs)
     .groupBy(jobs.kind)
     .orderBy(desc(sql`count(*)`));
 
-  return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">Jobs</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Latest 100 of {rows.length} matching. Filter by kind/status via querystring.
-        </p>
-      </header>
+  const cols = '92px 1.2fr 80px 1fr 1.4fr 150px';
 
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <label className="text-sm">
-          <span className="block text-zinc-700 dark:text-zinc-300">kind</span>
+  return (
+    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 32px 80px' }}>
+      <Eyebrow>Pipeline inspector</Eyebrow>
+      <h1
+        className="serif"
+        style={{ fontSize: 32, fontWeight: 400, margin: '4px 0 6px', letterSpacing: -0.3 }}
+      >
+        Jobs queue
+      </h1>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 24px' }}>
+        Background workers running locally · {count('running')} active · {count('pending')} queued
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 10,
+          marginBottom: 20,
+        }}
+      >
+        {STAT_CARDS.map((s) => {
+          const active = (params.status ?? 'all') === s.k && (s.k !== 'all' || !params.status);
+          const href = s.k === 'all' ? '/jobs' : `/jobs?status=${s.k}`;
+          return (
+            <Link
+              key={s.k}
+              href={href}
+              style={{
+                padding: 14,
+                textAlign: 'left',
+                background: active ? 'var(--bg-elev)' : 'var(--panel)',
+                border: `1px solid ${active ? 'var(--border-strong)' : 'var(--border)'}`,
+                borderRadius: 10,
+                position: 'relative',
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              {active && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    background: s.color,
+                    borderRadius: '10px 0 0 10px',
+                  }}
+                />
+              )}
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-faint)',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.06,
+                  marginBottom: 4,
+                }}
+              >
+                {s.label}
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-mono)',
+                  color: s.color,
+                  letterSpacing: -0.5,
+                }}
+              >
+                {count(s.k)}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {kindRows.length > 0 && (
+        <form
+          method="get"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}
+        >
+          {params.status && <input type="hidden" name="status" value={params.status} />}
+          <span className="uppercase-eyebrow">Kind</span>
           <select
             name="kind"
             defaultValue={params.kind ?? ''}
-            className="mt-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            style={{
+              background: 'var(--bg-elev)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              fontSize: 12,
+              color: 'var(--text)',
+            }}
           >
-            <option value="">all</option>
+            <option value="">all kinds</option>
             {kindRows.map((k) => (
               <option key={k.kind} value={k.kind}>
                 {k.kind} ({k.n})
               </option>
             ))}
           </select>
-        </label>
-        <label className="text-sm">
-          <span className="block text-zinc-700 dark:text-zinc-300">status</span>
-          <select
-            name="status"
-            defaultValue={params.status ?? ''}
-            className="mt-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+          <button
+            type="submit"
+            style={{
+              background: 'var(--bg-elev)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '4px 10px',
+              fontSize: 12,
+              color: 'var(--text)',
+              cursor: 'pointer',
+            }}
           >
-            <option value="">all</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700"
-        >
-          Filter
-        </button>
-        <a href="/jobs" className="text-sm text-zinc-500 hover:underline">
-          reset
-        </a>
-      </form>
+            Apply
+          </button>
+        </form>
+      )}
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-            <tr>
-              <th className="px-3 py-2 text-left">id</th>
-              <th className="px-3 py-2 text-left">kind</th>
-              <th className="px-3 py-2 text-left">status</th>
-              <th className="px-3 py-2 text-right">attempts</th>
-              <th className="px-3 py-2 text-left">locked by</th>
-              <th className="px-3 py-2 text-left">last error</th>
-              <th className="px-3 py-2 text-left">run after</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-900 dark:bg-zinc-950">
-            {rows.map((j) => (
-              <tr key={j.id}>
-                <td className="px-3 py-2 font-mono text-xs">{j.id}</td>
-                <td className="px-3 py-2 font-mono text-xs">{j.kind}</td>
-                <td className="px-3 py-2">
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      PILL_BY_STATUS[j.status] ?? PILL_BY_STATUS.pending
-                    }`}
-                  >
-                    {j.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-right font-mono text-xs">
-                  {j.attempts}/{j.maxAttempts}
-                </td>
-                <td className="px-3 py-2 font-mono text-xs text-zinc-500">{j.lockedBy ?? '—'}</td>
-                <td className="px-3 py-2 max-w-xs truncate text-xs text-rose-600 dark:text-rose-400">
-                  {j.lastError ?? '—'}
-                </td>
-                <td className="px-3 py-2 font-mono text-xs text-zinc-500">
-                  {new Date(j.runAfter).toISOString().replace('T', ' ').slice(0, 19)}
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-sm text-zinc-500">
-                  No matching jobs.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div
+        style={{
+          background: 'var(--panel)',
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: cols,
+            padding: '8px 14px',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 10,
+            color: 'var(--text-faint)',
+            textTransform: 'uppercase',
+            letterSpacing: 0.08,
+            fontWeight: 500,
+            background: 'var(--panel-strong)',
+          }}
+        >
+          <span>Status</span>
+          <span>Kind</span>
+          <span style={{ textAlign: 'right' }}>Attempts</span>
+          <span>Locked by</span>
+          <span>Last error</span>
+          <span>Run after</span>
+        </div>
+        {rows.map((j) => (
+          <div
+            key={j.id}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: cols,
+              alignItems: 'center',
+              padding: '10px 14px',
+              borderBottom: '1px solid var(--border)',
+              fontSize: 12,
+            }}
+          >
+            <StatusPill status={j.status} size="sm" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{j.kind}</span>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                textAlign: 'right',
+                color: j.attempts > 1 ? 'var(--status-ready)' : 'var(--text-faint)',
+              }}
+            >
+              {j.attempts}/{j.maxAttempts}
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                color: 'var(--text-faint)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {j.lockedBy ?? '—'}
+            </span>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                color: 'var(--status-failed)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {j.lastError ?? ''}
+            </span>
+            <span
+              style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-faint)' }}
+            >
+              {new Date(j.runAfter).toISOString().replace('T', ' ').slice(0, 19)}
+            </span>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <div
+            style={{ padding: 60, textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}
+          >
+            No jobs match this filter
+          </div>
+        )}
       </div>
     </main>
   );

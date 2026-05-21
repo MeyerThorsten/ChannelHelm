@@ -22,28 +22,39 @@ export function ProviderActions({ id, isDefault }: { id: number; isDefault: bool
     });
   }
 
-  const btn =
-    'rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800';
+  const btn: React.CSSProperties = {
+    borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elev)',
+    padding: '4px 9px',
+    fontSize: 11,
+    fontWeight: 500,
+    color: 'var(--text)',
+    cursor: 'pointer',
+  };
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
           type="button"
           disabled={pending}
-          className={btn}
+          style={btn}
           onClick={() => run(() => testProvider(id))}
         >
           {pending ? '…' : 'Test'}
         </button>
-        <Link href={`/providers/${id}`} className={btn}>
+        <Link
+          href={`/providers/${id}`}
+          style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}
+        >
           Edit
         </Link>
         {!isDefault && (
           <button
             type="button"
             disabled={pending}
-            className={btn}
+            style={btn}
             onClick={() => run(() => setDefaultProvider(id))}
           >
             Make default
@@ -52,14 +63,20 @@ export function ProviderActions({ id, isDefault }: { id: number; isDefault: bool
         <button
           type="button"
           disabled={pending}
-          className={`${btn} text-rose-600`}
+          style={{ ...btn, color: 'var(--status-failed)' }}
           onClick={() => run(() => deleteProvider(id))}
         >
           Delete
         </button>
       </div>
-      {result && <span className="text-xs text-emerald-600">{result}</span>}
-      {error && <span className="max-w-xs text-right text-xs text-rose-600">{error}</span>}
+      {result && <span style={{ fontSize: 11, color: 'var(--status-published)' }}>{result}</span>}
+      {error && (
+        <span
+          style={{ maxWidth: 280, textAlign: 'right', fontSize: 11, color: 'var(--status-failed)' }}
+        >
+          {error}
+        </span>
+      )}
     </div>
   );
 }
