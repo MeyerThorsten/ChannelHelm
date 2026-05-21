@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — ChannelHelm</title>
+<meta name="description" content="Privacy policy for ChannelHelm — a local-first product. Your media and transcripts stay on your own machine." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" />
+<link rel="stylesheet" href="/legal.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/marketing.html">
+      <span class="logo-mark"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>
+      ChannelHelm
+    </a>
+    <nav class="nav-links">
+      <a href="/marketing.html">Product</a>
+      <a href="/contact.html">Contact</a>
+      <a class="btn btn-primary" href="/">Open the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap narrow">
+  <section class="page-hero">
+    <div class="eyebrow">Legal · Privacy</div>
+    <h1>Privacy policy.</h1>
+    <p class="lede">ChannelHelm is local-first. The short version: your media, transcripts, and generated assets stay on your own machine.</p>
+  </section>
+
+  <section class="legal">
+    <p class="updated">Last updated: <span id="updated"></span></p>
+
+    <div class="note">
+      <strong>Local-first by design.</strong> The ChannelHelm application runs on your own hardware. Source videos,
+      transcripts, analyses, and generated assets are stored locally in your own database and file storage. They are
+      not sent to the operator and are not collected by any ChannelHelm cloud service — because there is none.
+    </div>
+
+    <h2>1. Controller</h2>
+    <p>
+      Responsible for data processing in connection with this website:<br />
+      <strong>Thorsten Meyer</strong><br />
+      Blombergstraße 11 C, 82393 Iffeldorf, Germany<br />
+      Email: <a href="mailto:privacy@channelhelm.com">privacy@channelhelm.com</a> · Phone: <a href="tel:+491718609029">+49 (0) 171 8609029</a>
+    </p>
+
+    <h2>2. This website</h2>
+    <p>
+      This marketing website is informational. When you visit it, the hosting provider may process technical data
+      that your browser transmits automatically (e.g. IP address, user agent, requested page, timestamp) in server
+      logs for the purpose of delivering the site securely and reliably. The legal basis is our legitimate interest
+      in operating the site (Art. 6 (1)(f) GDPR). We do not use this data to identify you.
+    </p>
+    <h3>Fonts</h3>
+    <p>
+      This site loads web fonts from Google Fonts. When a font is requested, your browser connects to Google's
+      servers, which may process your IP address. If you prefer to avoid this, you can block third-party font loading
+      in your browser; the site remains readable with system fonts.
+    </p>
+    <h3>No tracking</h3>
+    <p>
+      We do not use advertising cookies, analytics trackers, or third-party marketing pixels on this website.
+    </p>
+
+    <h2>3. The ChannelHelm application</h2>
+    <p>
+      The application processes the content you give it — videos, audio, transcripts and the assets derived from them
+      — entirely on your own infrastructure. To generate text and analyses it calls the LLM providers <em>you</em>
+      configure (for example a local model via Ollama or LM Studio, or a third-party API such as OpenAI or Anthropic).
+      To publish assets it calls the social-publishing and editorial services <em>you</em> connect. When you choose a
+      remote provider, the relevant content is sent to that provider under <em>its</em> privacy policy and terms. You
+      decide which providers to use; a fully local configuration sends nothing to third parties.
+    </p>
+
+    <h2>4. Contacting us</h2>
+    <p>
+      If you email or call us, we process the information you provide in order to handle your request. The legal basis
+      is Art. 6 (1)(b) and (f) GDPR. We keep such correspondence only as long as necessary.
+    </p>
+
+    <h2>5. Your rights</h2>
+    <p>Under the GDPR you have the right to access, rectification, erasure, restriction of processing, data portability, and to object to processing. You also have the right to lodge a complaint with a supervisory authority.</p>
+    <ul>
+      <li>To exercise any of these rights, contact us at <a href="mailto:privacy@channelhelm.com">privacy@channelhelm.com</a>.</li>
+    </ul>
+
+    <h2>6. Changes</h2>
+    <p>We may update this policy as the product evolves. The "last updated" date above reflects the current version.</p>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · local-first video-to-publishing · <span id="year"></span></span>
+    <span class="foot-links">
+      <a href="/marketing.html">Product</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/impressum.html">Impressum</a>
+    </span>
+  </div>
+</footer>
+<script>
+  var d = new Date();
+  document.getElementById('year').textContent = d.getFullYear();
+  document.getElementById('updated').textContent = d.toISOString().slice(0, 10);
+</script>
+</body>
+</html>

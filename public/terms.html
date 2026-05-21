@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terms — ChannelHelm</title>
+<meta name="description" content="Terms of use for ChannelHelm, local-first video-to-publishing software operated by Thorsten Meyer." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" />
+<link rel="stylesheet" href="/legal.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="/marketing.html">
+      <span class="logo-mark"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>
+      ChannelHelm
+    </a>
+    <nav class="nav-links">
+      <a href="/marketing.html">Product</a>
+      <a href="/contact.html">Contact</a>
+      <a class="btn btn-primary" href="/">Open the app</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap narrow">
+  <section class="page-hero">
+    <div class="eyebrow">Legal · Terms</div>
+    <h1>Terms of use.</h1>
+    <p class="lede">The terms under which ChannelHelm and this website are provided.</p>
+  </section>
+
+  <section class="legal">
+    <p class="updated">Last updated: <span id="updated"></span></p>
+
+    <h2>1. Who we are</h2>
+    <p>
+      ChannelHelm ("the software") and this website are provided by <strong>Thorsten Meyer</strong>,
+      Blombergstraße 11 C, 82393 Iffeldorf, Germany ("we", "us"). Contact:
+      <a href="mailto:legal@channelhelm.com">legal@channelhelm.com</a>. By using the software or this website you
+      agree to these terms.
+    </p>
+
+    <h2>2. The software</h2>
+    <p>
+      ChannelHelm is local-first software intended to run on your own hardware. You are responsible for installing,
+      configuring, securing, and operating it, including the third-party services you connect to it. You are
+      responsible for the content you process and publish with it.
+    </p>
+
+    <h2>3. Third-party services</h2>
+    <p>
+      ChannelHelm integrates with services you choose — for example LLM providers (such as OpenAI, Anthropic,
+      OpenRouter, Ollama, or LM Studio) and social-publishing or editorial APIs. Your use of those services is
+      governed by their own terms and pricing. We are not responsible for their availability, output, or charges.
+    </p>
+
+    <h2>4. Acceptable use</h2>
+    <ul>
+      <li>Only process content you have the right to use, and only publish where you are authorised to.</li>
+      <li>Don't use the software to create unlawful, infringing, deceptive, or harmful content.</li>
+      <li>Comply with the terms and policies of every platform you publish to.</li>
+    </ul>
+
+    <h2>5. Intellectual property</h2>
+    <p>
+      We retain all rights in the ChannelHelm software, brand, and this website, except where stated otherwise (for
+      example in an applicable open-source licence). Content you create or process with the software remains yours.
+    </p>
+
+    <h2>6. AI-generated output</h2>
+    <p>
+      ChannelHelm drafts assets using AI models. Output can be inaccurate, biased, or unsuitable, and is provided as
+      a starting point only. You are responsible for reviewing, editing, and verifying everything before you publish
+      it.
+    </p>
+
+    <h2>7. No warranty</h2>
+    <p>
+      The software and website are provided "as is" and "as available", without warranties of any kind, whether
+      express or implied, including fitness for a particular purpose, accuracy, or non-infringement, to the maximum
+      extent permitted by law.
+    </p>
+
+    <h2>8. Limitation of liability</h2>
+    <p>
+      To the extent permitted by law, we are not liable for indirect, incidental, or consequential damages, or for
+      lost data, revenue, or profits, arising from use of the software or website. Mandatory statutory liability
+      (for example for intent or gross negligence, or under the German Product Liability Act) remains unaffected.
+    </p>
+
+    <h2>9. Governing law</h2>
+    <p>
+      These terms are governed by the laws of the Federal Republic of Germany, excluding its conflict-of-law rules
+      and the UN Convention on Contracts for the International Sale of Goods, where legally permissible.
+    </p>
+
+    <h2>10. Changes</h2>
+    <p>We may update these terms as the product evolves. Continued use after a change constitutes acceptance of the updated terms.</p>
+
+    <div class="note">For the legally required provider information, see the <a href="/impressum.html">Impressum</a>.</div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · local-first video-to-publishing · <span id="year"></span></span>
+    <span class="foot-links">
+      <a href="/marketing.html">Product</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/impressum.html">Impressum</a>
+    </span>
+  </div>
+</footer>
+<script>
+  var d = new Date();
+  document.getElementById('year').textContent = d.getFullYear();
+  document.getElementById('updated').textContent = d.toISOString().slice(0, 10);
+</script>
+</body>
+</html>
