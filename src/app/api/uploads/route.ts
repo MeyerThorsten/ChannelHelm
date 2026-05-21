@@ -5,7 +5,6 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
-import { withAuth } from '@/lib/http';
 import { makeId } from '@/lib/ids';
 import { MEDIA_ROOT } from '@/lib/media-path';
 import { ProcessingProfile } from '@/lib/schemas';
@@ -18,19 +17,24 @@ export const dynamic = 'force-dynamic';
 const ALLOWED_EXT = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv']);
 
 /**
- * Streamed video upload. The client sends the raw file as the request body
- * (NOT multipart) so large files never buffer in memory:
+ * Streamed video upload from the dashboard. The browser sends the raw file
+ * as the request body (NOT multipart) so large files never buffer in memory:
  *
  *   fetch('/api/uploads?brandId=brd_…&filename=clip.mp4&profile=standard_audio_visual',
- *         { method:'POST', body: file, headers:{authorization:`Bearer …`} })
+ *         { method:'POST', body: file })
  *
  * Creates an `uploaded_video` source with local_media_path preset, writes
  * the file to MEDIA_ROOT/{slug}/{src_id}/original.{ext}, creates the package,
  * and enqueues ingest. The ingest worker's uploaded_video branch picks it up
  * (ffmpeg only — no yt-dlp).
+ *
+ * No bearer auth: this is a dashboard surface, consistent with the Server
+ * Actions (createBrand/approve/etc.) and the /api/media route, which all
+ * trust the local operator. The bearer-protected JSON API under /api/brands
+ * etc. remains for external/curl use.
  */
 export async function POST(req: Request) {
-  return withAuth(req, async () => {
+  {
     const url = new URL(req.url);
     const brandId = url.searchParams.get('brandId') ?? '';
     const filename = url.searchParams.get('filename') ?? 'upload.mp4';
@@ -101,5 +105,5 @@ export async function POST(req: Request) {
     });
 
     return Response.json({ package: pkg, source, ingestJob: job, filePath }, { status: 201 });
-  });
+  }
 }

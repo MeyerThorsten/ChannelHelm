@@ -1,9 +1,8 @@
 import Link from 'next/link';
 
 const LINKS = [
-  { href: '/', label: 'Packages' },
+  { href: '/', label: 'New / Packages' },
   { href: '/brands', label: 'Brands' },
-  { href: '/sources/new', label: 'New source' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/webhooks', label: 'Webhooks' },
   { href: '/voice-examples', label: 'Voice' },

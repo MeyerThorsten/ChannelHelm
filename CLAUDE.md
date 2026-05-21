@@ -180,6 +180,7 @@ Every package runs under one of: `fast_audio_only`, `standard_audio_visual`, `pr
 - Do not import DojoClaw as a package. It is a separate service called over HTTP via `fetch`.
 - Do not call Zernio with raw `fetch` outside `workers/integrations/zernio.ts` or `zernio_http.ts`. Single module, shared Zod schemas, logs to `dispatches` table.
 - Do not put long-running work (transcription, VLM, ffmpeg) inside Next.js API routes or Server Actions. That's what workers are for. The app enqueues; workers do.
+  - **Documented exception (Content Studio):** interactive *single-asset* regeneration runs the LLM synchronously in `src/server-actions/regenerate.ts` via the shared `workers/lib/generate.ts::generateAssetContent`. This is a bounded, text-only call (~10–30s) where enqueue+poll would force a "is a worker running?" dependency that ruins the studio UX. The bulk pipeline (`generate_asset` worker) still goes through the queue. Heavy ML (transcription/VLM/ffmpeg) stays worker-only — no exceptions there.
 - Do not generate prompts inline in TS source. Load from `prompts/{asset_type}.v{N}.md`.
 - Do not add fields to `assets.payload` without documenting the new shape in §2.3 of the contract first.
 - Do not write code that assumes single-brand. Always scope by `brand_id`.

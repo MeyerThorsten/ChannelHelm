@@ -3,7 +3,7 @@ import { assets, brands, dispatches, packages } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { submitBrief } from '../integrations/dojoclaw';
-import { createPost } from '../integrations/zernio';
+import { createPost, networkFor } from '../integrations/zernio';
 import type { JobRow } from '../queue';
 
 const Payload = z.object({
@@ -125,12 +125,6 @@ function pickTarget(type: string): 'dojoclaw' | 'zernio' | 'manual' {
     return 'zernio';
   }
   return 'manual';
-}
-
-function networkFor(type: string): 'linkedin' | 'x' | 'instagram' {
-  if (type === 'linkedin_post') return 'linkedin';
-  if (type === 'rendered_short_clip' || type === 'rendered_long_clip') return 'instagram';
-  return 'x';
 }
 
 function contentFor(
