@@ -24,7 +24,7 @@ When the contract and this file disagree, the contract wins. Update this file ra
 - **Workers:** Node processes via `tsx workers/runner.ts --kinds X`, one process per kind set, managed by `launchd` per Mac.
 - **UI components:** shadcn/ui + Tailwind.
 - **Validation:** Zod schemas, shared between API routes and workers.
-- **LLM client:** `openai` npm package pointed at LM Studio's OpenAI-compatible endpoint. Route via OpenClaw at `192.168.0.156:18789` when available.
+- **LLM client:** Pluggable provider abstraction in `workers/integrations/llm/` (modeled on DojoClaw's `src/lib/llm`). Providers are configured in the `llm_providers` table (managed at `/providers`) — `openai-compatible` (OpenAI, OpenRouter, Ollama, LM Studio, OpenClaw) and `anthropic` (Messages API). `complete()` in `workers/integrations/lm_studio.ts` resolves a provider via `getProvider(profile)` (purpose-match → default → env fallback) and calls it over `fetch`. When the table is empty it auto-seeds an LM Studio provider from `LM_STUDIO_*`/`OPENCLAW_BASE_URL` env, so the prior env-only behavior still works with zero config. (This supersedes the original "use the `openai` npm package" note — the operator asked for DojoClaw-style multi-provider support.)
 - **Zernio integration:** Node `zernio` SDK preferred. Thin typed `fetch` fallback module at `workers/integrations/zernio_http.ts` is allowed when the SDK lags; same Zod schemas, same dispatch logging.
 
 ### ML CLI layer (Python — isolated to four scripts)

@@ -6,6 +6,7 @@ const LINKS = [
   { href: '/jobs', label: 'Jobs' },
   { href: '/webhooks', label: 'Webhooks' },
   { href: '/voice-examples', label: 'Voice' },
+  { href: '/providers', label: 'Providers' },
   { href: '/settings', label: 'Settings' },
 ];
 
