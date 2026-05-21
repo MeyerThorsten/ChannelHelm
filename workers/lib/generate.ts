@@ -46,7 +46,7 @@ export async function generateAssetContent(opts: {
     .orderBy(desc(voiceExamples.performanceScore))
     .limit(5);
 
-  const prompt = await loadPrompt(assetType, 1);
+  const prompt = await loadPrompt(assetType); // latest version
   const sceneLogSummary = summarizeSceneLog(intelligence.scene_log);
   const user = render(prompt, {
     brand,

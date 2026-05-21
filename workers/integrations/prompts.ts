@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const PROMPTS_DIR = join(process.cwd(), 'prompts');
@@ -25,10 +25,24 @@ export type Prompt = {
  *   ---
  *   Given the following intelligence summary…
  */
-export async function loadPrompt(name: string, version: number): Promise<Prompt> {
-  const path = join(PROMPTS_DIR, `${name}.v${version}.md`);
+export async function loadPrompt(name: string, version?: number): Promise<Prompt> {
+  const resolved = version ?? (await latestVersion(name));
+  const path = join(PROMPTS_DIR, `${name}.v${resolved}.md`);
   const raw = await readFile(path, 'utf8');
-  return parsePrompt(name, version, raw);
+  return parsePrompt(name, resolved, raw);
+}
+
+/** Highest N among prompts/{name}.v{N}.md (so a v2 supersedes v1 without code changes). */
+export async function latestVersion(name: string): Promise<number> {
+  const re = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.v(\\d+)\\.md$`);
+  const files = await readdir(PROMPTS_DIR);
+  let max = 0;
+  for (const f of files) {
+    const m = f.match(re);
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  if (max === 0) throw new Error(`no prompt files found for "${name}" in ${PROMPTS_DIR}`);
+  return max;
 }
 
 export function parsePrompt(name: string, version: number, raw: string): Prompt {
