@@ -53,7 +53,7 @@ export default async function ProvidersPage() {
                     )}
                   </div>
                   <div className="mt-1 font-mono text-xs text-zinc-500">
-                    {p.type} · {p.model} · {p.purpose} · {p.baseUrl}
+                    {[p.type, p.model, p.purpose, p.baseUrl].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <ProviderActions id={p.id} isDefault={p.isDefault} />
