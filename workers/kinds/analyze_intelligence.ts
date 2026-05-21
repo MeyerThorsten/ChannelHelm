@@ -38,53 +38,11 @@ const ASSET_TYPES = [
  */
 export async function run(job: JobRow): Promise<void> {
   const { sourceId, packageId, processingProfile } = Payload.parse(job.payload);
-
   const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
   if (!pkg) throw new Error(`analyze_intelligence: package ${packageId} not found`);
-  const intelligence = pkg.intelligence as Record<string, unknown>;
-  const sceneLog = intelligence.scene_log;
-  if (!sceneLog) {
-    throw new Error('analyze_intelligence: scene_log missing — fuse must run first');
-  }
-  const [brand] = await db.select().from(brands).where(eq(brands.id, pkg.brandId)).limit(1);
-  if (!brand) throw new Error(`analyze_intelligence: brand ${pkg.brandId} not found`);
   const profile = processingProfile ?? pkg.processingProfile;
 
-  const prompt = await loadPrompt('analyze_intelligence', 1);
-  const user = render(prompt, { brand, scene_log: sceneLog });
-
-  console.log(
-    `[analyze_intelligence] calling LLM (profile=${profile}, scene_log windows=${
-      Array.isArray((sceneLog as { windows?: unknown[] }).windows)
-        ? (sceneLog as { windows: unknown[] }).windows.length
-        : 0
-    })`,
-  );
-  const result = await complete({
-    profile,
-    system: prompt.system ?? undefined,
-    user,
-    promptVersion: `${prompt.name}.v${prompt.version}`,
-    inputRefs: [`scene_log:${sourceId}`],
-    maxTokens: 2048,
-    temperature: 0.4,
-    responseFormat: 'json_object',
-  });
-
-  const parsed = parseJsonStrict(result.text, 'analyze_intelligence');
-  const parsedObj =
-    parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : { raw: parsed };
-
-  await patchPackageIntelligence(
-    packageId,
-    {
-      analysis: {
-        ...parsedObj,
-        provenance: result.provenance,
-      },
-    },
-    { status: 'analyzed' },
-  );
+  await produceAnalysis(packageId);
 
   // Fan out generate_asset for every type from §13 step 9 (now includes
   // short_clip_plan). Plans remain non-dispatchable; approving a plan
@@ -108,6 +66,78 @@ export async function run(job: JobRow): Promise<void> {
       idempotencyKey: `thumbnail_concepts:${packageId}`,
     });
   }
+}
+
+/**
+ * Run the analyze_intelligence LLM over the package's scene_log and write
+ * the result to intelligence.analysis (status → analyzed). NO fan-out — the
+ * worker's run() does that; the on-demand section path calls this alone.
+ * Idempotent-ish: overwrites the analysis each call.
+ */
+export async function produceAnalysis(packageId: string): Promise<void> {
+  const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
+  if (!pkg) throw new Error(`produceAnalysis: package ${packageId} not found`);
+  const intelligence = pkg.intelligence as Record<string, unknown>;
+  const sceneLog = intelligence.scene_log;
+  if (!sceneLog) throw new Error('produceAnalysis: scene_log missing — fuse must run first');
+  const [brand] = await db.select().from(brands).where(eq(brands.id, pkg.brandId)).limit(1);
+  if (!brand) throw new Error(`produceAnalysis: brand ${pkg.brandId} not found`);
+
+  const prompt = await loadPrompt('analyze_intelligence', 1);
+  const user = render(prompt, { brand, scene_log: compactSceneLog(sceneLog) });
+  const windows = Array.isArray((sceneLog as { windows?: unknown[] }).windows)
+    ? (sceneLog as { windows: unknown[] }).windows.length
+    : 0;
+  console.log(`[analyze_intelligence] calling LLM (windows=${windows})`);
+  const result = await complete({
+    profile: pkg.processingProfile,
+    system: prompt.system ?? undefined,
+    user,
+    promptVersion: `${prompt.name}.v${prompt.version}`,
+    inputRefs: [`scene_log:${pkg.sourceId}`],
+    maxTokens: 2048,
+    temperature: 0.4,
+  });
+
+  const parsed = parseJsonStrict(result.text, 'analyze_intelligence');
+  const parsedObj =
+    parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : { raw: parsed };
+  await patchPackageIntelligence(
+    packageId,
+    { analysis: { ...parsedObj, provenance: result.provenance } },
+    { status: 'analyzed' },
+  );
+}
+
+/**
+ * Compact a full §5.2 scene_log into something that fits a modest LLM
+ * context: per-window index + timing + (truncated) text + a one-line visual
+ * hint, dropping the verbose audio_features / OCR blocks / per-frame
+ * descriptions. The transcript text + timing is the signal the analysis
+ * actually reasons over; the rest blows the context on longer videos.
+ */
+function compactSceneLog(sceneLog: unknown): unknown {
+  const log = sceneLog as {
+    windows?: {
+      start: number;
+      end: number;
+      text?: string;
+      visual_descriptions?: { description?: string }[];
+    }[];
+    global_features?: unknown;
+  };
+  const windows = (log.windows ?? []).map((w, i) => {
+    const text = w.text ?? '';
+    const visual = w.visual_descriptions?.[0]?.description;
+    return {
+      i,
+      start: w.start,
+      end: w.end,
+      text: text.length > 280 ? `${text.slice(0, 280)}…` : text,
+      ...(visual ? { visual: visual.slice(0, 120) } : {}),
+    };
+  });
+  return { windows, global_features: log.global_features };
 }
 
 /**

@@ -2,9 +2,20 @@
 
 import { db } from '@/db/client';
 import { assets } from '@/db/schema';
-import { generateAssetContent } from '@workers/lib/generate';
+import { generateAssetContent, upsertSectionAsset } from '@workers/lib/generate';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+/**
+ * Generate a single section (e.g. youtube_title_set) on demand from the
+ * studio. Ensures the upstream scene_log + analysis exist (built inline from
+ * the transcript if the visual stage hasn't finished), then upserts the
+ * asset. Same documented "LLM in a Server Action" carve-out as regenerate.
+ */
+export async function generateSection(packageId: string, assetType: string): Promise<void> {
+  await upsertSectionAsset(packageId, assetType);
+  revalidatePath(`/packages/${packageId}`);
+}
 
 /**
  * Interactive single-asset regeneration. Runs the LLM call SYNCHRONOUSLY in

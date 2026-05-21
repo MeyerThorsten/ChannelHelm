@@ -1,20 +1,22 @@
 'use client';
 
 import type { ScoredItem } from '@/lib/asset-payload';
-import { regenerateAsset } from '@/server-actions/regenerate';
-import { saveAssetPayload } from '@/server-actions/regenerate';
+import { generateSection, regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
 import { selectTitle } from '@/server-actions/studio';
 import { useState, useTransition } from 'react';
+import { GenerateSection } from './GenerateSection';
 import { SectionCard } from './SectionCard';
 import { AsyncActionButton, CopyButton } from './buttons';
 
 const YT_LIMIT = 70;
 
 export function TitlesCard({
+  packageId,
   assetId,
   titles: initial,
   selectedIndex: initialSel,
 }: {
+  packageId: string;
   assetId: string | null;
   titles: ScoredItem[];
   selectedIndex: number;
@@ -27,7 +29,10 @@ export function TitlesCard({
   if (!assetId || titles.length === 0) {
     return (
       <SectionCard title="Titles" icon="📝">
-        <p className="text-sm text-zinc-500">Not generated yet.</p>
+        <GenerateSection
+          label="titles"
+          action={() => generateSection(packageId, 'youtube_title_set')}
+        />
       </SectionCard>
     );
   }

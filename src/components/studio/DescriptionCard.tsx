@@ -1,14 +1,17 @@
 'use client';
 
-import { regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
+import { generateSection, regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
 import { useState, useTransition } from 'react';
+import { GenerateSection } from './GenerateSection';
 import { SectionCard } from './SectionCard';
 import { AsyncActionButton, CopyButton } from './buttons';
 
 export function DescriptionCard({
+  packageId,
   assetId,
   text: initial,
 }: {
+  packageId: string;
   assetId: string | null;
   text: string;
 }) {
@@ -20,7 +23,10 @@ export function DescriptionCard({
   if (!assetId) {
     return (
       <SectionCard title="Description" icon="📄">
-        <p className="text-sm text-zinc-500">Not generated yet.</p>
+        <GenerateSection
+          label="description"
+          action={() => generateSection(packageId, 'youtube_description')}
+        />
       </SectionCard>
     );
   }

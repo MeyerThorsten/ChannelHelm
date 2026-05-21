@@ -53,30 +53,50 @@ export async function run(job: JobRow): Promise<void> {
 
   const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
   if (!pkg) throw new Error(`fuse: package ${packageId} not found`);
-  const intelligence = pkg.intelligence as Record<string, unknown>;
   const profile = processingProfile ?? pkg.processingProfile;
 
-  const transcript = intelligence.transcript as
-    | { text?: string; language?: string; segments?: TranscriptSegment[] }
-    | undefined;
-  if (!transcript || !transcript.segments) {
+  const sceneLog = composeSceneLog(pkg.intelligence as Record<string, unknown>, {
+    sourceId,
+    durationSeconds: source.durationSeconds,
+    profile,
+  });
+  if (!sceneLog) {
     throw new Error(`fuse: package ${packageId} has no transcript (run transcribe_audio first)`);
   }
 
-  const frameIndex = intelligence.frame_index as
-    | { frames?: FrameEntry[]; fps?: number }
-    | undefined;
-  // frame_index is absent under fast_audio_only — that's expected, not an error.
-  const frames = frameIndex?.frames ?? [];
+  const sceneLogPath = join(source.localMediaPath, 'scene_log.json');
+  await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
+  await patchPackageIntelligence(packageId, { scene_log: sceneLog });
 
+  await enqueue({
+    kind: 'analyze_intelligence',
+    payload: { sourceId, packageId, processingProfile: profile },
+    idempotencyKey: `analyze_intelligence:${sourceId}:${profile}`,
+  });
+}
+
+/**
+ * Build the §5.2 scene_log object from a package's intelligence (transcript +
+ * optional frame_index + scene_cuts). Returns null if there's no transcript.
+ * Pure data assembly — shared by the fuse worker and the on-demand
+ * section-generation path (which can build a transcript-only scene log
+ * before analyze_visual finishes).
+ */
+export function composeSceneLog(
+  intelligence: Record<string, unknown>,
+  opts: { sourceId: string; durationSeconds: number | null; profile: string },
+) {
+  const transcript = intelligence.transcript as
+    | { text?: string; language?: string; segments?: TranscriptSegment[] }
+    | undefined;
+  if (!transcript?.segments) return null;
+
+  const frames = (intelligence.frame_index as { frames?: FrameEntry[] } | undefined)?.frames ?? [];
   const sceneCuts = Array.isArray(intelligence.scene_cuts)
     ? (intelligence.scene_cuts as number[])
     : [];
-
-  // Find the source duration. Prefer the value cached on the source row (set
-  // by ingest); fall back to the last transcript segment.
   const totalSeconds =
-    source.durationSeconds ??
+    opts.durationSeconds ??
     Math.ceil((transcript.segments[transcript.segments.length - 1]?.end ?? 0) || 1);
 
   const windows = buildWindows({
@@ -87,11 +107,11 @@ export async function run(job: JobRow): Promise<void> {
     sceneCuts,
   });
 
-  const sceneLog = {
-    source_id: sourceId,
+  return {
+    source_id: opts.sourceId,
     windows,
     global_features: {
-      total_speakers: 1, // diarize.py would refine this
+      total_speakers: 1,
       total_scene_cuts: sceneCuts.length,
       average_speech_rate_wpm: averageWpm(windows),
       screen_text_density: classifyScreenTextDensity(windows),
@@ -102,24 +122,13 @@ export async function run(job: JobRow): Promise<void> {
       host: hostname(),
       prompt_version: null,
       input_refs: [
-        `transcript:${sourceId}`,
-        ...(frames.length > 0 ? [`frame_index:${sourceId}`] : []),
+        `transcript:${opts.sourceId}`,
+        ...(frames.length > 0 ? [`frame_index:${opts.sourceId}`] : []),
       ],
       generated_at: new Date().toISOString(),
-      profile,
+      profile: opts.profile,
     },
   };
-
-  const sceneLogPath = join(source.localMediaPath, 'scene_log.json');
-  await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
-
-  await patchPackageIntelligence(packageId, { scene_log: sceneLog });
-
-  await enqueue({
-    kind: 'analyze_intelligence',
-    payload: { sourceId, packageId, processingProfile: profile },
-    idempotencyKey: `analyze_intelligence:${sourceId}:${profile}`,
-  });
 }
 
 // Exported for unit tests in tests/fuse-windows.test.ts.

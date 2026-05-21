@@ -111,9 +111,18 @@ function YouTubeTab(props: StudioProps) {
         thumbnails={y.thumbnails}
       />
 
-      <TitlesCard assetId={y.titlesAssetId} titles={y.titles} selectedIndex={y.selectedIndex} />
-      <DescriptionCard assetId={y.descriptionAssetId} text={y.description} />
-      <TagsCard assetId={y.tagsAssetId} tags={y.tags} />
+      <TitlesCard
+        packageId={props.packageId}
+        assetId={y.titlesAssetId}
+        titles={y.titles}
+        selectedIndex={y.selectedIndex}
+      />
+      <DescriptionCard
+        packageId={props.packageId}
+        assetId={y.descriptionAssetId}
+        text={y.description}
+      />
+      <TagsCard packageId={props.packageId} assetId={y.tagsAssetId} tags={y.tags} />
       <TranscriptCard text={y.transcript} />
     </div>
   );

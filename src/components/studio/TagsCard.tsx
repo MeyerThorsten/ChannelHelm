@@ -1,15 +1,18 @@
 'use client';
 
 import type { ScoredItem } from '@/lib/asset-payload';
-import { regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
+import { generateSection, regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
 import { useState, useTransition } from 'react';
+import { GenerateSection } from './GenerateSection';
 import { SectionCard } from './SectionCard';
 import { AsyncActionButton, CopyButton } from './buttons';
 
 export function TagsCard({
+  packageId,
   assetId,
   tags: initial,
 }: {
+  packageId: string;
   assetId: string | null;
   tags: ScoredItem[];
 }) {
@@ -21,7 +24,7 @@ export function TagsCard({
   if (!assetId || tags.length === 0) {
     return (
       <SectionCard title="Tags" icon="🏷️">
-        <p className="text-sm text-zinc-500">Not generated yet.</p>
+        <GenerateSection label="tags" action={() => generateSection(packageId, 'youtube_tags')} />
       </SectionCard>
     );
   }
