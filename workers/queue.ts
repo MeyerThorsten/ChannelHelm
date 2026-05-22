@@ -161,6 +161,48 @@ export async function fail(jobId: number, error: string): Promise<void> {
   );
 }
 
+/**
+ * §7: reclaim jobs stuck in `running` after a worker crash / SIGKILL / sleep —
+ * the live process never reached complete()/fail(). A job whose `locked_at`
+ * is older than its kind's lock timeout is requeued (or moved to `failed`
+ * once attempts are exhausted) so the pipeline can make progress again.
+ *
+ * Idempotency keys + the dispatch worker's pre-call check on existing
+ * `dispatch.external_id` keep recovered jobs from duplicating completed work.
+ * Timeouts are generous for the heavy ML/render kinds.
+ */
+const LOCK_TIMEOUT_SQL = `CASE kind
+  WHEN 'transcribe_audio'     THEN interval '45 minutes'
+  WHEN 'analyze_visual'       THEN interval '120 minutes'
+  WHEN 'clip_render'          THEN interval '60 minutes'
+  WHEN 'ingest'               THEN interval '30 minutes'
+  WHEN 'fuse'                 THEN interval '15 minutes'
+  WHEN 'analyze_intelligence' THEN interval '20 minutes'
+  WHEN 'generate_asset'       THEN interval '20 minutes'
+  ELSE interval '15 minutes'
+END`;
+
+export async function reclaimStaleJobs(
+  workerKinds: string[],
+): Promise<{ id: number; kind: string }[]> {
+  const result = await pool.query<{ id: number; kind: string }>(
+    `
+    UPDATE jobs
+       SET status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'pending' END,
+           last_error = COALESCE(last_error, 'reclaimed: worker lock expired'),
+           locked_by = NULL,
+           locked_at = NULL,
+           updated_at = now()
+     WHERE status = 'running'
+       AND kind = ANY($1::text[])
+       AND locked_at IS NOT NULL
+       AND locked_at < now() - (${LOCK_TIMEOUT_SQL})
+    RETURNING id, kind`,
+    [workerKinds],
+  );
+  return result.rows;
+}
+
 export async function shutdown(): Promise<void> {
   await pool.end();
 }

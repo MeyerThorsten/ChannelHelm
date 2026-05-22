@@ -45,3 +45,29 @@ export function verifyHmac(opts: {
     ? { ok: true, mode: 'verified' }
     : { ok: false, reason: 'bad_signature' };
 }
+
+/**
+ * §8 fail-closed policy for webhook routes. Given a verification result and
+ * whether unsigned webhooks are explicitly allowed (ALLOW_UNSIGNED_WEBHOOKS=1,
+ * for local smoke tests only), decide whether to accept the request:
+ *   - bad / missing signature           → 401
+ *   - no secret configured + not allowed → 503 (refuse — do not fail open)
+ *   - verified, or unsigned + allowed    → accept
+ */
+export type WebhookGate =
+  | { accept: true; mode: 'verified' | 'unverified' }
+  | { accept: false; status: number; body: { error: string; reason?: string } };
+
+export function webhookGate(check: HmacCheck, allowUnsigned: boolean): WebhookGate {
+  if (!check.ok) {
+    return {
+      accept: false,
+      status: 401,
+      body: { error: 'invalid_signature', reason: check.reason },
+    };
+  }
+  if (check.mode === 'unverified' && !allowUnsigned) {
+    return { accept: false, status: 503, body: { error: 'webhook_secret_required' } };
+  }
+  return { accept: true, mode: check.mode };
+}

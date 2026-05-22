@@ -22,7 +22,7 @@ import { run as runNoop } from './kinds/noop';
 import { run as runPromoteVoiceExamples } from './kinds/promote_voice_examples';
 import { run as runThumbnailConcepts } from './kinds/thumbnail_concepts';
 import { run as runTranscribeAudio } from './kinds/transcribe_audio';
-import { type JobRow, claim, complete, fail, shutdown } from './queue';
+import { type JobRow, claim, complete, fail, reclaimStaleJobs, shutdown } from './queue';
 
 type Handler = (job: JobRow) => Promise<void>;
 
@@ -98,8 +98,25 @@ async function main(): Promise<void> {
   installSignalHandlers();
 
   let iter = 0;
+  let lastReclaim = 0;
   while (!shuttingDown && iter < maxIter) {
     iter++;
+    // §7: periodically requeue jobs abandoned in `running` by a crashed worker.
+    if (Date.now() - lastReclaim > 30_000) {
+      lastReclaim = Date.now();
+      try {
+        const reclaimed = await reclaimStaleJobs(kinds);
+        if (reclaimed.length > 0) {
+          console.warn(
+            `[runner] reclaimed ${reclaimed.length} stale job(s): ${reclaimed
+              .map((r) => `${r.id}/${r.kind}`)
+              .join(', ')}`,
+          );
+        }
+      } catch (err) {
+        console.error('[runner] reclaim failed:', err);
+      }
+    }
     const job = await claim(kinds, lockedBy);
     if (!job) {
       if (once) break;

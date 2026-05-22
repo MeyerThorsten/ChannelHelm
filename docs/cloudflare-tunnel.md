@@ -106,3 +106,16 @@ SELECT source, source_event_id, event_type, processed
  WHERE source = 'zernio'
  ORDER BY received_at DESC LIMIT 5;
 ```
+
+## Webhook security (required before exposing /api/webhooks/*)
+
+The webhook receivers **fail closed**. Before opening `/api/webhooks/zernio`
+and `/api/webhooks/dojoclaw` through the tunnel you MUST set the signing
+secrets, or every request is rejected:
+
+- `ZERNIO_WEBHOOK_SECRET` + `ZERNIO_SIGNATURE_HEADER` (default `x-zernio-signature`)
+- `DOJOCLAW_WEBHOOK_SECRET` + `DOJOCLAW_SIGNATURE_HEADER` (default `x-dojoclaw-signature`)
+
+Behaviour: missing secret → **503** `webhook_secret_required`; bad/absent
+signature → **401**. The only bypass is `ALLOW_UNSIGNED_WEBHOOKS=1`, intended
+for local smoke tests — never set it on a publicly reachable host.

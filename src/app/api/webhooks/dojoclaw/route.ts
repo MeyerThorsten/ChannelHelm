@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { db } from '@/db/client';
 import { webhookEvents } from '@/db/schema';
-import { verifyHmac } from '@/lib/hmac';
+import { verifyHmac, webhookGate } from '@/lib/hmac';
 import { processWebhookEvent } from '@/lib/webhook-processor';
 
 export const runtime = 'nodejs';
@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const SIG_HEADER = process.env.DOJOCLAW_SIGNATURE_HEADER ?? 'x-dojoclaw-signature';
 const SECRET = process.env.DOJOCLAW_WEBHOOK_SECRET;
+const ALLOW_UNSIGNED = process.env.ALLOW_UNSIGNED_WEBHOOKS === '1';
 let warnedUnverified = false;
 
 /**
@@ -24,12 +25,13 @@ export async function POST(req: Request) {
     headerValue: req.headers.get(SIG_HEADER),
     rawBody: raw,
   });
-  if (!check.ok) {
-    return Response.json({ error: 'invalid_signature', reason: check.reason }, { status: 401 });
+  const gate = webhookGate(check, ALLOW_UNSIGNED);
+  if (!gate.accept) {
+    return Response.json(gate.body, { status: gate.status });
   }
-  if (check.mode === 'unverified' && !warnedUnverified) {
+  if (gate.mode === 'unverified' && !warnedUnverified) {
     console.warn(
-      '[webhook:dojoclaw] DOJOCLAW_WEBHOOK_SECRET not set — accepting unsigned webhooks. Set it to enforce signatures.',
+      '[webhook:dojoclaw] ALLOW_UNSIGNED_WEBHOOKS=1 — accepting UNSIGNED webhooks. Set DOJOCLAW_WEBHOOK_SECRET and remove the override before exposing this route.',
     );
     warnedUnverified = true;
   }
