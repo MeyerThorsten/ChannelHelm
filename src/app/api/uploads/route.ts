@@ -1,7 +1,7 @@
 import { createWriteStream } from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
@@ -15,6 +15,27 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ALLOWED_EXT = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv']);
+// #15: hard upload cap (default 2 GB). Enforced from Content-Length AND while
+// streaming, so a lying/absent header can't bypass it.
+const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 2_000_000_000);
+
+/**
+ * #15 CSRF guard for the cookieless dashboard upload. A cross-origin page that
+ * tries to POST here sends a mismatched Origin and is rejected; the same-origin
+ * dashboard fetch passes. A valid bearer token (curl/scripts) also passes.
+ */
+function authorizedUpload(req: Request): boolean {
+  const token = process.env.LOCAL_BEARER_TOKEN;
+  const auth = req.headers.get('authorization');
+  if (token && auth === `Bearer ${token}`) return true;
+  const origin = req.headers.get('origin');
+  if (!origin) return true; // non-browser caller without Origin (e.g. curl)
+  try {
+    return new URL(origin).host === new URL(req.url).host;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Streamed video upload from the dashboard. The browser sends the raw file
@@ -28,13 +49,24 @@ const ALLOWED_EXT = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv']);
  * and enqueues ingest. The ingest worker's uploaded_video branch picks it up
  * (ffmpeg only — no yt-dlp).
  *
- * No bearer auth: this is a dashboard surface, consistent with the Server
- * Actions (createBrand/approve/etc.) and the /api/media route, which all
- * trust the local operator. The bearer-protected JSON API under /api/brands
- * etc. remains for external/curl use.
+ * Authorization (#15): a same-origin guard (or a valid bearer token) — a
+ * cross-origin page can't drive uploads. Size is capped (MAX_UPLOAD_BYTES)
+ * from Content-Length and while streaming, with partial-file cleanup on
+ * overflow.
  */
 export async function POST(req: Request) {
   {
+    if (!authorizedUpload(req)) {
+      return Response.json({ error: 'unauthorized' }, { status: 401 });
+    }
+    const declared = Number(req.headers.get('content-length') ?? '');
+    if (Number.isFinite(declared) && declared > MAX_UPLOAD_BYTES) {
+      return Response.json(
+        { error: 'payload_too_large', maxBytes: MAX_UPLOAD_BYTES },
+        { status: 413 },
+      );
+    }
+
     const url = new URL(req.url);
     const brandId = url.searchParams.get('brandId') ?? '';
     const filename = url.searchParams.get('filename') ?? 'upload.mp4';
@@ -66,13 +98,31 @@ export async function POST(req: Request) {
     const filePath = join(outputDir, `original.${ext}`);
 
     await mkdir(outputDir, { recursive: true });
+    let received = 0;
+    const limiter = new Transform({
+      transform(chunk, _enc, cb) {
+        received += chunk.length;
+        if (received > MAX_UPLOAD_BYTES) {
+          cb(new Error('upload_too_large'));
+          return;
+        }
+        cb(null, chunk);
+      },
+    });
     try {
       await pipeline(
         Readable.fromWeb(req.body as import('node:stream/web').ReadableStream),
+        limiter,
         createWriteStream(filePath),
       );
     } catch (err) {
       await rm(outputDir, { recursive: true, force: true });
+      if (err instanceof Error && err.message === 'upload_too_large') {
+        return Response.json(
+          { error: 'payload_too_large', maxBytes: MAX_UPLOAD_BYTES },
+          { status: 413 },
+        );
+      }
       console.error('[upload] stream failed', err);
       return Response.json({ error: 'upload_failed' }, { status: 500 });
     }

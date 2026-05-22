@@ -12,7 +12,14 @@ import { revalidatePath } from 'next/cache';
  * the transcript if the visual stage hasn't finished), then upserts the
  * asset. Same documented "LLM in a Server Action" carve-out as regenerate.
  */
+// #21: per-section generation is only for these Content Studio sections.
+// Package-wide asset production stays the worker's job (generate_asset).
+const SECTION_TYPES = new Set(['youtube_title_set', 'youtube_description', 'youtube_tags']);
+
 export async function generateSection(packageId: string, assetType: string): Promise<void> {
+  if (!SECTION_TYPES.has(assetType)) {
+    throw new Error(`generateSection: "${assetType}" is not a Content Studio section type`);
+  }
   await upsertSectionAsset(packageId, assetType);
   revalidatePath(`/packages/${packageId}`);
 }

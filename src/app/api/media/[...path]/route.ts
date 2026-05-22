@@ -14,6 +14,13 @@ const REQUIRE_SIGNATURE = process.env.MEDIA_REQUIRE_SIGNATURE === '1';
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
+function unsatisfiable(total: number): Response {
+  return new Response('range not satisfiable', {
+    status: 416,
+    headers: { 'content-range': `bytes */${total}` },
+  });
+}
+
 /**
  * Local media server for the studio's <video> element + thumbnails. Streams
  * files from under MEDIA_ROOT with a path-traversal guard and HTTP range
@@ -48,15 +55,29 @@ export async function GET(req: Request, { params }: Ctx) {
   const range = req.headers.get('range');
 
   if (range) {
-    const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+    // #20: RFC 7233 single-range normalization — supports suffix ranges
+    // (bytes=-N), open ranges (bytes=N-), and clamps the end to total-1.
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
     if (match) {
-      const start = match[1] ? Number.parseInt(match[1], 10) : 0;
-      const end = match[2] ? Number.parseInt(match[2], 10) : total - 1;
-      if (start > end || start >= total) {
-        return new Response('range not satisfiable', {
-          status: 416,
-          headers: { 'content-range': `bytes */${total}` },
-        });
+      const startRaw = match[1] ?? '';
+      const endRaw = match[2] ?? '';
+      let start: number;
+      let end: number;
+      if (startRaw === '' && endRaw === '') {
+        return unsatisfiable(total);
+      }
+      if (startRaw === '') {
+        // suffix range: last N bytes
+        const suffix = Number.parseInt(endRaw, 10);
+        if (suffix <= 0) return unsatisfiable(total);
+        start = Math.max(total - suffix, 0);
+        end = total - 1;
+      } else {
+        start = Number.parseInt(startRaw, 10);
+        end = endRaw ? Math.min(Number.parseInt(endRaw, 10), total - 1) : total - 1;
+      }
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= total) {
+        return unsatisfiable(total);
       }
       const stream = createReadStream(abs, { start, end });
       return new Response(Readable.toWeb(stream) as ReadableStream, {

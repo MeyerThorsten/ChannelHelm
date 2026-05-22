@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { db } from '@/db/client';
-import { brands, jobs, sources } from '@/db/schema';
+import { assets, brands, jobs, packages, sources } from '@/db/schema';
 import { MEDIA_ROOT, resolveMediaPath } from '@/lib/media-path';
 import { looksLikeChannelId, slugify } from '@/lib/url';
 import { resolveChannelId } from '@workers/integrations/ytdlp';
@@ -126,19 +126,30 @@ export async function renormalizeBrandSlug(brandId: string): Promise<void> {
   const brandSources = await db.select().from(sources).where(eq(sources.brandId, brandId));
   const sourceIds = brandSources.map((s) => s.id);
 
-  // Guard: no in-flight jobs for this brand's sources/packages.
-  if (sourceIds.length > 0) {
-    const live = await db
-      .select({ id: jobs.id })
+  // #16: a slug rename moves media folders + rewrites paths, so it must block
+  // when ANY pending/running job references the brand — not just source-keyed
+  // jobs. Jobs are keyed by sourceId (ingest/transcribe/visual/fuse/analysis),
+  // packageId (generate_asset), assetId (dispatch), or planAssetId (clip_render).
+  const [pkgRows, assetRows] = await Promise.all([
+    db.select({ id: packages.id }).from(packages).where(eq(packages.brandId, brandId)),
+    db.select({ id: assets.id }).from(assets).where(eq(assets.brandId, brandId)),
+  ]);
+  const refs = new Set<string>([
+    ...sourceIds,
+    ...pkgRows.map((p) => p.id),
+    ...assetRows.map((a) => a.id),
+  ]);
+  if (refs.size > 0) {
+    const liveJobs = await db
+      .select({ payload: jobs.payload })
       .from(jobs)
-      .where(
-        and(
-          inArray(jobs.status, ['pending', 'running']),
-          sql`${jobs.payload}->>'sourceId' = ANY(${sourceIds})`,
-        ),
-      )
-      .limit(1);
-    if (live[0]) {
+      .where(inArray(jobs.status, ['pending', 'running']));
+    const KEYS = ['sourceId', 'packageId', 'assetId', 'planAssetId'] as const;
+    const blocked = liveJobs.some((j) => {
+      const p = (j.payload ?? {}) as Record<string, unknown>;
+      return KEYS.some((k) => typeof p[k] === 'string' && refs.has(p[k] as string));
+    });
+    if (blocked) {
       throw new Error(
         'Cannot rename slug while jobs are in flight for this brand. Wait for the pipeline to finish, then retry.',
       );

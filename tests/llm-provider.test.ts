@@ -40,6 +40,21 @@ describe('selectProvider', () => {
     expect(out?.id).toBe(2);
   });
 
+  it('NEVER selects an unrelated profile-specific provider (#17)', () => {
+    // only a premium provider exists; asking for standard must fall through to null
+    expect(
+      selectProvider([rec(1, { purpose: 'premium_multimodal' })], 'standard_audio_visual'),
+    ).toBeNull();
+  });
+
+  it('still falls back to a default-flagged provider of another purpose', () => {
+    const out = selectProvider(
+      [rec(1, { purpose: 'premium_multimodal', isDefault: true })],
+      'standard_audio_visual',
+    );
+    expect(out?.id).toBe(1);
+  });
+
   it('skips disabled even when they match the purpose', () => {
     const out = selectProvider(
       [rec(1, { purpose: 'premium_multimodal', enabled: false }), rec(2, { purpose: 'all' })],

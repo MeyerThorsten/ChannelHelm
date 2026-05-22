@@ -2,10 +2,23 @@
 
 import { db } from '@/db/client';
 import { packages, sources } from '@/db/schema';
+import { ProcessingProfile } from '@/lib/schemas';
 import { discoverBrandForYoutube } from '@workers/lib/brand-discovery';
 import { enqueue } from '@workers/queue';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+
+// #18: every package-creation path validates the processing profile against the
+// fixed §5.5 set before persisting (workers branch behavior off this value).
+function safeProfile(value: unknown): string {
+  const parsed = ProcessingProfile.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `invalid processing profile "${String(value)}" (expected fast_audio_only | standard_audio_visual | premium_multimodal)`,
+    );
+  }
+  return parsed.data;
+}
 
 /**
  * Ingest a YouTube URL with automatic brand discovery. The brand is resolved
@@ -22,6 +35,7 @@ export async function ingestYoutubeUrl(
 ): Promise<void> {
   const trimmed = url.trim();
   if (!trimmed) throw new Error('URL is required');
+  const profile = safeProfile(processingProfile);
 
   const discovered = await discoverBrandForYoutube(trimmed, fallbackBrandId);
   const [source] = await db
@@ -31,7 +45,7 @@ export async function ingestYoutubeUrl(
   if (!source) throw new Error('source insert returned no row');
   const [pkg] = await db
     .insert(packages)
-    .values({ brandId: discovered.brandId, sourceId: source.id, processingProfile })
+    .values({ brandId: discovered.brandId, sourceId: source.id, processingProfile: profile })
     .returning();
   if (!pkg) throw new Error('package insert returned no row');
   await enqueue({
@@ -54,7 +68,9 @@ export async function createSourceFromForm(formData: FormData): Promise<void> {
   const kind = String(formData.get('kind') ?? '').trim();
   const originUrl = String(formData.get('originUrl') ?? '').trim();
   const createPackage = formData.get('createPackage') === 'on';
-  const processingProfile = String(formData.get('processingProfile') ?? 'standard_audio_visual');
+  const processingProfile = safeProfile(
+    formData.get('processingProfile') ?? 'standard_audio_visual',
+  );
 
   if (!brandId.startsWith('brd_')) throw new Error('brandId is required');
   if (!kind) throw new Error('kind is required');

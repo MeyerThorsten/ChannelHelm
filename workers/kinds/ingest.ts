@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
+import { resolveMediaPath } from '@/lib/media-path';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { detectScenes, extractAudioWav, probeDurationSeconds } from '../integrations/ffmpeg';
@@ -55,7 +56,13 @@ export async function run(job: JobRow): Promise<void> {
     if (!source.localMediaPath) {
       throw new Error(`ingest: uploaded_video ${sourceId} has no local_media_path`);
     }
-    outputDir = resolve(source.localMediaPath);
+    // #19: never trust a stored path — re-validate MEDIA_ROOT containment so a
+    // bad source row can't make ffmpeg read/process files outside media storage.
+    const contained = resolveMediaPath(source.localMediaPath);
+    if (!contained) {
+      throw new Error(`ingest: uploaded_video ${sourceId} local_media_path escapes MEDIA_ROOT`);
+    }
+    outputDir = contained;
     videoPath = await findUploadedVideo(outputDir);
     console.log(`[ingest] uploaded file ${videoPath}`);
     durationSeconds = Math.round(await probeDurationSeconds(videoPath));

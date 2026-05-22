@@ -63,17 +63,20 @@ const PRESETS: Preset[] = [
 
 export function ProviderForm({
   provider,
+  hasApiKey,
   action,
   submitLabel,
 }: {
   provider?: Provider;
+  hasApiKey?: boolean;
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
 }) {
   const [name, setName] = useState(provider?.name ?? '');
   const [type, setType] = useState(provider?.type ?? 'openai-compatible');
   const [baseUrl, setBaseUrl] = useState(provider?.baseUrl ?? '');
-  const [apiKey, setApiKey] = useState(provider?.apiKey ?? '');
+  // #14: the saved key is never sent to the client; blank means "keep existing".
+  const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState(provider?.model ?? '');
   const [models, setModels] = useState<string[]>([]);
   const [modelMsg, setModelMsg] = useState<string | null>(null);
@@ -266,12 +269,18 @@ export function ProviderForm({
           <div>
             <label className={LABEL} htmlFor="apiKey">
               API key{' '}
-              {type !== 'anthropic' && <span className="text-zinc-400">(blank for local)</span>}
+              {hasApiKey ? (
+                <span className="text-zinc-400">(saved — leave blank to keep)</span>
+              ) : (
+                type !== 'anthropic' && <span className="text-zinc-400">(blank for local)</span>
+              )}
             </label>
             <input
               id="apiKey"
               name="apiKey"
               type="password"
+              autoComplete="off"
+              placeholder={hasApiKey ? '•••••••• saved' : ''}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className={INPUT}

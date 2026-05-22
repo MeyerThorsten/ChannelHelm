@@ -1,5 +1,6 @@
 import { db } from '@/db/client';
 import { llmProviders } from '@/db/schema';
+import { decryptSecret } from '@/lib/secret-box';
 import { asc, desc, eq } from 'drizzle-orm';
 import { AnthropicProvider } from './anthropic';
 import { CodexCliProvider } from './codex';
@@ -20,7 +21,7 @@ function toConfig(r: ProviderRecord): ProviderConfig {
     name: r.name,
     type: r.type,
     baseUrl: r.baseUrl,
-    apiKey: r.apiKey,
+    apiKey: decryptSecret(r.apiKey), // #14: keys are encrypted at rest
     model: r.model,
     maxTokens: r.maxTokens,
     temperature: r.temperature,
@@ -28,22 +29,29 @@ function toConfig(r: ProviderRecord): ProviderConfig {
 }
 
 /**
- * Pure selection: pick the best enabled provider for a purpose. Prefers an
- * exact purpose match, then an `all`-purpose provider, then default flag,
- * then lowest id. Returns null when nothing's enabled. Exported for tests.
+ * Pure selection: pick the best enabled provider for a purpose. ELIGIBLE
+ * candidates are only: an exact purpose match, an `all`-purpose provider, or a
+ * provider flagged `is_default`. A provider configured for an *unrelated*
+ * profile is never eligible (#17) — so `premium_multimodal` won't quietly
+ * serve `standard_audio_visual`. Order: exact → all → default → lowest id.
+ * Returns null when nothing eligible; caller falls back to env. Exported for tests.
  */
 export function selectProvider<
   T extends Pick<ProviderRecord, 'id' | 'enabled' | 'purpose' | 'isDefault'>,
 >(records: T[], purpose: string): T | null {
-  const enabled = records.filter((r) => r.enabled);
-  if (enabled.length === 0) return null;
+  const eligible = records.filter(
+    (r) =>
+      r.enabled &&
+      ((purpose !== 'all' && r.purpose === purpose) || r.purpose === 'all' || r.isDefault),
+  );
+  if (eligible.length === 0) return null;
   const score = (r: T): number => {
     if (purpose !== 'all' && r.purpose === purpose) return 3;
     if (r.purpose === 'all') return 2;
-    return 1;
+    return 1; // default-flagged fallback
   };
   return (
-    [...enabled].sort((a, b) => {
+    [...eligible].sort((a, b) => {
       const s = score(b) - score(a);
       if (s !== 0) return s;
       const d = Number(b.isDefault) - Number(a.isDefault);

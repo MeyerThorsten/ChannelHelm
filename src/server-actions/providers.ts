@@ -2,6 +2,7 @@
 
 import { db } from '@/db/client';
 import { llmProviders } from '@/db/schema';
+import { decryptSecret, encryptSecret } from '@/lib/secret-box';
 import { providerFromConfig } from '@workers/integrations/llm/get_provider';
 import { fetchAvailableModels } from '@workers/integrations/llm/models';
 import { eq, sql } from 'drizzle-orm';
@@ -43,7 +44,7 @@ export async function createProviderFromForm(formData: FormData): Promise<void> 
       name,
       type,
       baseUrl,
-      apiKey: String(formData.get('apiKey') ?? ''),
+      apiKey: encryptSecret(String(formData.get('apiKey') ?? '')),
       model,
       purpose: String(formData.get('purpose') ?? 'all'),
       maxTokens: num(formData.get('maxTokens'), 2048),
@@ -64,25 +65,26 @@ export async function updateProviderFromForm(id: number, formData: FormData): Pr
     throw new Error('name, model and (for HTTP providers) baseUrl are required');
   }
   const isDefault = formData.get('isDefault') === 'on';
+  // #14: a blank API key on edit PRESERVES the saved one (the form never
+  // receives the existing key, so blank == "unchanged"). A new value replaces it.
+  const submittedKey = String(formData.get('apiKey') ?? '');
 
   await db.transaction(async (tx) => {
     if (isDefault) await tx.update(llmProviders).set({ isDefault: false });
-    await tx
-      .update(llmProviders)
-      .set({
-        name,
-        type,
-        baseUrl,
-        apiKey: String(formData.get('apiKey') ?? ''),
-        model,
-        purpose: String(formData.get('purpose') ?? 'all'),
-        maxTokens: num(formData.get('maxTokens'), 2048),
-        temperature: num(formData.get('temperature'), 0.5),
-        isDefault,
-        enabled: formData.get('enabled') === 'on',
-        updatedAt: sql`now()`,
-      })
-      .where(eq(llmProviders.id, id));
+    const values: Record<string, unknown> = {
+      name,
+      type,
+      baseUrl,
+      model,
+      purpose: String(formData.get('purpose') ?? 'all'),
+      maxTokens: num(formData.get('maxTokens'), 2048),
+      temperature: num(formData.get('temperature'), 0.5),
+      isDefault,
+      enabled: formData.get('enabled') === 'on',
+      updatedAt: sql`now()`,
+    };
+    if (submittedKey.length > 0) values.apiKey = encryptSecret(submittedKey);
+    await tx.update(llmProviders).set(values).where(eq(llmProviders.id, id));
   });
   revalidatePath('/providers');
 }
@@ -111,7 +113,7 @@ export async function testProvider(id: number): Promise<string> {
     name: rec.name,
     type: rec.type,
     baseUrl: rec.baseUrl,
-    apiKey: rec.apiKey,
+    apiKey: decryptSecret(rec.apiKey),
     model: rec.model,
     maxTokens: rec.maxTokens,
     temperature: rec.temperature,

@@ -22,6 +22,10 @@ export default async function EditProviderPage({ params }: Props) {
   if (!provider) notFound();
 
   const action = updateProviderFromForm.bind(null, numId);
+  // #14: never serialize the saved API key to the client. Strip it; the form
+  // shows a "saved key present" placeholder and a blank submit preserves it.
+  const hasApiKey = !!provider.apiKey;
+  const safe = { ...provider, apiKey: '' };
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -29,7 +33,12 @@ export default async function EditProviderPage({ params }: Props) {
         ← providers
       </Link>
       <h1 className="mt-3 mb-6 text-2xl font-semibold">Edit “{provider.name}”</h1>
-      <ProviderForm provider={provider} action={action} submitLabel="Save changes" />
+      <ProviderForm
+        provider={safe}
+        hasApiKey={hasApiKey}
+        action={action}
+        submitLabel="Save changes"
+      />
     </main>
   );
 }
