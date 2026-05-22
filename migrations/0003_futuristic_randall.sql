@@ -1,0 +1,1 @@
+ALTER TABLE "brands" ADD COLUMN "zernio_accounts" jsonb DEFAULT '{}'::jsonb NOT NULL;

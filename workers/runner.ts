@@ -22,7 +22,16 @@ import { run as runNoop } from './kinds/noop';
 import { run as runPromoteVoiceExamples } from './kinds/promote_voice_examples';
 import { run as runThumbnailConcepts } from './kinds/thumbnail_concepts';
 import { run as runTranscribeAudio } from './kinds/transcribe_audio';
-import { type JobRow, claim, complete, fail, reclaimStaleJobs, shutdown } from './queue';
+import {
+  type JobRow,
+  RequeueLater,
+  claim,
+  complete,
+  fail,
+  reclaimStaleJobs,
+  requeueAt,
+  shutdown,
+} from './queue';
 
 type Handler = (job: JobRow) => Promise<void>;
 
@@ -135,9 +144,16 @@ async function main(): Promise<void> {
       await complete(job.id);
       console.log(`[runner] done job=${job.id} kind=${job.kind}`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[runner] fail job=${job.id} kind=${job.kind}: ${msg}`);
-      await fail(job.id, msg);
+      if (err instanceof RequeueLater) {
+        await requeueAt(job.id, err.runAfter);
+        console.log(
+          `[runner] requeued job=${job.id} kind=${job.kind} until ${err.runAfter.toISOString()} (${err.message})`,
+        );
+      } else {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[runner] fail job=${job.id} kind=${job.kind}: ${msg}`);
+        await fail(job.id, msg);
+      }
     }
     if (once) break;
   }

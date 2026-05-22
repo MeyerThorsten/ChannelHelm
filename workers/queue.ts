@@ -203,6 +203,31 @@ export async function reclaimStaleJobs(
   return result.rows;
 }
 
+/**
+ * Signal from a handler that the job should be deferred (not completed, not
+ * failed) until `runAfter`. The runner catches this and calls requeueAt().
+ * Used by dispatch for §9.6 rate-limit backoff to the next UTC day.
+ */
+export class RequeueLater extends Error {
+  constructor(
+    public readonly runAfter: Date,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'RequeueLater';
+  }
+}
+
+/** Return a job to `pending` with an explicit future `run_after`, releasing its lock. */
+export async function requeueAt(jobId: number, runAfter: Date): Promise<void> {
+  await pool.query(
+    `UPDATE jobs
+        SET status = 'pending', run_after = $2, locked_by = NULL, locked_at = NULL, updated_at = now()
+      WHERE id = $1`,
+    [jobId, runAfter],
+  );
+}
+
 export async function shutdown(): Promise<void> {
   await pool.end();
 }

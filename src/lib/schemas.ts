@@ -23,30 +23,34 @@ const StringArray = z.array(z.string());
 
 // ─── status enums ────────────────────────────────────────────────
 //
-// Sourced from §2.1 (assets) and §10 (packages). The pipeline workers
-// set the in-flight values (analyzing/analyzed/dispatching) themselves;
-// API consumers only ever set the terminal-ish values (approved,
-// rejected, scheduled) via the approval flow.
+// PackageStatus is exactly the §10 lifecycle. AssetStatus is the §2.2 set
+// PLUS the documented internal review marker `ready_for_review` (assets are
+// surfaced for operator review before approval — see the §2.2 note in the
+// contract). Workers set in-flight values; API consumers set the
+// terminal-ish values via the approval/dispatch flow.
 
 export const PackageStatus = z.enum([
   'draft',
-  'analyzing',
+  'ingested',
+  'transcribing',
+  'analyzing_visual',
+  'fused',
   'analyzed',
   'ready_for_review',
   'approved',
   'dispatching',
-  'published',
+  'dispatched',
+  'partially_dispatched',
   'failed',
 ]);
 export type PackageStatus = z.infer<typeof PackageStatus>;
 
 export const AssetStatus = z.enum([
   'draft',
-  'ready_for_review',
+  'ready_for_review', // internal review marker (documented in §2.2)
   'approved',
   'rejected',
-  'scheduled',
-  'dispatching',
+  'dispatched',
   'published',
   'failed',
 ]);
@@ -146,6 +150,8 @@ export const PackageListQuery = z.object({
 });
 
 export const AssetListQuery = z.object({
+  // §3 / #13: asset reads are brand-scoped.
+  brandId: z.string().regex(/^brd_/),
   packageId: z.string().regex(/^pkg_/),
   type: z.string().optional(),
   status: AssetStatus.optional(),

@@ -18,7 +18,14 @@ export function pipelineProgress(intelligence: unknown, status: string): Pipelin
     intelligence: has('analysis') ? 1 : 0,
   };
 
-  const working = status === 'draft' || status === 'analyzing';
+  const working = [
+    'draft',
+    'ingested',
+    'transcribing',
+    'analyzing_visual',
+    'analyzing',
+    'fused',
+  ].includes(status);
   if (working) {
     for (const k of ['audio', 'visual', 'fusion', 'intelligence'] as const) {
       if (layers[k] === 0) {

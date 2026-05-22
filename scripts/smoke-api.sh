@@ -9,7 +9,7 @@
 #   GET  /api/sources?brand_id=...
 #   POST /api/packages
 #   GET  /api/packages?brand_id=...
-#   PATCH /api/packages/[id]   (status: draft -> analyzing)
+#   PATCH /api/packages/[id]   (status: draft -> ingested)
 #   401 path  (missing/wrong bearer)
 #
 # Requires a running dev server. Cleans up via psql at the end so the DB is
@@ -129,8 +129,8 @@ assert_code "$CODE" "201" "create package"
 PACKAGE_ID=$(extract_id "$BODY" package)
 echo "  package_id = $PACKAGE_ID"
 
-say "PATCH /api/packages/$PACKAGE_ID (status: draft -> analyzing)"
-RESP=$(curl_json PATCH "$API/api/packages/$PACKAGE_ID" -d '{"status": "analyzing"}')
+say "PATCH /api/packages/$PACKAGE_ID (status: draft -> ingested)"
+RESP=$(curl_json PATCH "$API/api/packages/$PACKAGE_ID?brandId=$BRAND_ID" -d '{"status": "ingested"}')
 assert_code "$(echo "$RESP" | tail -n1)" "200" "patch package status"
 
 say "GET /api/packages?brand_id=$BRAND_ID&status=analyzing"

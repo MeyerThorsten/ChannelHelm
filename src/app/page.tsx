@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-const READY_STATUSES = ['ready_for_review', 'approved', 'dispatching', 'scheduled', 'published'];
+const READY_STATUSES = ['ready_for_review', 'approved', 'dispatched', 'published'];
 
 function seedOf(id: string): number {
   let h = 0;

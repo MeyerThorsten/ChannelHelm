@@ -1,6 +1,6 @@
 import { makeId } from '@/lib/ids';
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { foreignKey, index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { brands } from './brands';
 import { sources } from './sources';
 
@@ -32,5 +32,12 @@ export const packages = pgTable(
     index('idx_packages_brand_status').on(t.brandId, t.status),
     index('idx_packages_source').on(t.sourceId),
     index('idx_packages_updated').on(t.updatedAt.desc()),
+    // §3 / #1: a package's (source_id, brand_id) must match an existing
+    // source's (id, brand_id) — the DB backstop for brand/source consistency.
+    foreignKey({
+      columns: [t.sourceId, t.brandId],
+      foreignColumns: [sources.id, sources.brandId],
+      name: 'fk_packages_source_brand',
+    }),
   ],
 );

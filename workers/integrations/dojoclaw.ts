@@ -10,7 +10,13 @@
 const BASE = process.env.DOJOCLAW_API_URL ?? 'http://m4max.local:8788';
 const KEY = process.env.DOJOCLAW_API_KEY ?? '';
 
-export type DojoclawBriefRequest = {
+/**
+ * §8.2 article-brief handoff. Posted to /api/v1/articles/from-brief. `brief_id`
+ * (= the ChannelHelm asset id) is a correlation key DojoClaw echoes back on the
+ * completion webhook alongside `dojoclaw_job_id`.
+ */
+export type DojoclawArticleRequest = {
+  brief_id: string;
   brand_slug: string;
   package_id: string;
   asset_id: string;
@@ -18,18 +24,20 @@ export type DojoclawBriefRequest = {
   callback_url: string;
 };
 
-export type DojoclawBriefResponse = {
-  job_id: string;
-  status: 'queued' | 'running' | 'done';
+export type DojoclawArticleResponse = {
+  dojoclaw_job_id: string;
+  status?: 'queued' | 'running' | 'done';
 };
 
-export async function submitBrief(req: DojoclawBriefRequest): Promise<DojoclawBriefResponse> {
+export async function submitArticleBrief(
+  req: DojoclawArticleRequest,
+): Promise<DojoclawArticleResponse> {
   if (!KEY) {
     throw new Error(
       'dojoclaw: DOJOCLAW_API_KEY not set — refusing to dispatch (configure in .env)',
     );
   }
-  const res = await fetch(`${BASE}/api/briefs`, {
+  const res = await fetch(`${BASE}/api/v1/articles/from-brief`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -41,5 +49,5 @@ export async function submitBrief(req: DojoclawBriefRequest): Promise<DojoclawBr
     const tail = await res.text().catch(() => '');
     throw new Error(`dojoclaw: ${res.status} ${res.statusText} ${tail.slice(0, 500)}`);
   }
-  return (await res.json()) as DojoclawBriefResponse;
+  return (await res.json()) as DojoclawArticleResponse;
 }

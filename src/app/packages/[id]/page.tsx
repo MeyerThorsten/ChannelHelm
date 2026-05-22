@@ -45,7 +45,7 @@ const TAB_ASSET_TYPES: Record<string, string[]> = {
   linkedin: ['linkedin_post'],
 };
 
-const READY = new Set(['ready_for_review', 'approved', 'dispatching', 'scheduled', 'published']);
+const READY = new Set(['ready_for_review', 'approved', 'dispatched', 'published']);
 const FAILED = new Set(['failed', 'rejected']);
 
 function assetLabel(type: string): string {

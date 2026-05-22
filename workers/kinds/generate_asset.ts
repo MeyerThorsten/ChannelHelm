@@ -3,7 +3,8 @@ import { assets, brands, packages } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateAssetContent } from '../lib/generate';
-import type { JobRow } from '../queue';
+import { markReadyForReviewIfComplete } from '../lib/lifecycle';
+import { type JobRow, enqueue } from '../queue';
 
 const Payload = z.object({
   sourceId: z.string().regex(/^src_/),
@@ -36,10 +37,18 @@ export async function run(job: JobRow): Promise<void> {
     processingProfile,
   });
 
-  // Respect the brand's auto_dispatch_for list. Default is "approval required";
-  // brands can opt specific asset types into auto-dispatch via that JSONB array.
-  const autoDispatch =
+  // §10 auto-dispatch policy. A brand can opt specific asset types into
+  // auto-dispatch via auto_dispatch_for; those skip review (status=approved)
+  // and are dispatched immediately. *_plan assets are NEVER auto-dispatchable
+  // (they gate clip rendering) — ignore them in the list with a warning.
+  const inAutoList =
     Array.isArray(brand.autoDispatchFor) && brand.autoDispatchFor.includes(assetType);
+  if (inAutoList && assetType.endsWith('_plan')) {
+    console.warn(
+      `[generate_asset] brand ${brand.id} lists *_plan type "${assetType}" in auto_dispatch_for — ignoring (plans must be operator-approved before rendering).`,
+    );
+  }
+  const autoDispatch = inAutoList && !assetType.endsWith('_plan');
   const approvalRequired = !autoDispatch;
   const status = approvalRequired ? 'ready_for_review' : 'approved';
 
@@ -52,26 +61,42 @@ export async function run(job: JobRow): Promise<void> {
     .from(assets)
     .where(and(eq(assets.packageId, packageId), eq(assets.type, assetType)))
     .limit(1);
+  let resultId: string;
   if (existing) {
     await db
       .update(assets)
       .set({ payload, provenance, status, approvalRequired, updatedAt: sql`now()` })
       .where(eq(assets.id, existing.id));
-    console.log(`[generate_asset] updated ${existing.id} type=${assetType}`);
-    return;
+    resultId = existing.id;
+    console.log(`[generate_asset] updated ${resultId} type=${assetType}`);
+  } else {
+    const [row] = await db
+      .insert(assets)
+      .values({
+        packageId,
+        brandId: brand.id,
+        type: assetType,
+        status,
+        approvalRequired,
+        payload,
+        provenance,
+      })
+      .returning({ id: assets.id });
+    if (!row) throw new Error('generate_asset: insert returned no row');
+    resultId = row.id;
+    console.log(`[generate_asset] inserted ${resultId} type=${assetType}`);
   }
-  const [row] = await db
-    .insert(assets)
-    .values({
-      packageId,
-      brandId: brand.id,
-      type: assetType,
-      status,
-      approvalRequired,
-      payload,
-      provenance,
-    })
-    .returning();
-  if (!row) throw new Error('generate_asset: insert returned no row');
-  console.log(`[generate_asset] inserted ${row.id} type=${assetType}`);
+
+  // §10: auto-dispatch assets are routed immediately (the dispatch worker
+  // enforces the *_plan ban + rate limits). Approval-required assets wait.
+  if (autoDispatch) {
+    await enqueue({
+      kind: 'dispatch',
+      payload: { assetId: resultId },
+      idempotencyKey: `dispatch:${resultId}`,
+    });
+  }
+
+  // §10: advance the package to ready_for_review once generation is complete.
+  await markReadyForReviewIfComplete(packageId);
 }

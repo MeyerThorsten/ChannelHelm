@@ -42,8 +42,11 @@ async function processZernio(
   externalId: string | null,
   payload: Record<string, unknown>,
 ): Promise<boolean> {
-  if (!externalId) return false;
-  const asset = await findAssetByExternalId('zernio', externalId);
+  // §9.3: correlate by external id, then by metadata.channelhelmAssetId.
+  const metaAssetId = readMetaAssetId(payload);
+  const asset =
+    (externalId ? await findAssetByExternalId('zernio', externalId) : undefined) ??
+    (metaAssetId ? await findAssetById(metaAssetId) : undefined);
   if (!asset) return false;
 
   if (eventType === 'post.published') {
@@ -115,15 +118,22 @@ async function processDojoclaw(
   externalId: string | null,
   payload: Record<string, unknown>,
 ): Promise<boolean> {
-  if (!externalId) return false;
-  const asset = await findAssetByExternalId('dojoclaw', externalId);
+  // §8.2: correlate by dojoclaw_job_id (external id) or brief_id (= asset id).
+  const briefId = typeof payload.brief_id === 'string' ? payload.brief_id : null;
+  const asset =
+    (externalId ? await findAssetByExternalId('dojoclaw', externalId) : undefined) ??
+    (briefId ? await findAssetById(briefId) : undefined);
   if (!asset) return false;
 
   if (eventType === 'article.completed') {
-    const draftUrl = typeof payload.draft_url === 'string' ? payload.draft_url : null;
+    // §8.2 result block: wordpress_url / wordpress_post_id / status.
+    const result =
+      payload.result && typeof payload.result === 'object'
+        ? (payload.result as Record<string, unknown>)
+        : {};
     const dispatch = {
       ...(asset.dispatch as Record<string, unknown>),
-      draft_url: draftUrl,
+      result,
       completed_at: new Date().toISOString(),
     };
     await db
@@ -144,6 +154,18 @@ async function processDojoclaw(
     return true;
   }
   return false;
+}
+
+/** Read ChannelHelm metadata correlation key from a Zernio webhook payload. */
+function readMetaAssetId(payload: Record<string, unknown>): string | null {
+  const meta = (payload.metadata ?? {}) as Record<string, unknown>;
+  const v = meta.channelhelmAssetId ?? meta.channelhelm_asset_id;
+  return typeof v === 'string' && v.startsWith('ast_') ? v : null;
+}
+
+async function findAssetById(id: string) {
+  const rows = await db.select().from(assets).where(eq(assets.id, id)).limit(1);
+  return rows[0];
 }
 
 async function findAssetByExternalId(target: 'zernio' | 'dojoclaw', externalId: string) {

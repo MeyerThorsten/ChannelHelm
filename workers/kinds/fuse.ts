@@ -6,6 +6,7 @@ import { packages, sources } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
+import { advancePackageStatus } from '../lib/lifecycle';
 import { type JobRow, enqueue } from '../queue';
 
 const Payload = z.object({
@@ -67,6 +68,7 @@ export async function run(job: JobRow): Promise<void> {
   const sceneLogPath = join(source.localMediaPath, 'scene_log.json');
   await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
   await patchPackageIntelligence(packageId, { scene_log: sceneLog });
+  await advancePackageStatus(packageId, 'fused');
 
   await enqueue({
     kind: 'analyze_intelligence',

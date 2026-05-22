@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { detectScenes, extractAudioWav, probeDurationSeconds } from '../integrations/ffmpeg';
 import { downloadVideo } from '../integrations/ytdlp';
+import { advancePackageStatus } from '../lib/lifecycle';
 import { type JobRow, enqueue } from '../queue';
 
 const IngestPayload = z.object({
@@ -101,6 +102,7 @@ export async function run(job: JobRow): Promise<void> {
     },
   };
   await db.update(packages).set({ intelligence }).where(eq(packages.id, packageId));
+  await advancePackageStatus(packageId, 'ingested');
 
   await enqueue({
     kind: 'transcribe_audio',

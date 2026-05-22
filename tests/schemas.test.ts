@@ -26,9 +26,19 @@ describe('PackageStatus / AssetStatus', () => {
     expect(() => PackageStatus.parse('analyziiing')).toThrow();
     expect(() => AssetStatus.parse('almost-approved')).toThrow();
   });
-  it('accepts the contracted enums', () => {
+  it('accepts the §10 / §2.2 contracted enums', () => {
     expect(PackageStatus.parse('approved')).toBe('approved');
-    expect(AssetStatus.parse('scheduled')).toBe('scheduled');
+    expect(PackageStatus.parse('ingested')).toBe('ingested');
+    expect(PackageStatus.parse('fused')).toBe('fused');
+    expect(PackageStatus.parse('dispatched')).toBe('dispatched');
+    expect(PackageStatus.parse('partially_dispatched')).toBe('partially_dispatched');
+    expect(AssetStatus.parse('dispatched')).toBe('dispatched');
+    expect(AssetStatus.parse('ready_for_review')).toBe('ready_for_review');
+  });
+  it('rejects values not in the contract (package published, asset scheduled)', () => {
+    expect(() => PackageStatus.parse('published')).toThrow();
+    expect(() => AssetStatus.parse('scheduled')).toThrow();
+    expect(() => AssetStatus.parse('dispatching')).toThrow();
   });
 });
 

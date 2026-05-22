@@ -73,7 +73,7 @@ VALUES (
 SQL
 
 say "PATCH plan to approved (should enqueue 2 clip_render jobs)"
-PATCH=$(curl_json PATCH "$API/api/assets/$PLAN_ID" -d '{"status":"approved"}')
+PATCH=$(curl_json PATCH "$API/api/assets/$PLAN_ID?brandId=$BRAND_ID" -d '{"status":"approved"}')
 echo "  $PATCH"
 ENQ=$(echo "$PATCH" | python3 -c "import json,sys; print(len(json.loads(sys.stdin.read()).get('enqueued', [])))")
 echo "  enqueued = $ENQ"

@@ -67,11 +67,21 @@ export async function run(job: JobRow): Promise<void> {
     await writeFile(subtitlePath, serializeVtt(clip.subtitles, clip.start), 'utf8');
   }
 
+  // §2.3 / §6: short_clip_plan → vertical rendered_short_clip; long_clip_plan
+  // → horizontal rendered_long_clip. Dimensions + output type branch on it.
+  const isLong = plan.type === 'long_clip_plan';
+  const width = isLong ? 1920 : 1080;
+  const height = isLong ? 1080 : 1920;
+  const renderedType = isLong ? 'rendered_long_clip' : 'rendered_short_clip';
+  const platforms = isLong ? ['youtube'] : ['tiktok', 'instagram', 'youtube'];
+
   await renderVerticalClip({
     inputPath: videoPath,
     start: clip.start,
     end: clip.end,
     outputPath,
+    width,
+    height,
     crop: clip.crop ?? 'center-crop',
     subtitleVttPath: subtitlePath,
   });
@@ -89,7 +99,7 @@ export async function run(job: JobRow): Promise<void> {
   await db.insert(assets).values({
     packageId: plan.packageId,
     brandId: plan.brandId,
-    type: 'rendered_short_clip',
+    type: renderedType,
     status: 'ready_for_review',
     approvalRequired: true,
     payload: {
@@ -97,12 +107,17 @@ export async function run(job: JobRow): Promise<void> {
       clip_index: clipIndex,
       start: clip.start,
       end: clip.end,
-      duration: clip.end - clip.start,
+      duration_seconds: clip.end - clip.start,
+      width,
+      height,
+      platforms,
       local_path: outputPath,
-      public_url: null, // filled when Cloudflare Tunnel routes /media/*
+      public_url: null, // minted just-in-time (signed) at dispatch — §9.4
       crop: clip.crop ?? 'center-crop',
       title: clip.title ?? null,
       caption: clip.caption ?? null,
+      hashtags: Array.isArray(clip.hashtags) ? clip.hashtags : [],
+      media_refs: Array.isArray(clip.media_refs) ? clip.media_refs : [],
     },
     provenance,
   });
@@ -117,6 +132,8 @@ type Clip = {
   title?: string;
   caption?: string;
   subtitles?: Subtitle[];
+  hashtags?: string[];
+  media_refs?: string[];
 };
 
 function serializeVtt(subs: Subtitle[], clipStart: number): string {

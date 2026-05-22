@@ -2,9 +2,15 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { contentTypeFor, resolveMediaPath } from '@/lib/media-path';
+import { verifyMediaSignature } from '@/lib/media-sign';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// §9.4: when serving media on a publicly reachable host, require signed URLs.
+// Set MEDIA_REQUIRE_SIGNATURE=1 in that deployment; local dev leaves it unset
+// so the studio's <video> can stream directly.
+const REQUIRE_SIGNATURE = process.env.MEDIA_REQUIRE_SIGNATURE === '1';
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
@@ -16,8 +22,18 @@ type Ctx = { params: Promise<{ path: string[] }> };
  */
 export async function GET(req: Request, { params }: Ctx) {
   const { path: segments } = await params;
-  const abs = resolveMediaPath(segments.join('/'));
+  const rel = segments.map(decodeURIComponent).join('/');
+  const abs = resolveMediaPath(rel);
   if (!abs) return new Response('forbidden', { status: 403 });
+
+  if (REQUIRE_SIGNATURE) {
+    const url = new URL(req.url);
+    const exp = Number.parseInt(url.searchParams.get('exp') ?? '', 10);
+    const sig = url.searchParams.get('sig');
+    if (!verifyMediaSignature(rel, exp, sig)) {
+      return new Response('forbidden', { status: 403 });
+    }
+  }
 
   let fileStat: Awaited<ReturnType<typeof stat>>;
   try {

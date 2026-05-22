@@ -1,5 +1,5 @@
 import { db } from '@/db/client';
-import { packages } from '@/db/schema';
+import { packages, sources } from '@/db/schema';
 import { parseJson, parseQuery, withAuth } from '@/lib/http';
 import { PackageCreate, PackageListQuery } from '@/lib/schemas';
 import { enqueue } from '@workers/queue';
@@ -26,6 +26,24 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   return withAuth(req, async () => {
     const body = await parseJson(req, PackageCreate);
+    // §3 / #1: a package's brand must match its source's brand. Verify before
+    // insert (the DB composite FK is the backstop). Prevents cross-brand media
+    // / voice / routing contamination.
+    const [src] = await db
+      .select({ brandId: sources.brandId })
+      .from(sources)
+      .where(eq(sources.id, body.sourceId))
+      .limit(1);
+    if (!src) return Response.json({ error: 'source_not_found' }, { status: 404 });
+    if (src.brandId !== body.brandId) {
+      return Response.json(
+        {
+          error: 'brand_source_mismatch',
+          detail: `source ${body.sourceId} belongs to brand ${src.brandId}, not ${body.brandId}`,
+        },
+        { status: 409 },
+      );
+    }
     const [row] = await db.insert(packages).values(body).returning();
     if (!row) throw new Error('package insert returned no row');
     // Auto-enqueue the first pipeline step. Idempotency key is `ingest:{source_id}`

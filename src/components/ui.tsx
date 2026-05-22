@@ -8,11 +8,17 @@ import type { CSSProperties, ReactNode } from 'react';
 type StatusMeta = { label: string; color: string };
 export const STATUS_META: Record<string, StatusMeta> = {
   draft: { label: 'Draft', color: 'var(--status-draft)' },
+  ingested: { label: 'Ingested', color: 'var(--status-analyzing)' },
+  transcribing: { label: 'Transcribing', color: 'var(--status-analyzing)' },
+  analyzing_visual: { label: 'Analyzing visual', color: 'var(--status-analyzing)' },
   analyzing: { label: 'Analyzing', color: 'var(--status-analyzing)' },
+  fused: { label: 'Fused', color: 'var(--status-analyzing)' },
   analyzed: { label: 'Analyzed', color: 'var(--status-analyzing)' },
   ready_for_review: { label: 'Ready', color: 'var(--status-ready)' },
   approved: { label: 'Approved', color: 'var(--status-approved)' },
   dispatching: { label: 'Dispatching', color: 'var(--status-approved)' },
+  dispatched: { label: 'Dispatched', color: 'var(--status-published)' },
+  partially_dispatched: { label: 'Partial', color: 'var(--status-ready)' },
   scheduled: { label: 'Scheduled', color: 'var(--status-scheduled)' },
   published: { label: 'Published', color: 'var(--status-published)' },
   failed: { label: 'Failed', color: 'var(--status-failed)' },

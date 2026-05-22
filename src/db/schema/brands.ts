@@ -16,6 +16,12 @@ export const brands = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
     zernioProfileId: text('zernio_profile_id'),
+    // Per-platform Zernio/LATE account ids: { x: "acc_…", linkedin: "acc_…", … }.
+    // Required by the §9.3 posts.create request (platforms[].accountId).
+    zernioAccounts: jsonb('zernio_accounts')
+      .$type<Record<string, string>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     dojoclawSites: jsonb('dojoclaw_sites').$type<unknown[]>().notNull().default(sql`'[]'::jsonb`),
     youtubeChannelId: text('youtube_channel_id'),
     // The brand's primary website (e.g. thorstenmeyerai.com). Used as a

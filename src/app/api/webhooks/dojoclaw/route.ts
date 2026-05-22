@@ -46,7 +46,13 @@ export async function POST(req: Request) {
   const explicit = typeof body.event_id === 'string' ? body.event_id : undefined;
   const sourceEventId = explicit ?? synthesizeId(body);
   const eventType = typeof body.event === 'string' ? body.event : 'unknown';
-  const externalId = typeof body.job_id === 'string' ? body.job_id : null;
+  // §8.2: correlate by dojoclaw_job_id (fall back to legacy job_id).
+  const externalId =
+    typeof body.dojoclaw_job_id === 'string'
+      ? body.dojoclaw_job_id
+      : typeof body.job_id === 'string'
+        ? body.job_id
+        : null;
 
   try {
     const [row] = await db
@@ -84,7 +90,7 @@ function synthesizeId(body: Record<string, unknown>): string {
   const seed = JSON.stringify({
     source: 'dojoclaw',
     type: body.event ?? 'unknown',
-    job: body.job_id ?? null,
+    job: body.dojoclaw_job_id ?? body.job_id ?? null,
     minute: now.toISOString(),
   });
   return `synth_${createHash('sha1').update(seed).digest('hex').slice(0, 16)}`;

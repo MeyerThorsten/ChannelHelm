@@ -57,23 +57,41 @@ export function networkFor(type: string): ZernioNetwork {
   return NETWORK_BY_TYPE[type] ?? 'x';
 }
 
+/** A single platform target within a §9.3 posts.create request. */
+export type ZernioPlatformTarget = { platform: ZernioNetwork; accountId: string };
+
+/**
+ * §9.3 posts.create request. `platforms[]` carries the per-network account
+ * ids; `metadata` carries the ChannelHelm correlation keys so webhooks can map
+ * back to the asset/package/brand. `threadPosts` (X) is the ordered tail after
+ * the first `content` tweet.
+ */
 export type ZernioPostRequest = {
-  profileId: string;
-  network: ZernioNetwork;
-  content: { text?: string; mediaUrls?: string[]; threadPosts?: string[] };
+  content: string;
+  platforms: ZernioPlatformTarget[];
+  mediaUrls?: string[];
   scheduledFor?: string; // ISO timestamp; omit for immediate
+  threadPosts?: string[];
+  metadata: {
+    channelhelmAssetId: string;
+    channelhelmPackageId: string;
+    channelhelmBrandId: string;
+  };
   callbackUrl?: string;
 };
 
 export type ZernioPostResponse = {
   _id: string;
   status: 'scheduled' | 'published' | 'failed';
-  network: string;
+  platforms?: { platform: string; accountId: string }[];
 };
 
 export async function createPost(req: ZernioPostRequest): Promise<ZernioPostResponse> {
   if (!KEY) {
     throw new Error('zernio: ZERNIO_API_KEY not set — refusing to dispatch (configure in .env)');
+  }
+  if (req.platforms.length === 0) {
+    throw new Error('zernio: posts.create requires at least one platform target');
   }
   const res = await fetch(`${BASE}/posts`, {
     method: 'POST',
@@ -88,6 +106,31 @@ export async function createPost(req: ZernioPostRequest): Promise<ZernioPostResp
     throw new Error(`zernio: ${res.status} ${res.statusText} ${tail.slice(0, 500)}`);
   }
   return (await res.json()) as ZernioPostResponse;
+}
+
+/**
+ * Candidate networks an asset type can target. Rendered short clips fan out to
+ * the vertical-video networks; rendered long clips to long-form. The dispatch
+ * worker intersects these with the brand's configured accounts.
+ */
+export function candidateNetworks(type: string): ZernioNetwork[] {
+  if (type === 'rendered_short_clip') return ['tiktok', 'instagram', 'youtube'];
+  if (type === 'rendered_long_clip') return ['youtube'];
+  return [networkFor(type)];
+}
+
+/**
+ * Resolve the §9.3 platform targets for an asset: the candidate networks for
+ * its type intersected with the brand's configured Zernio account ids. Pure,
+ * so the dispatch request builder is unit-testable.
+ */
+export function resolveZernioPlatforms(
+  type: string,
+  accounts: Record<string, string>,
+): ZernioPlatformTarget[] {
+  return candidateNetworks(type)
+    .filter((n) => typeof accounts[n] === 'string' && accounts[n].length > 0)
+    .map((n) => ({ platform: n, accountId: accounts[n] as string }));
 }
 
 /**
