@@ -1,9 +1,13 @@
 import { db } from '@/db/client';
-import { assets, brands, dispatches, packages } from '@/db/schema';
+import { assets, brands, dispatches, packages, sources } from '@/db/schema';
 import { signedMediaUrl } from '@/lib/media-sign';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { submitArticleBrief } from '../integrations/dojoclaw';
+import {
+  type ArticleBrief,
+  formatBriefAsSourceText,
+  syndicateStory,
+} from '../integrations/dojoclaw';
 import {
   type ZernioPlatformTarget,
   createPost,
@@ -68,17 +72,42 @@ export async function run(job: JobRow): Promise<void> {
 
   try {
     if (target === 'dojoclaw') {
-      const res = await submitArticleBrief({
-        brief_id: assetId,
-        brand_slug: brand.slug,
-        package_id: pkg.id,
-        asset_id: assetId,
-        brief: asset.payload as Record<string, unknown>,
-        callback_url: CALLBACK('/api/webhooks/dojoclaw'),
+      // Pull the originating source (YouTube/podcast URL) so we can pass it as
+      // the article permalink / footer attribution — DojoClaw uses it verbatim.
+      const [source] = pkg.sourceId
+        ? await db.select().from(sources).where(eq(sources.id, pkg.sourceId)).limit(1)
+        : [undefined];
+      const brief = asset.payload as ArticleBrief;
+      // dojoclaw_sites is jsonb (array of {site, topic, ...} per the brand schema);
+      // pick the first entry's topic when set, else fall back. Keep this defensive
+      // because the array shape is brand-defined and may evolve.
+      const sites = Array.isArray(brand.dojoclawSites) ? brand.dojoclawSites : [];
+      const firstSite = sites[0] as { topic?: string } | undefined;
+      const topic = (firstSite?.topic as string | undefined) ?? 'tech';
+      const headline = (brief.working_title as string | undefined) ?? `Brief ${assetId}`;
+      const sourceText = formatBriefAsSourceText(brief, {
+        brandName: brand.name,
+        voiceProfile: brand.voiceProfile,
       });
-      externalId = res.dojoclaw_job_id;
+      const res = await syndicateStory({
+        storyId: `channelhelm:${assetId}`,
+        headline,
+        url: source?.originUrl ?? `https://channelhelm.local/briefs/${assetId}`,
+        source: brand.slug,
+        sourceName: brand.name,
+        topic,
+        maxSites: Math.max(1, Math.min(15, sites.length || 5)),
+        sourceText,
+      });
+      externalId = res.storyId;
       response = res as unknown as Record<string, unknown>;
-      requestPayload = { type: asset.type, target, brief_id: assetId };
+      requestPayload = {
+        type: asset.type,
+        target,
+        brief_id: assetId,
+        endpoint: 'syndicate',
+        site_count: res.count,
+      };
       success = true;
     } else if (target === 'zernio') {
       const accounts = (brand.zernioAccounts ?? {}) as Record<string, string>;
