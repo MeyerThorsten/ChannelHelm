@@ -28,6 +28,10 @@ export type DojoclawSyndicateRequest = {
   /** Pre-extracted rewrite text — transcript + brief + source evidence. When
    *  supplied, DojoClaw skips Readability and rewrites from this directly. */
   sourceText?: string;
+  /** Where DojoClaw POSTs `article.published` events once each fan-out
+   *  article reaches WordPress. Body is HMAC-signed with the shared
+   *  webhook_secret; receiver verifies via DOJOCLAW_WEBHOOK_SECRET. */
+  callbackUrl?: string;
 };
 
 export type DojoclawSyndicateResponse = {

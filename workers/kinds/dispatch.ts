@@ -98,6 +98,10 @@ export async function run(job: JobRow): Promise<void> {
         topic,
         maxSites: Math.max(1, Math.min(15, sites.length || 5)),
         sourceText,
+        // Per-article publish callback. DojoClaw signs the body with
+        // `webhook_secret`; ChannelHelm's /api/webhooks/dojoclaw verifies
+        // against DOJOCLAW_WEBHOOK_SECRET. Set both to the same value.
+        callbackUrl: CALLBACK('/api/webhooks/dojoclaw'),
       });
       externalId = res.storyId;
       response = res as unknown as Record<string, unknown>;
