@@ -97,6 +97,31 @@ export async function run(job: JobRow): Promise<void> {
     });
   }
 
+  // Auto-render for *_plan assets: fan out one clip_render job per clip the
+  // moment the plan is finalized, so the operator opens the Shorts/Clips
+  // tab and sees ready-to-preview MP4s instead of "click Render per clip".
+  // Idempotency key matches approveAsset's pattern (`clip_render:${plan}:${i}`,
+  // no rev suffix) so re-running generate_asset is a no-op and an
+  // operator-triggered re-render after editing (which DOES bump render_rev
+  // and uses a different idempotency key) still works in parallel.
+  // Renders produce assets that still need separate approval before dispatch —
+  // we're moving render work earlier, not bypassing the approval gate.
+  if (assetType.endsWith('_plan')) {
+    const planClips = (payload as { clips?: unknown[] }).clips ?? [];
+    for (let i = 0; i < planClips.length; i++) {
+      await enqueue({
+        kind: 'clip_render',
+        payload: { planAssetId: resultId, clipIndex: i },
+        idempotencyKey: `clip_render:${resultId}:${i}`,
+      });
+    }
+    if (planClips.length > 0) {
+      console.log(
+        `[generate_asset] auto-enqueued ${planClips.length} clip_render job(s) for ${assetType} ${resultId}`,
+      );
+    }
+  }
+
   // §10: advance the package to ready_for_review once generation is complete.
   await markReadyForReviewIfComplete(packageId);
 }

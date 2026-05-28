@@ -14,13 +14,17 @@ set -euo pipefail
 
 PORT="${PORT:-3000}"
 WORKER_KINDS="${WORKER_KINDS:-ingest,transcribe_audio,analyze_visual,fuse,analyze_intelligence,generate_asset,thumbnail_concepts,clip_render,dispatch,collect_signal,promote_voice_examples}"
+# How many concurrent claim slots the worker process holds. 3 is a good
+# default for a single-creator LLM-bound workload; bump if you hit "lots of
+# generate_asset queued" in the dashboard, drop if your provider rate limits.
+WORKER_CONCURRENCY="${WORKER_CONCURRENCY:-3}"
 
 # Make sure homebrew tools (yt-dlp, ffmpeg, uv) and Postgres CLIs are on PATH.
 # homebrew (yt-dlp/ffmpeg/uv), Postgres CLIs, npm-global (codex), LM Studio CLI.
 export PATH="/opt/homebrew/bin:/opt/homebrew/opt/postgresql@16/bin:$HOME/.npm-global/bin:$HOME/.lmstudio/bin:$PATH"
 
 echo "▶ web   : http://localhost:$PORT"
-echo "▶ worker: $WORKER_KINDS"
+echo "▶ worker: $WORKER_KINDS  (concurrency=$WORKER_CONCURRENCY)"
 echo
 
 pids=()
@@ -35,7 +39,7 @@ trap cleanup INT TERM EXIT
 pnpm exec next dev --port "$PORT" &
 pids+=($!)
 
-pnpm exec tsx workers/runner.ts --kinds "$WORKER_KINDS" --idle-ms 1500 &
+pnpm exec tsx workers/runner.ts --kinds "$WORKER_KINDS" --idle-ms 1500 --concurrency "$WORKER_CONCURRENCY" &
 pids+=($!)
 
 wait

@@ -1,0 +1,1764 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The ChannelHelm Handbook</title>
+<meta name="description" content="The complete operator manual for ChannelHelm. Install, brands, pipeline, Studio, LLM providers, settings, YouTube publishing, troubleshooting." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --purple: #a78bfa;
+    --yt: #ff0033;
+    --google: #4285f4;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15.5px;line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+  strong{color:var(--text)}
+
+  /* sticky nav with chapter scroll */
+  header.nav{
+    position:sticky;top:0;z-index:50;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 88%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{padding:6px 10px;font-size:12px;color:var(--muted);border-radius:6px;white-space:nowrap}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  /* hero / cover */
+  .cover{padding:96px 0 32px;text-align:center}
+  .cover h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(54px,7vw,86px);line-height:1.02;letter-spacing:-1px;margin:8px 0 16px;
+  }
+  .cover h1 em{font-style:italic;color:var(--faint)}
+  .cover .lede{font-size:18px;color:var(--muted);max-width:560px;margin:0 auto 18px}
+  .cover .meta{font-size:12px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em}
+
+  /* TOC */
+  .toc{
+    margin:30px auto 0;padding:20px;background:var(--panel);
+    border:1px solid var(--border);border-radius:12px;
+    text-align:left;max-width:680px;
+  }
+  .toc h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:500;font-family:var(--font-sans)}
+  .toc ol{margin:0;padding-left:0;list-style:none;counter-reset:c}
+  .toc li{counter-increment:c;padding:5px 0;font-size:14px}
+  .toc li::before{content:counter(c, decimal-leading-zero) ".";color:var(--text-faint);font-family:var(--font-mono);font-size:11px;margin-right:10px;font-weight:600}
+  .toc li a{color:var(--text)}
+  .toc li a:hover{color:var(--accent)}
+
+  /* chapter */
+  section.ch{padding:48px 0;border-top:1px solid var(--border);scroll-margin-top:60px}
+  section.ch:first-of-type{border-top:none}
+  .ch-num{
+    font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.1em;
+    font-family:var(--font-mono);margin-bottom:6px;
+  }
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(32px,4.4vw,46px);letter-spacing:-.6px;margin:0 0 12px;line-height:1.1;
+  }
+  h3{font-size:18px;margin:28px 0 10px;font-weight:600;letter-spacing:-.1px}
+  h4{font-size:14px;margin:20px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}
+  p{margin:0 0 14px}
+  .intro{font-size:17px;color:var(--text-muted);margin:0 0 20px;line-height:1.65;max-width:680px}
+  ul.bullets,ol.steps{padding-left:22px;line-height:1.75}
+  ul.bullets li,ol.steps li{margin:4px 0;color:var(--text-muted)}
+  ul.bullets li strong, ol.steps li strong{color:var(--text)}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps > li{
+    counter-increment:s;padding:12px 16px 12px 50px;position:relative;
+    border:1px solid var(--border);border-radius:10px;background:var(--panel);
+    margin:10px 0;color:var(--text);
+  }
+  ol.steps > li::before{
+    content:counter(s);position:absolute;left:14px;top:12px;
+    width:26px;height:26px;border-radius:7px;
+    background:color-mix(in oklab,var(--accent) 14%,transparent);
+    color:var(--accent);font-family:var(--font-mono);font-weight:600;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+  }
+
+  /* callouts */
+  .callout{
+    margin:18px 0;padding:14px 18px;border-radius:10px;
+    background:var(--panel);border:1px solid var(--border);font-size:14.5px;line-height:1.6;
+  }
+  .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 30%,var(--border))}
+  .callout.warn{background:color-mix(in oklab,var(--amber) 6%,var(--panel));border-color:color-mix(in oklab,var(--amber) 30%,var(--border))}
+  .callout.danger{background:color-mix(in oklab,var(--red) 6%,var(--panel));border-color:color-mix(in oklab,var(--red) 30%,var(--border))}
+  .callout.win{background:color-mix(in oklab,var(--green) 6%,var(--panel));border-color:color-mix(in oklab,var(--green) 30%,var(--border))}
+  .callout strong{margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.danger strong{color:var(--red)}
+  .callout.win strong{color:var(--green)}
+
+  /* command blocks */
+  pre.cmd{
+    margin:10px 0 18px;padding:14px 16px;
+    background:#0b0b0c;border:1px solid var(--border-strong);border-radius:8px;
+    font-family:var(--font-mono);font-size:12.5px;color:#dadce0;
+    line-height:1.65;overflow-x:auto;white-space:pre;
+  }
+  pre.cmd .c{color:#71717a} pre.cmd .k{color:#0ea5e9} pre.cmd .s{color:#86efac} pre.cmd .n{color:#fbbf24}
+
+  /* UI mockups */
+  .mock{
+    margin:20px 0;border:1px solid var(--border-strong);border-radius:10px;
+    background:var(--bg);overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .mock .browser{
+    height:28px;background:#1a1a1c;border-bottom:1px solid #2a2a2c;
+    display:flex;align-items:center;padding:0 12px;gap:8px;
+  }
+  .mock .browser .dot{width:9px;height:9px;border-radius:50%}
+  .mock .browser .url{
+    flex:1;background:#0c0c0d;border:1px solid #2a2a2c;border-radius:4px;
+    padding:2px 10px;font-family:var(--font-mono);font-size:10px;color:#a1a1aa;
+    margin:0 8px;text-align:center;
+  }
+  .mock .topnav{
+    height:42px;background:var(--bg);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;padding:0 14px;gap:12px;
+  }
+  .mock .topnav .brand-logo{
+    width:20px;height:20px;border-radius:5px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    color:white;font-size:10px;font-weight:700;
+  }
+  .mock .topnav .brand-name{font-weight:600;font-size:12px}
+  .mock .topnav .nav-item{font-size:11px;color:var(--muted);padding:3px 8px;border-radius:5px}
+  .mock .topnav .nav-item.active{background:var(--panel);color:var(--text)}
+  .mock .topnav .spacer{flex:1}
+  .mock .body{padding:20px}
+  .mock h-title{
+    display:block;font-family:var(--font-serif);font-size:22px;font-weight:400;
+    color:var(--text);margin-bottom:6px;letter-spacing:-.3px;
+  }
+  .mock .card-mock{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:14px;margin:8px 0}
+  .mock .input-mock{
+    background:var(--panel-2);border:1px solid var(--border-strong);border-radius:5px;
+    padding:7px 9px;font-size:12px;color:var(--text);font-family:var(--font-mono);margin:4px 0;
+  }
+  .mock .label-mock{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+  .mock .btn-mock{display:inline-block;padding:5px 12px;font-size:11px;font-weight:600;border-radius:5px;background:var(--accent);color:#fff;border:1px solid color-mix(in oklab,var(--accent) 75%,white)}
+  .mock .btn-mock.yt{background:var(--yt);border-color:color-mix(in oklab,var(--yt) 75%,white)}
+  .mock .btn-mock.ghost{background:transparent;color:var(--muted);border:1px solid var(--border-strong)}
+  .mock .pill{
+    display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+    font-size:10px;font-weight:500;border:1px solid;font-family:var(--font-sans);
+  }
+  .mock .pill .dot{width:5px;height:5px;border-radius:999px}
+  .mock .pill.amber{color:var(--amber);background:color-mix(in oklab,var(--amber) 14%,transparent);border-color:color-mix(in oklab,var(--amber) 30%,transparent)}
+  .mock .pill.amber .dot{background:var(--amber)}
+  .mock .pill.green{color:var(--green);background:color-mix(in oklab,var(--green) 14%,transparent);border-color:color-mix(in oklab,var(--green) 30%,transparent)}
+  .mock .pill.green .dot{background:var(--green)}
+  .mock .pill.teal{color:var(--teal);background:color-mix(in oklab,var(--teal) 14%,transparent);border-color:color-mix(in oklab,var(--teal) 30%,transparent)}
+  .mock .pill.teal .dot{background:var(--teal)}
+  .mock .pill.yt{color:var(--yt);background:color-mix(in oklab,var(--yt) 12%,transparent);border-color:color-mix(in oklab,var(--yt) 28%,transparent);font-family:var(--font-mono)}
+  .mock .checkbox-mock{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border-strong);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;font-size:9px;color:white}
+  .mock .checkbox-mock.checked{background:var(--accent);border-color:var(--accent)}
+  .caption{margin-top:8px;font-size:11px;color:var(--faint);font-family:var(--font-mono);text-align:center;line-height:1.5}
+  .caption strong{color:var(--accent);text-transform:uppercase;font-size:10px;letter-spacing:.06em;margin-right:6px;font-family:var(--font-sans)}
+
+  /* diagrams */
+  .diagram{
+    margin:20px 0;padding:18px;background:var(--panel-2);
+    border:1px solid var(--border);border-radius:10px;
+  }
+  .diagram svg{width:100%;height:auto;display:block}
+
+  /* reference tables */
+  table.ref{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+    margin:14px 0;
+  }
+  table.ref th, table.ref td{
+    padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);
+  }
+  table.ref th{
+    color:var(--faint);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2);
+  }
+  table.ref tr:last-child td{border-bottom:none}
+  table.ref code{font-size:11.5px}
+  .good{color:var(--green)} .bad{color:var(--red)} .meh{color:var(--amber)}
+
+  /* glossary cards */
+  .gloss{display:grid;grid-template-columns:160px 1fr;gap:6px 18px;font-size:14px}
+  .gloss dt{font-weight:600;color:var(--text);grid-column:1;padding:8px 0;font-family:var(--font-mono);font-size:13px}
+  .gloss dd{margin:0;color:var(--text-muted);grid-column:2;padding:8px 0;border-bottom:1px solid var(--border)}
+  .gloss dt{border-bottom:1px solid var(--border)}
+
+  /* chapter divider visual */
+  .chap-divider{
+    display:flex;align-items:center;gap:14px;margin:0 0 20px;
+  }
+  .chap-divider .num{
+    font-family:var(--font-serif);font-size:48px;font-weight:400;line-height:1;
+    color:var(--accent);letter-spacing:-1px;
+  }
+  .chap-divider .line{flex:1;height:1px;background:var(--border)}
+
+  /* related links footer block */
+  .related{
+    margin:24px 0;padding:14px 16px;background:var(--panel-2);
+    border:1px dashed var(--border-strong);border-radius:8px;font-size:13px;
+  }
+  .related strong{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-right:8px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:60px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:680px){
+    .gloss{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#welcome">01</a>
+    <a href="#quick-start">02</a>
+    <a href="#install">03</a>
+    <a href="#dashboard">04</a>
+    <a href="#brands">05</a>
+    <a href="#ingest">06</a>
+    <a href="#pipeline">07</a>
+    <a href="#studio">08</a>
+    <a href="#shorts">09</a>
+    <a href="#llm">10</a>
+    <a href="#settings">11</a>
+    <a href="#publishing">12</a>
+    <a href="#youtube-direct">13</a>
+    <a href="#approve">14</a>
+    <a href="#performance">15</a>
+    <a href="#storage">16</a>
+    <a href="#troubleshooting">17</a>
+    <a href="#glossary">18</a>
+  </nav>
+</header>
+
+<!-- ─── COVER ─────────────────────────────────────────────────────── -->
+<section class="wrap cover">
+  <div class="meta">The ChannelHelm Handbook · 2026-05-28</div>
+  <h1>From drop <em>to dispatched.</em></h1>
+  <p class="lede">The complete operator manual: install, run, configure, ship. Eighteen chapters that read top-to-bottom or jump-to-the-bit-you-need.</p>
+
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#welcome">Welcome &amp; what ChannelHelm does</a></li>
+      <li><a href="#quick-start">Quick start</a></li>
+      <li><a href="#install">Installation &amp; first run</a></li>
+      <li><a href="#dashboard">The Dashboard</a></li>
+      <li><a href="#brands">Brands</a></li>
+      <li><a href="#ingest">Adding videos</a></li>
+      <li><a href="#pipeline">The Pipeline</a></li>
+      <li><a href="#studio">The Studio</a></li>
+      <li><a href="#shorts">The Shorts editor</a></li>
+      <li><a href="#llm">LLM providers</a></li>
+      <li><a href="#settings">Settings reference</a></li>
+      <li><a href="#publishing">Publishing to YouTube</a></li>
+      <li><a href="#youtube-direct">YouTube Direct setup</a></li>
+      <li><a href="#approve">Approve &amp; dispatch</a></li>
+      <li><a href="#performance">Performance &amp; tuning</a></li>
+      <li><a href="#storage">Storage &amp; the file lifecycle</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ─── 01 · WELCOME ──────────────────────────────────────────────── -->
+<section class="ch wrap" id="welcome">
+  <div class="ch-num">Chapter 01</div>
+  <div class="chap-divider"><span class="num">01</span><span class="line"></span></div>
+  <h2>Welcome &amp; what ChannelHelm does.</h2>
+  <p class="intro">ChannelHelm is your <strong>video-to-publishing command center</strong>. You drop a video in one end; you get a complete publishing kit out the other — title, description, chapters, tags, social posts, article brief, thumbnails. Then you approve what you want to ship and it goes to YouTube, LinkedIn, X, and the other platforms you&apos;ve connected.</p>
+
+  <h3>What "command center" actually means</h3>
+  <p>Think of ChannelHelm as the place where one video becomes everything it needs to become. Before ChannelHelm, that workflow lived across ten browser tabs, three apps, and an hour of copy-paste. After ChannelHelm, it&apos;s one page, a few clicks, and the same content goes out everywhere you publish — drafted in your voice, scored for hook strength, ready to review.</p>
+
+  <h3>Where it lives</h3>
+  <p>On your Mac. ChannelHelm is <strong>local-first</strong>: the dashboard runs at <code>http://localhost:3000</code>, the database is a Postgres on your machine, your video files never leave your hard drive unless you publish them. The only external services ChannelHelm talks to are the ones <em>you</em> connect (an LLM provider, optionally Zernio for social, optionally DojoClaw for editorial, your YouTube channel via OAuth).</p>
+
+  <div class="callout tip">
+    <strong>Why local-first?</strong> Because your unedited footage and your draft titles are sensitive content. The only thing that leaves your machine is the finished work, to the platforms you&apos;ve explicitly connected.
+  </div>
+
+  <h3>What this handbook covers</h3>
+  <ul class="bullets">
+    <li><strong>Installation</strong> and getting to your first running dashboard</li>
+    <li><strong>Brands</strong> — how ChannelHelm organizes multi-channel publishing</li>
+    <li><strong>The Pipeline</strong> — what happens between "drop video" and "review the assets"</li>
+    <li><strong>The Studio</strong> — the editor for a single video</li>
+    <li><strong>Configuration</strong> — LLM providers, settings, OAuth</li>
+    <li><strong>Publishing</strong> — manual paste, Zernio, or direct YouTube upload</li>
+    <li><strong>Troubleshooting</strong> — the things that go wrong + exactly how to fix them</li>
+  </ul>
+
+  <p>Each chapter assumes you&apos;ve read the previous one, but you can jump in anywhere. The Glossary at the end defines every ChannelHelm-specific term in one place.</p>
+
+  <div class="related"><strong>See also</strong> <a href="/how-it-works.html">How ChannelHelm works</a> (visual system map) · <a href="/llm-routing.html">LLM routing field guide</a></div>
+</section>
+
+<!-- ─── 02 · QUICK START ──────────────────────────────────────────── -->
+<section class="ch wrap" id="quick-start">
+  <div class="ch-num">Chapter 02</div>
+  <div class="chap-divider"><span class="num">02</span><span class="line"></span></div>
+  <h2>Quick start.</h2>
+  <p class="intro">The 5-minute path from "nothing installed" to "I just shipped a video." If you read one chapter, read this one. Each step links to the deeper coverage later in the handbook.</p>
+
+  <ol class="steps">
+    <li><strong>Install prerequisites</strong> via Homebrew, install dependencies, migrate the database, run the dev server. See <a href="#install">Chapter 3 · Installation</a>.</li>
+    <li><strong>Create your first brand</strong> at <code>/brands/new</code>. A brand maps 1-to-1 to a YouTube channel and is the unit of multi-channel publishing. See <a href="#brands">Chapter 5 · Brands</a>.</li>
+    <li><strong>Configure an LLM provider</strong> at <code>/providers</code>. Pick a preset (Anthropic Claude is the easiest first choice), paste your API key, save. See <a href="#llm">Chapter 10 · LLM providers</a>.</li>
+    <li><strong>Drop a video</strong> on the dashboard. The Pipeline auto-runs (~2–3 min for a typical 8-minute video). See <a href="#ingest">Chapter 6 · Adding videos</a>.</li>
+    <li><strong>Review in the Studio.</strong> Pick your title, scan the description, check the thumbnail concepts. See <a href="#studio">Chapter 8 · The Studio</a>.</li>
+    <li><strong>Approve &amp; dispatch.</strong> Tick the YouTube boxes, click the button. The video is on YouTube. See <a href="#approve">Chapter 14 · Approve &amp; dispatch</a>.</li>
+  </ol>
+
+  <div class="callout win"><strong>That&apos;s it</strong> — your first video should be live (as private) on YouTube within 10–15 minutes of starting installation. Subsequent videos are a 5-minute loop because all the setup is done.</div>
+
+  <div class="related"><strong>If you want a richer walkthrough</strong> — the <a href="/setup-guide.html">New-operator setup guide</a> has every step with UI mockups.</div>
+</section>
+
+<!-- ─── 03 · INSTALL ──────────────────────────────────────────────── -->
+<section class="ch wrap" id="install">
+  <div class="ch-num">Chapter 03</div>
+  <div class="chap-divider"><span class="num">03</span><span class="line"></span></div>
+  <h2>Installation &amp; first run.</h2>
+  <p class="intro">ChannelHelm needs a Mac with Apple Silicon (M1 or newer), ~16 GB of RAM, and Homebrew. The whole install takes about 10 minutes including downloads.</p>
+
+  <h3>System requirements</h3>
+  <ul class="bullets">
+    <li><strong>Mac with Apple Silicon</strong> — the visual pipeline uses MLX (Apple&apos;s ML framework). Intel Macs technically work for everything except the VLM, but performance suffers.</li>
+    <li><strong>Memory</strong> — 16 GB minimum; 32 GB is comfortable. Premium profile (32B VLM) wants 64 GB+.</li>
+    <li><strong>Disk</strong> — depends on your video volume. Each ingested video stays in <code>MEDIA_ROOT</code> until you delete it.</li>
+    <li><strong>macOS 13+</strong> for Apple Vision OCR.</li>
+  </ul>
+
+  <h3>Step-by-step</h3>
+  <pre class="cmd"><span class="c"># 1. Install Homebrew if you haven't already</span>
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+<span class="c"># 2. Install the runtime stack</span>
+brew install <span class="k">node@22</span> <span class="k">pnpm</span> <span class="k">postgresql@16</span> <span class="k">ffmpeg</span> <span class="k">yt-dlp</span> <span class="k">uv</span>
+
+<span class="c"># 3. Start Postgres + create the database</span>
+brew services start postgresql@16
+createdb channelhelm
+
+<span class="c"># 4. Install Python deps for the ML CLIs</span>
+cd ml &amp;&amp; uv sync &amp;&amp; cd ..
+
+<span class="c"># 5. Install the app + apply migrations</span>
+pnpm install
+cp .env.example .env
+<span class="c"># open .env, set DATABASE_URL and MEDIA_ROOT (absolute paths)</span>
+pnpm db:migrate
+
+<span class="c"># 6. Run web + workers together</span>
+pnpm dev:all</pre>
+
+  <p>Open <a href="http://localhost:3000">http://localhost:3000</a>. You should see the empty dashboard.</p>
+
+  <h3>Verifying it's running</h3>
+  <p>You should see two banners in your terminal output:</p>
+  <ul class="bullets">
+    <li><code>▶ web   : http://localhost:3000</code></li>
+    <li><code>▶ worker: ingest,transcribe_audio,…  (concurrency=3)</code></li>
+  </ul>
+  <p>And shortly after: <code>[settings] subscribed to chs_settings</code> and <code>[runner] started lockedBy=…</code>. If you see those, both the web server and the worker fleet are alive.</p>
+
+  <h3>What does what</h3>
+  <table class="ref">
+    <thead><tr><th>Tool</th><th>Why ChannelHelm needs it</th></tr></thead>
+    <tbody>
+      <tr><td><code>node@22</code> + <code>pnpm</code></td><td>Runtime + package manager for the Next.js app and the worker fleet.</td></tr>
+      <tr><td><code>postgresql@16</code></td><td>Single Postgres instance holds everything: brands, packages, assets, jobs, settings, providers, OAuth tokens. No Redis, no separate queue server.</td></tr>
+      <tr><td><code>ffmpeg</code></td><td>Audio extraction, scene-cut detection, frame sampling, clip rendering.</td></tr>
+      <tr><td><code>yt-dlp</code></td><td>Pulls YouTube videos when you paste a URL into the dashboard.</td></tr>
+      <tr><td><code>uv</code></td><td>Python venv/runtime manager for the four ML CLIs in <code>ml/</code> (Whisper, mlx-vlm, OCR, diarization).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn"><strong>Important</strong> If the <code>/settings</code> page later shows "Settings table not migrated yet", you missed <code>pnpm db:migrate</code>. Run it and reload.</div>
+
+  <div class="related"><strong>See also</strong> <a href="/setup-guide.html">Setup guide</a> for a more visual walkthrough with UI mockups.</div>
+</section>
+
+<!-- ─── 04 · DASHBOARD ────────────────────────────────────────────── -->
+<section class="ch wrap" id="dashboard">
+  <div class="ch-num">Chapter 04</div>
+  <div class="chap-divider"><span class="num">04</span><span class="line"></span></div>
+  <h2>The Dashboard.</h2>
+  <p class="intro">When you open ChannelHelm, you land on the dashboard at <code>/</code>. This chapter is a guided tour of every element you see.</p>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000</span>
+    </div>
+    <div class="topnav">
+      <span class="brand-logo">M</span><span class="brand-name">ChannelHelm</span>
+      <span class="nav-item">+ New</span>
+      <span class="nav-item">Brands</span>
+      <span class="nav-item">Jobs</span>
+      <span class="nav-item">Providers</span>
+      <span class="nav-item">Settings</span>
+      <span class="spacer"></span>
+      <span style="font-size:10px;color:var(--faint);font-family:var(--font-mono)">⌕ Jump to package, brand, or job…  ⌘K</span>
+      <span style="margin-left:10px;font-size:11px">YB</span><span style="font-size:11px;color:var(--muted)">Your Brand ▾</span>
+    </div>
+    <div class="body">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+        <mock h-title>Packages</mock>
+        <span style="font-size:11px;color:var(--faint);font-family:var(--font-mono)">3 total · 1 ready · 0 pending · 2 failed</span>
+      </div>
+      <div class="card-mock">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600">Your Latest Video Title</div>
+            <div style="font-size:10px;color:var(--faint);font-family:var(--font-mono);margin-top:3px">pkg_… · 8:19 · standard_audio_visual</div>
+          </div>
+          <span class="pill green"><span class="dot"></span>Dispatched</span>
+        </div>
+      </div>
+      <div class="card-mock">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600">Another Video</div>
+            <div style="font-size:10px;color:var(--faint);font-family:var(--font-mono);margin-top:3px">pkg_… · 12:04 · standard_audio_visual</div>
+          </div>
+          <span class="pill teal"><span class="dot"></span>Analyzing visual</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption"><strong>The dashboard</strong> Top nav · brand switcher · search · package list with status pills</div>
+
+  <h3>The top navigation</h3>
+  <ul class="bullets">
+    <li><strong>+ New</strong> — opens a menu to create a new brand, source, or YouTube URL ingest.</li>
+    <li><strong>Brands</strong> — list of all your brands. Each maps to a publishing identity.</li>
+    <li><strong>Jobs</strong> — the worker queue. Mostly diagnostic; you check this if something feels stuck.</li>
+    <li><strong>Providers</strong> — your configured LLM providers (Anthropic, OpenAI, etc.).</li>
+    <li><strong>Settings</strong> — environment configuration: API keys, webhook secrets, media URLs.</li>
+    <li><strong>⌘K</strong> — command palette. Type to jump to any package, brand, or job by id or title.</li>
+    <li><strong>Brand switcher (top-right)</strong> — when you have multiple brands, switch the dashboard&apos;s active context.</li>
+    <li><strong>☾ / ☀</strong> — dark/light theme toggle (top-right edge).</li>
+  </ul>
+
+  <h3>The package list</h3>
+  <p>Each row is a video you&apos;ve dropped into ChannelHelm. Click a row to open the Studio for that video.</p>
+  <p>Each row shows:</p>
+  <ul class="bullets">
+    <li><strong>Title</strong> — the picked title (or "Untitled video" before the pipeline completes).</li>
+    <li><strong>Sub-row</strong> — package ID, duration, processing profile.</li>
+    <li><strong>Status pill</strong> — see the colour codes below.</li>
+  </ul>
+
+  <h3>Status pill colours</h3>
+  <table class="ref">
+    <thead><tr><th>Pill</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill teal"><span class="dot"></span>Analyzing visual</span></td><td>Pipeline is running. Other "in-progress" states: <code>Ingested · Transcribing · Fused · Analyzed</code>.</td></tr>
+      <tr><td><span class="pill amber"><span class="dot"></span>Ready</span></td><td>Pipeline complete; all asset cards filled; awaiting your review &amp; approval.</td></tr>
+      <tr><td><span class="pill green"><span class="dot"></span>Dispatched</span></td><td>You approved &amp; the dispatch worker shipped everything to its target.</td></tr>
+      <tr><td><span class="pill amber"><span class="dot"></span>Partial</span></td><td>Some assets dispatched, some failed. Usually means missing config (e.g. no Zernio account for a social network).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip"><strong>Tip</strong> The colour you see most while a package is processing is <strong>teal</strong> — that&apos;s the "in-flight" colour. Amber means "ready or attention needed"; green means "shipped"; red means "failed".</div>
+</section>
+
+<!-- ─── 05 · BRANDS ──────────────────────────────────────────────── -->
+<section class="ch wrap" id="brands">
+  <div class="ch-num">Chapter 05</div>
+  <div class="chap-divider"><span class="num">05</span><span class="line"></span></div>
+  <h2>Brands.</h2>
+  <p class="intro">A brand is your publishing identity for one YouTube channel. Everything else in ChannelHelm — videos, generated assets, dispatched posts — is brand-scoped. Multi-brand is root: no cross-brand reads outside admin views.</p>
+
+  <h3>Why brands exist</h3>
+  <p>If you run multiple YouTube channels (your main channel, a side project, a client&apos;s channel), each gets its own brand. The brand carries:</p>
+  <ul class="bullets">
+    <li>Your YouTube channel&apos;s ID (used for auto-discovery when you paste URLs)</li>
+    <li>Your YouTube OAuth tokens (encrypted at rest) for direct uploads</li>
+    <li>Per-platform Zernio account IDs (for LinkedIn, X, TikTok, etc.)</li>
+    <li>Default processing profile</li>
+    <li>Voice/style preferences (captured automatically as you edit drafts)</li>
+  </ul>
+
+  <h3>Creating a brand</h3>
+  <p>Top nav → <strong>+ New</strong> → <strong>Brand</strong> (or open <code>/brands/new</code>).</p>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/brands/new</span>
+    </div>
+    <div class="body" style="max-width:480px;margin:0 auto">
+      <mock h-title>New brand</mock>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 16px">One brand = one publishing identity.</p>
+      <div class="label-mock">Display name</div>
+      <div class="input-mock">Your Brand Name</div>
+      <div class="label-mock" style="margin-top:12px">Slug (auto-derived)</div>
+      <div class="input-mock" style="color:var(--muted)">your-brand-name</div>
+      <div class="label-mock" style="margin-top:12px">Default processing profile</div>
+      <div class="input-mock">standard_audio_visual ▾</div>
+      <div class="label-mock" style="margin-top:12px">YouTube channel ID (optional, auto-fills later)</div>
+      <div class="input-mock" style="color:var(--faint)">UCxxxxxxxxxxxxxxxxxxxxxx</div>
+      <div style="margin-top:14px"><span class="btn-mock">Create brand</span></div>
+    </div>
+  </div>
+  <div class="caption"><strong>Brand-creation form</strong> Slug auto-derives in kebab-case; channel ID is optional and fills automatically when you ingest a YouTube URL.</div>
+
+  <h3>The brand detail page</h3>
+  <p>After creation you land on <code>/brands/[id]</code>. The page has three sections:</p>
+  <ol class="steps">
+    <li><strong>YouTube connection card</strong> (top) — for connecting your channel via OAuth so ChannelHelm can upload directly. See <a href="#youtube-direct">Chapter 13</a> for the full walkthrough.</li>
+    <li><strong>Brand form</strong> — display name, slug, processing profile, website, YouTube channel ID, Zernio profile/accounts, approval-required-for list, auto-dispatch-for list, active toggle.</li>
+    <li><strong>Normalize-slug banner</strong> (only appears if your slug has unusual characters — spaces, capitals). Clicking it renames the media folder + rewrites all stored paths so everything stays consistent.</li>
+  </ol>
+
+  <h3>The Zernio accounts field</h3>
+  <p>This is a per-platform map: <code>{ x: "acc_…", linkedin: "acc_…", tiktok: "acc_…" }</code>. You only need to fill in the platforms you plan to publish to via Zernio. If you don&apos;t use Zernio at all, leave it empty — the dispatch worker will skip those platforms and mark the social assets as "no account configured" (which is harmless, just shows in the panel).</p>
+
+  <h3>Multi-brand behaviour</h3>
+  <ul class="bullets">
+    <li><strong>The dashboard</strong> shows packages for the brand you&apos;ve selected in the top-right switcher. Switch the switcher to see a different brand&apos;s packages.</li>
+    <li><strong>YouTube URL ingest auto-routes</strong> to the brand that owns that channel — no manual brand pick needed.</li>
+    <li><strong>LLM providers</strong> are global (shared across all brands).</li>
+    <li><strong>Settings</strong> (API keys, webhook secrets) are global.</li>
+    <li><strong>YouTube OAuth tokens</strong> are per-brand (each brand can be connected to a different YouTube channel).</li>
+  </ul>
+
+  <div class="callout warn"><strong>Slug warning</strong> The brand slug becomes part of every media path: <code>MEDIA_ROOT/your-brand-name/src_…/original.mp4</code>. Renaming the slug after videos are ingested is supported — the "Normalize slug" button moves the folder and rewrites every stored path — but it&apos;s easier to pick a clean slug at creation time.</div>
+</section>
+
+<!-- ─── 06 · INGEST ───────────────────────────────────────────────── -->
+<section class="ch wrap" id="ingest">
+  <div class="ch-num">Chapter 06</div>
+  <div class="chap-divider"><span class="num">06</span><span class="line"></span></div>
+  <h2>Adding videos.</h2>
+  <p class="intro">Two ways: drop a local file, or paste a YouTube URL. Both create a Source row and a Package row, then enqueue the Pipeline. Within seconds, the Studio page for the new package opens.</p>
+
+  <h3>Option A · Drop a local video file</h3>
+  <ol class="steps">
+    <li>Top nav → <strong>+ New</strong> → <strong>Source</strong> (or <code>/sources/new</code>).</li>
+    <li>Pick your <strong>Brand</strong> from the dropdown.</li>
+    <li>Drag your <code>.mp4</code>, <code>.mov</code>, <code>.webm</code>, <code>.m4v</code>, or <code>.mkv</code> file onto the upload zone. Files stream to <code>MEDIA_ROOT</code> as they upload.</li>
+    <li>Leave <strong>Create package and start pipeline</strong> checked. (Unchecking just creates the Source without kicking off the pipeline — useful if you&apos;re still organising assets.)</li>
+    <li>Click <strong>Upload</strong>. You land on the Studio page; the pipeline starts.</li>
+  </ol>
+
+  <h3>Option B · Paste a YouTube URL</h3>
+  <ol class="steps">
+    <li>Top nav → <strong>+ New</strong> → <strong>YouTube URL</strong>.</li>
+    <li>Paste any shape: <code>youtube.com/watch?v=…</code>, <code>youtu.be/…</code>, even Shorts URLs.</li>
+    <li>ChannelHelm <strong>auto-discovers the brand</strong> from the channel ID. If a brand with that channel ID already exists, the new package goes there. If not, ChannelHelm offers to create a new brand using metadata scraped from the channel&apos;s About page.</li>
+    <li>Click <strong>Ingest</strong>. yt-dlp downloads the video into your <code>MEDIA_ROOT</code>; the pipeline starts.</li>
+  </ol>
+
+  <div class="callout tip"><strong>Tip</strong> URL ingest works for videos on any YouTube channel — you don&apos;t need to own them. Useful for analyzing competitor content or repurposing your own old videos for new platforms.</div>
+
+  <h3>Processing profiles</h3>
+  <p>Each package runs under one of three profiles. The brand has a default; you can override per package.</p>
+  <table class="ref">
+    <thead><tr><th>Profile</th><th>What runs</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td><code>fast_audio_only</code></td><td>Audio + intelligence only. Skips visual entirely.</td><td>Podcasts, webinars, audio interviews. Fast (~1 min for a 30-min episode).</td></tr>
+      <tr><td><code>standard_audio_visual</code></td><td>Full 4-layer pipeline at default model tiers.</td><td>Your YouTube uploads. The default for almost everyone.</td></tr>
+      <tr><td><code>premium_multimodal</code></td><td>Same layers, larger VLM (32B), denser OCR (1 fps).</td><td>High-stakes content where descriptions matter (course modules, marquee episodes).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Upload limits</h3>
+  <p>The default cap on <code>/api/uploads</code> body size is 2 GB (<code>MAX_UPLOAD_BYTES=2000000000</code> in your settings). Larger? Bump the setting on <code>/settings</code>.</p>
+</section>
+
+<!-- ─── 07 · PIPELINE ────────────────────────────────────────────── -->
+<section class="ch wrap" id="pipeline">
+  <div class="ch-num">Chapter 07</div>
+  <div class="chap-divider"><span class="num">07</span><span class="line"></span></div>
+  <h2>The Pipeline.</h2>
+  <p class="intro">When you drop a video, four layers run in the background: audio, visual, fusion, intelligence. Each layer produces a concrete artifact the next consumes. Plain-English: ChannelHelm <em>listens</em> to the video, <em>watches</em> it, <em>combines</em> what it learned, then <em>thinks</em> about what to make of it.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker></defs>
+      <style>
+        .b{ fill:#16161a; stroke:#2e2e36 }
+        .g{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .t{ fill:#f4f4f5; font:600 14px Inter, sans-serif }
+        .s{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .l{ stroke:#0ea5e9; stroke-width:1.8; fill:none }
+      </style>
+      <g transform="translate(20,40)">
+        <rect class="g" width="160" height="120" rx="10"/>
+        <text class="t" x="14" y="32">♬ Audio</text>
+        <text class="s" x="14" y="56">MLX Whisper</text>
+        <text class="s" x="14" y="72">→ transcript.json</text>
+        <text class="s" x="14" y="92">words + timing</text>
+        <text class="s" x="14" y="108">+ speakers</text>
+      </g>
+      <g transform="translate(210,40)">
+        <rect class="g" width="160" height="120" rx="10"/>
+        <text class="t" x="14" y="32">▦ Visual</text>
+        <text class="s" x="14" y="56">mlx-vlm + Apple OCR</text>
+        <text class="s" x="14" y="72">→ frame_index.json</text>
+        <text class="s" x="14" y="92">keyframes &amp;</text>
+        <text class="s" x="14" y="108">on-screen text</text>
+      </g>
+      <g transform="translate(400,40)">
+        <rect class="g" width="160" height="120" rx="10"/>
+        <text class="t" x="14" y="32">⌘ Fusion</text>
+        <text class="s" x="14" y="56">composeSceneLog (TS)</text>
+        <text class="s" x="14" y="72">→ scene_log</text>
+        <text class="s" x="14" y="92">timestamped</text>
+        <text class="s" x="14" y="108">windows</text>
+      </g>
+      <g transform="translate(590,40)">
+        <rect class="g" width="150" height="120" rx="10"/>
+        <text class="t" x="14" y="32">✦ Intelligence</text>
+        <text class="s" x="14" y="56">LLM (your provider)</text>
+        <text class="s" x="14" y="72">→ analysis</text>
+        <text class="s" x="14" y="92">topics · hooks</text>
+        <text class="s" x="14" y="108">retention</text>
+      </g>
+      <path class="l" d="M180,100 h30" marker-end="url(#ar)"/>
+      <path class="l" d="M370,100 h30" marker-end="url(#ar)"/>
+      <path class="l" d="M560,100 h30" marker-end="url(#ar)"/>
+    </svg>
+  </div>
+
+  <h3>Layer by layer</h3>
+
+  <h4>1 · Audio</h4>
+  <p><strong>Listens to the video.</strong> Extracts the audio track with ffmpeg, then runs <code>MLX Whisper large-v3</code> (Apple Silicon optimised) to produce a word-level transcript with timestamps. If you&apos;ve set <code>HF_TOKEN</code> and accepted the pyannote license, it also labels speakers.</p>
+  <p><strong>Output</strong>: <code>transcript.json</code> — array of word entries with start/end times, plus a flat <code>text</code> field.</p>
+
+  <h4>2 · Visual</h4>
+  <p><strong>Watches the video.</strong> Samples frames (dense for OCR, sparse for the VLM), runs Apple Vision OCR on each, runs mlx-vlm (Qwen2.5-VL by default) over the sparse keyframes for image descriptions, merges into a single index.</p>
+  <p><strong>Output</strong>: <code>frame_index.json</code> — per-second entries with <code>{timestamp, description, on_screen_text}</code>.</p>
+  <p><strong>Performance</strong>: this used to be the slowest layer (~10–15 min for an 8-min video). After the optimisation pass, it&apos;s ~65 s. See <a href="#performance">Chapter 15</a>.</p>
+
+  <h4>3 · Fusion</h4>
+  <p><strong>Combines what it learned.</strong> Pure-TypeScript step. Stitches the transcript + frame index into a "scene log" — windows of time, each carrying the spoken text + visual descriptions + on-screen text for that interval.</p>
+  <p><strong>Output</strong>: <code>scene_log</code> on <code>packages.intelligence</code> — array of windows, each describing what happens during that span.</p>
+
+  <h4>4 · Intelligence</h4>
+  <p><strong>Thinks about it.</strong> Single LLM call. The model reads the scene log and produces a brief: list of topics, candidate hooks, retention notes, structural beats.</p>
+  <p><strong>Output</strong>: <code>analysis</code> on <code>packages.intelligence</code>. Triggers the fan-out to generate-asset jobs.</p>
+
+  <h4>What happens after intelligence</h4>
+  <p>The <code>analyze_intelligence</code> handler enqueues ~12 <code>generate_asset</code> jobs (one per asset type — title, description, chapters, tags, LinkedIn, X, article brief, short_clip_plan, etc.) plus <code>thumbnail_concepts</code>. Each generate_asset is one LLM call. With worker concurrency at 3, these all finish in ~35 s. The package moves to <strong>ready_for_review</strong>.</p>
+  <p>When a <code>generate_asset</code> job writes a <code>*_plan</code> asset (e.g. <code>short_clip_plan</code>), it <strong>fans out one <code>clip_render</code> job per clip automatically</strong> — so the vertical MP4s are usually rendered by the time you open the Shorts tab. Plans themselves are never dispatched; only the <code>rendered_*</code> outputs are. See <a href="#shorts">Chapter 09 · The Shorts editor</a>.</p>
+
+  <div class="callout tip"><strong>Where to watch progress</strong> The Studio&apos;s pipeline panel updates live as each layer completes. Each layer shows "what&apos;s done" (e.g. <em>transcript · 4,212 words</em>) once finished, or "preparing X…" while running.</div>
+
+  <div class="related"><strong>Deep dive</strong> <a href="/how-it-works.html">How ChannelHelm works</a> has the full pipeline diagram + per-step descriptions.</div>
+</section>
+
+<!-- ─── 08 · STUDIO ──────────────────────────────────────────────── -->
+<section class="ch wrap" id="studio">
+  <div class="ch-num">Chapter 08</div>
+  <div class="chap-divider"><span class="num">08</span><span class="line"></span></div>
+  <h2>The Studio.</h2>
+  <p class="intro">When you open a package (<code>/packages/[id]</code>) you&apos;re in the Studio. It&apos;s your editor for a single video: review, edit, regenerate, approve, dispatch. This is where the operator-time is spent.</p>
+
+  <h3>The layout at a glance</h3>
+  <p>Three columns on a desktop:</p>
+  <ol class="steps">
+    <li><strong>Left rail</strong> — platform navigation. Click "YouTube" / "Shorts" / "Clips" / "Blog" / "X" / "LinkedIn" / etc. to switch which asset stack you&apos;re viewing.</li>
+    <li><strong>Centre column</strong> — header (title, status, metadata, video player, 4-layer pipeline indicator), then the asset cards for the selected platform.</li>
+    <li><strong>Right pane</strong> — the Approve &amp; Publish panel. Selection of which assets to dispatch and the YouTube publish-options picker (when applicable).</li>
+  </ol>
+
+  <h3>The header strip</h3>
+  <p>From left to right:</p>
+  <ul class="bullets">
+    <li><strong>Title</strong> (Instrument Serif) — whichever title you&apos;ve selected from the title_set asset. Defaults to the highest-scored one until you pick.</li>
+    <li><strong>Meta row</strong> — brand chip · processing profile · duration · status pill · YouTube link chip (appears when published).</li>
+    <li><strong>Action buttons</strong> (right side) — Metadata (download the YouTube text), Retry (re-run the pipeline), Delete.</li>
+  </ul>
+
+  <h3>The pipeline panel</h3>
+  <p>Shows live status of all 4 layers. Each layer&apos;s status text updates as it progresses:</p>
+  <ul class="bullets">
+    <li><strong>Audio · transcribing (MLX Whisper)</strong> while running → <strong>transcript · 4,212 words · 2 speakers</strong> when done</li>
+    <li><strong>Visual · sampling frames + describing keyframes (mlx-vlm)</strong> while running → <strong>28 keyframes described · OCR on 437/437 frames</strong> when done</li>
+    <li><strong>Fusion · merging transcript + visual into scene log</strong> while running → <strong>scene log · 17 windows</strong> when done</li>
+    <li><strong>Intelligence · analyzing topics, hooks, retention (LLM)</strong> while running → <strong>analysis · 8 topics · 12 hooks · retention</strong> when done</li>
+  </ul>
+  <p>Running layers render in teal. Done layers in grey (lighter). Pending layers in dim grey.</p>
+
+  <h3>Asset cards (the editorial heart)</h3>
+  <p>Each card represents one generated asset. The shape depends on the platform tab you&apos;re viewing. The YouTube tab shows:</p>
+  <ul class="bullets">
+    <li><strong>Titles</strong> — 5 scored variants. Click a radio to pick the lead.</li>
+    <li><strong>Description</strong> — full multi-paragraph text with chapters block + hashtags. Editable inline.</li>
+    <li><strong>Chapters</strong> — standalone timestamp list (also embedded in the description).</li>
+    <li><strong>Tags</strong> — 15 scored pills. Click an X to drop one.</li>
+    <li><strong>Thumbnails</strong> — 2 frame proposals with hook scores. "Generate" button to extract more.</li>
+    <li><strong>Transcript</strong> — toggleable; full text with copy button.</li>
+  </ul>
+
+  <h3>Card actions</h3>
+  <ul class="bullets">
+    <li><strong>Copy</strong> — clipboard copy of the asset content</li>
+    <li><strong>Edit</strong> — inline editor (your edits are captured as voice examples for future packages)</li>
+    <li><strong>Regenerate</strong> — synchronous LLM re-roll on the same input; new variant</li>
+    <li><strong>Generate</strong> (only when the asset is empty AND the pipeline is fully done) — manual fallback to create the asset</li>
+  </ul>
+
+  <h3>The empty-state behaviour</h3>
+  <p>While the pipeline is still running, asset cards that haven&apos;t been filled in yet show a quiet teal pulsing indicator: <em>"titles — generates automatically when analysis completes"</em>. There&apos;s no button to click — these will fill in by themselves. Once the pipeline is done, if any asset is still genuinely missing (a generate_asset job failed for some reason), a "Generate" button appears as a manual recovery path.</p>
+
+  <h3>Layout switcher</h3>
+  <p>Three layout modes for the Studio (toggle in the bottom-right):</p>
+  <table class="ref">
+    <thead><tr><th>Layout</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Console</strong> (default)</td><td>The 3-column layout described above. Best for end-to-end review and approval.</td></tr>
+      <tr><td><strong>Editor</strong></td><td>Side-by-side compare view. Best when you&apos;re heavily editing copy and want context from the transcript + scene log.</td></tr>
+      <tr><td><strong>Atlas</strong></td><td>All platforms at once. Best for "what does this video look like across every channel?"</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The approval panel (right pane)</h3>
+  <p>See <a href="#approve">Chapter 14 · Approve &amp; dispatch</a> for the full walkthrough.</p>
+
+  <h3>The Shorts tab</h3>
+  <p>The left rail has a dedicated <strong>✂ Shorts</strong> tab. Instead of a flat list of plan + rendered assets, it collapses to <strong>one row per clip</strong> — each row carrying the clip&apos;s editable metadata and a thumbnail of the rendered MP4. Click any row to open the per-Short editor. That whole editor gets its own chapter next.</p>
+</section>
+
+<!-- ─── 09 · SHORTS EDITOR ───────────────────────────────────────── -->
+<section class="ch wrap" id="shorts">
+  <div class="ch-num">Chapter 09</div>
+  <div class="chap-divider"><span class="num">09</span><span class="line"></span></div>
+  <h2>The Shorts editor.</h2>
+  <p class="intro">Vertical short-form is where ChannelHelm earns its keep. The Shorts editor at <code>/packages/[id]/shorts/[clipIndex]</code> is a full per-clip studio: trim on a word-snapped timeline, restyle burned-in subtitles with a live preview, auto-draft a per-clip description, and publish each clip on its own schedule. This chapter explains the one mental model that makes all of it click.</p>
+
+  <h3>The one rule: the plan is the source of truth</h3>
+  <p>There are two assets per clip and they have very different jobs:</p>
+  <table class="ref">
+    <thead><tr><th>Asset</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>short_clip_plan</code></td><td><strong>Editable source of truth.</strong> Holds every operator decision — title, description, tags, trim window, subtitle styling, description links, publish options — under <code>payload.clips[clipIndex]</code>. You edit <em>this</em>.</td></tr>
+      <tr><td><code>rendered_short_clip</code></td><td><strong>Build output.</strong> The actual vertical MP4 with burned-in subtitles. The <code>clip_render</code> worker produces it and copies the plan&apos;s editorial fields onto it. You never edit this directly — your edits would be lost on the next re-render.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout danger"><strong>Never edit the rendered clip.</strong> Operator edits live on the <code>short_clip_plan</code> only. The renderer rebuilds <code>rendered_short_clip</code> from the plan on every render and overwrites its editorial fields — anything written straight to the rendered asset is discarded.</div>
+
+  <h3>Plan → render → publish, end to end</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Shorts plan to render to publish flow">
+      <defs><marker id="ar-sh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker></defs>
+      <style>
+        .b{ fill:#16161a; stroke:#2e2e36 }
+        .plan{ fill:rgba(245,158,11,0.10); stroke:rgba(245,158,11,0.45) }
+        .rend{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.42) }
+        .pub{ fill:rgba(168,85,247,0.12); stroke:rgba(168,85,247,0.45) }
+        .t{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .s{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .l{ stroke:#0ea5e9; stroke-width:1.8; fill:none }
+        .cap{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- operator edits -->
+      <g transform="translate(16,90)">
+        <rect class="b" width="150" height="100" rx="10"/>
+        <text class="t" x="14" y="30">✎ Operator edits</text>
+        <text class="s" x="14" y="52">trim · title · tags</text>
+        <text class="s" x="14" y="68">styling · links</text>
+        <text class="s" x="14" y="84">publish options</text>
+      </g>
+
+      <!-- short_clip_plan -->
+      <g transform="translate(216,80)">
+        <rect class="plan" width="170" height="120" rx="10"/>
+        <text class="t" x="14" y="30">short_clip_plan</text>
+        <text class="s" x="14" y="54">payload.clips[i]</text>
+        <text class="s" x="14" y="72">SOURCE OF TRUTH</text>
+        <text class="s" x="14" y="92">render_rev: n</text>
+        <text class="s" x="14" y="108">saveClipEdits()</text>
+      </g>
+
+      <!-- clip_render worker -->
+      <g transform="translate(436,80)">
+        <rect class="rend" width="150" height="120" rx="10"/>
+        <text class="t" x="14" y="30">clip_render</text>
+        <text class="s" x="14" y="54">ffmpeg + ASS</text>
+        <text class="s" x="14" y="72">word-snap trim</text>
+        <text class="s" x="14" y="92">UPSERT keyed by</text>
+        <text class="s" x="14" y="108">(plan, clip_index)</text>
+      </g>
+
+      <!-- rendered + dispatch -->
+      <g transform="translate(636,90)">
+        <rect class="pub" width="108" height="100" rx="10"/>
+        <text class="t" x="13" y="30">▶ Publish</text>
+        <text class="s" x="13" y="52">rendered_</text>
+        <text class="s" x="13" y="66">short_clip</text>
+        <text class="s" x="13" y="86">→ Zernio</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="l" d="M166,140 h50" marker-end="url(#ar-sh)"/>
+      <path class="l" d="M386,140 h50" marker-end="url(#ar-sh)"/>
+      <path class="l" d="M586,140 h50" marker-end="url(#ar-sh)"/>
+      <text class="cap" x="172" y="130">save</text>
+      <text class="cap" x="392" y="130">render</text>
+      <text class="cap" x="592" y="130">dispatch</text>
+
+      <!-- re-render loop -->
+      <path class="l" d="M511,200 v34 h-210 v-34" marker-end="url(#ar-sh)" stroke-dasharray="4 4"/>
+      <text class="cap" x="330" y="252">re-edit → renderClip() bumps render_rev, re-uses same asset id</text>
+    </svg>
+  </div>
+
+  <h3>The editor panels</h3>
+  <ul class="bullets">
+    <li><strong>Preview player</strong> — the rendered MP4 (or the source video before first render), with a <strong>live subtitle overlay</strong> drawn in the DOM. Every styling change shows instantly; you don&apos;t re-render to see what a font or animation looks like.</li>
+    <li><strong>Timeline</strong> — drag the trim handles. Snapping is word-aware: handles lock to the nearest word boundary so a clip never starts or ends mid-word.</li>
+    <li><strong>Transcript panel</strong> — the word-level transcript for the trim window, used both for word-snap and to seed the description.</li>
+    <li><strong>Subtitle style panel</strong> — font, font size, font colour, highlight colour, X/Y position, and the animation picker.</li>
+    <li><strong>Metadata</strong> — title (≤ 100 chars), an auto-generated description (≤ 280 chars), tags (≤ 30), and description links.</li>
+    <li><strong>Publish options</strong> — per-clip platforms (YouTube / TikTok / Instagram), privacy, and schedule.</li>
+  </ul>
+
+  <h3>Six subtitle animations</h3>
+  <p>The style panel offers six burned-in caption animations. The live overlay previews each; <code>clip_render</code> emits an <a href="/storage-lifecycle.html">ASS subtitle file</a> that ffmpeg burns into the MP4.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six subtitle animation styles">
+      <style>
+        .chip{ fill:#16161a; stroke:#2e2e36 }
+        .hl{ fill:rgba(14,165,233,0.16); stroke:rgba(14,165,233,0.5) }
+        .wt{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .ws{ fill:#71717a; font:9.5px "JetBrains Mono", monospace }
+      </style>
+      <!-- row 1 -->
+      <g transform="translate(16,16)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <rect class="hl" x="14" y="14" width="58" height="24" rx="5"/>
+        <text class="wt" x="22" y="31">Word</text>
+        <text class="wt" x="86" y="31" fill="#71717a">Highlight</text>
+        <text class="ws" x="14" y="48">word-by-word highlight</text>
+      </g>
+      <g transform="translate(264,16)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <text class="wt" x="16" y="28" transform="rotate(-6 40 24)">Pop</text>
+        <text class="ws" x="16" y="48">scale-up rotation effect</text>
+      </g>
+      <g transform="translate(512,16)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <text class="wt" x="16" y="32" style="font-size:18px">SINGLE</text>
+        <text class="ws" x="16" y="48">one big word at a time</text>
+      </g>
+      <!-- row 2 -->
+      <g transform="translate(16,82)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <text class="wt" x="16" y="30">Type<tspan fill="#71717a">writer▍</tspan></text>
+        <text class="ws" x="16" y="48">fills in letter by letter</text>
+      </g>
+      <g transform="translate(264,82)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <text class="wt" x="16" y="28" transform="skewX(-10)">Motion</text>
+        <text class="ws" x="16" y="48">word pairs with movement</text>
+      </g>
+      <g transform="translate(512,82)">
+        <rect class="chip" width="232" height="52" rx="9"/>
+        <rect x="14" y="14" width="120" height="24" rx="4" fill="#a855f7" opacity="0.9"/>
+        <text class="wt" x="24" y="31" fill="#0a0a0b">Banner</text>
+        <text class="ws" x="14" y="48">words on coloured background</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>How edits become a clip</h3>
+  <ol class="steps">
+    <li><strong>Edit.</strong> Every change auto-saves to the plan via <code>saveClipEdits()</code> (debounced). Edits are appended to <code>payload.edits_log[]</code> for audit.</li>
+    <li><strong>Render.</strong> Click <strong>Render</strong>. <code>renderClip()</code> bumps the clip&apos;s <code>render_rev</code>, sets <code>pending_render</code>, and enqueues a <code>clip_render</code> job keyed <code>clip_render:&lt;plan&gt;:&lt;i&gt;:rev&lt;n&gt;</code>.</li>
+    <li><strong>Re-use, not re-create.</strong> The worker UPSERTs the <code>rendered_short_clip</code> keyed by <code>(plan_asset_id, clip_index)</code> — re-renders update the same asset id, so any dispatch/publish history stays attached. The <code>render_rev</code> guard skips a re-encode when the rev hasn&apos;t moved (idempotent crash-recovery).</li>
+    <li><strong>Publish.</strong> Set per-clip publish options, approve the rendered clip, and dispatch it to Zernio (see <a href="#approve">Chapter 14</a>).</li>
+  </ol>
+
+  <h3>Auto-render: clips render eagerly</h3>
+  <p>You usually don&apos;t click Render at all for the first pass. When the pipeline finishes and the <code>generate_asset</code> worker writes a <code>short_clip_plan</code>, it <strong>fans out one <code>clip_render</code> job per clip</strong> automatically. By the time you open the Shorts tab, the rendered MP4s are usually already there. You only click Render after you&apos;ve <em>changed</em> something — a new trim, a different subtitle style.</p>
+
+  <h3>Description auto-draft + auto-seeded links</h3>
+  <ul class="bullets">
+    <li><strong>Auto-draft</strong> — when a clip&apos;s description is empty and has never been generated, the editor fires <code>generateClipDescription()</code> once: a bounded, text-only LLM call (≤ 280 chars) over the clip&apos;s transcript window, in your brand voice. It stamps <code>description_generated_at</code> so it never retries on subsequent opens — you can always hand-edit afterward.</li>
+    <li><strong>Auto-seeded links</strong> — the description-links field is pre-filled with the source video&apos;s YouTube URL, so every Short links back to the long-form by default.</li>
+  </ul>
+
+  <h3>Word-snap, both sides</h3>
+  <p>Trim handles never cut mid-word. The snap runs <strong>client-side</strong> in the Timeline (so you see the snapped position as you drag) <em>and</em> <strong>server-side</strong> defensively in <code>clip_render</code> before ffmpeg&apos;s <code>-ss</code> (so an LLM-picked or stale trim is corrected at build time too). Both share <code>src/lib/word-snap.ts</code>.</p>
+
+  <h3>Backfilling existing packages</h3>
+  <p>Packages ingested before auto-render existed won&apos;t have rendered clips. The backfill script enqueues <code>clip_render</code> for every plan with missing renders:</p>
+  <pre class="cmd"><span class="c"># every package, only the clips that are missing a render</span>
+tsx scripts/render-shorts.ts
+
+<span class="c"># scope to one package or brand</span>
+tsx scripts/render-shorts.ts --package-id <span class="n">pkg_xxx</span>
+tsx scripts/render-shorts.ts --brand-id <span class="n">brd_xxx</span>
+
+<span class="c"># preview without enqueuing</span>
+tsx scripts/render-shorts.ts --dry-run</pre>
+
+  <div class="callout tip"><strong>Long-form cuts too</strong> The same machinery runs the horizontal highlight cuts: <code>long_clip_plan</code> → <code>rendered_long_clip</code>. Everything in this chapter applies — the only differences are dimensions and the output asset type.</div>
+
+  <div class="related"><strong>See also</strong> <a href="/storage-lifecycle.html">Storage lifecycle</a> covers where the rendered <code>clips/</code> live and when they&apos;re archivable.</div>
+</section>
+
+<!-- ─── 10 · LLM ────────────────────────────────────────────────── -->
+<section class="ch wrap" id="llm">
+  <div class="ch-num">Chapter 10</div>
+  <div class="chap-divider"><span class="num">10</span><span class="line"></span></div>
+  <h2>LLM providers.</h2>
+  <p class="intro">ChannelHelm uses an LLM for two things: pipeline analysis (one call per package) and asset generation (one call per asset type, ~10 per package). You configure which provider serves which call at <code>/providers</code>. Pluggable: OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, Codex CLI.</p>
+
+  <h3>The three provider classes</h3>
+  <table class="ref">
+    <thead><tr><th>Class</th><th>What it is</th><th>Examples</th></tr></thead>
+    <tbody>
+      <tr><td><code>openai-compatible</code></td><td>Speaks the OpenAI HTTP shape (<code>POST /v1/chat/completions</code>). Works with any provider that emulates this — most cloud + local LLM stacks do.</td><td>OpenAI · OpenRouter · Ollama · LM Studio · vLLM · OpenClaw</td></tr>
+      <tr><td><code>anthropic</code></td><td>Native Claude Messages API. Best instruction following and prose quality at the premium tier.</td><td>Claude Opus / Sonnet / Haiku</td></tr>
+      <tr><td><code>codex-cli</code></td><td>Spawns the local <code>codex</code> CLI subprocess. No HTTP, no API key — uses your ChatGPT subscription OAuth.</td><td>Codex (ChatGPT subscription)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Adding a provider</h3>
+  <ol class="steps">
+    <li>Top nav → <strong>Providers</strong>.</li>
+    <li>Click <strong>+ Add provider</strong>.</li>
+    <li>Pick a <strong>Quick preset</strong> (recommended) — fills the Base URL + a sensible default model in one click.</li>
+    <li>Paste your API key (left blank for local providers like Ollama / LM Studio).</li>
+    <li>Set <strong>Purpose</strong> to <code>all</code> for a single-provider setup, or to a specific profile to dedicate that provider to one tier.</li>
+    <li>Check <strong>Default</strong> for the first one you create.</li>
+    <li>Click <strong>Add provider</strong>.</li>
+  </ol>
+
+  <h3>How ChannelHelm picks a provider for a call</h3>
+  <p>Every LLM call passes through <code>complete({ profile, ... })</code>. The selection rule:</p>
+  <ol class="steps">
+    <li><strong>Exact-purpose match</strong> wins (score 3) — provider with <code>purpose=standard_audio_visual</code> serves <code>standard_audio_visual</code> packages.</li>
+    <li><strong>purpose="all"</strong> is next (score 2) — universal provider eligible for every profile.</li>
+    <li><strong>isDefault</strong> is the last-resort tiebreaker (score 1).</li>
+    <li><strong>Purpose mismatch</strong> is never eligible — a <code>premium_multimodal</code>-tagged provider won&apos;t serve <code>standard_audio_visual</code> calls.</li>
+  </ol>
+
+  <h3>API key security</h3>
+  <p>API keys are encrypted at rest using AES-256-GCM via your <code>PROVIDER_SECRET_KEY</code> (set in <code>/settings</code>). Keys are NEVER serialized back to the browser. When you edit a provider, the API key field shows the placeholder "•••••••• saved" — leaving it blank preserves the saved key; typing replaces it.</p>
+
+  <h3>Three preset configurations</h3>
+  <table class="ref">
+    <thead><tr><th>Setup</th><th>Setup time</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>All Anthropic</strong></td><td>~2 min</td><td>One row, purpose=all, Sonnet 4.6. Best default for "I don&apos;t want to think about it".</td></tr>
+      <tr><td><strong>Tiered Anthropic</strong></td><td>~5 min</td><td>Haiku → fast, Sonnet → standard, Opus → premium. Quality scales with package profile.</td></tr>
+      <tr><td><strong>Local + cloud</strong></td><td>~15 min</td><td>LM Studio (Qwen3) for batch pipeline + Anthropic Haiku for Studio actions. Cheapest steady state.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="related"><strong>Deep dive</strong> The <a href="/llm-routing.html">LLM routing field guide</a> has a per-task matrix showing which provider class is best for each individual asset type.</div>
+</section>
+
+<!-- ─── 11 · SETTINGS ──────────────────────────────────────────── -->
+<section class="ch wrap" id="settings">
+  <div class="ch-num">Chapter 11</div>
+  <div class="chap-divider"><span class="num">11</span><span class="line"></span></div>
+  <h2>Settings reference.</h2>
+  <p class="intro">The <code>/settings</code> page holds every runtime-configurable knob. Changes propagate live to every running process (the Next.js server + the worker fleet) via Postgres pg_notify — no restart needed. Below: every key, what it does, when to change it.</p>
+
+  <h3>How settings work</h3>
+  <p>Settings live in two places:</p>
+  <ul class="bullets">
+    <li><strong>.env</strong> — read once at process start. Set the boot-only values here (DATABASE_URL, MEDIA_ROOT, etc.).</li>
+    <li><strong>The <code>settings</code> table</strong> — runtime-editable. Edits via <code>/settings</code> persist here and override .env at runtime. Changes propagate to every running process within the LISTEN round-trip (~50 ms).</li>
+  </ul>
+
+  <h3>Runtime-editable settings (saved on /settings)</h3>
+
+  <h4>External integrations</h4>
+  <table class="ref">
+    <thead><tr><th>Key</th><th>What it does</th><th>When to set</th></tr></thead>
+    <tbody>
+      <tr><td><code>ZERNIO_API_KEY</code></td><td>Authenticates outbound POSTs to Zernio (LATE).</td><td>Before publishing to LinkedIn/X/etc. via Zernio.</td></tr>
+      <tr><td><code>ZERNIO_WEBHOOK_SECRET</code></td><td>HMAC secret for inbound webhooks from Zernio.</td><td>Only when exposing <code>/api/webhooks/zernio</code> publicly via Cloudflare Tunnel. <strong>Local-only setups don&apos;t need this.</strong></td></tr>
+      <tr><td><code>DOJOCLAW_API_URL</code></td><td>LAN URL for DojoClaw (article publishing).</td><td>If you use DojoClaw for blog posts.</td></tr>
+      <tr><td><code>DOJOCLAW_API_KEY</code></td><td>Authenticates outbound POSTs to DojoClaw.</td><td>Same as above.</td></tr>
+      <tr><td><code>DOJOCLAW_WEBHOOK_SECRET</code></td><td>HMAC secret for inbound webhooks from DojoClaw.</td><td>Same as Zernio — only if exposing publicly.</td></tr>
+      <tr><td><code>HF_TOKEN</code></td><td>HuggingFace token for the pyannote speaker-diarization model.</td><td>Optional — only if you want speaker labels in transcripts. Token must have the pyannote/speaker-diarization-3.1 license accepted on HF.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Public exposure (Cloudflare Tunnel)</h4>
+  <table class="ref">
+    <thead><tr><th>Key</th><th>What it does</th><th>When to set</th></tr></thead>
+    <tbody>
+      <tr><td><code>CLOUDFLARE_TUNNEL_HOSTNAME</code></td><td>Public base URL for webhooks + signed /media/* URLs.</td><td>Only if you&apos;ve set up a Cloudflare Tunnel.</td></tr>
+      <tr><td><code>MEDIA_URL_SECRET</code></td><td>HMAC key for signing /media/* URLs.</td><td>When using <code>MEDIA_REQUIRE_SIGNATURE=1</code>.</td></tr>
+      <tr><td><code>MEDIA_REQUIRE_SIGNATURE</code></td><td>If <code>1</code>, /media/* requires a signed URL. Default <code>0</code>.</td><td>Before exposing the tunnel publicly.</td></tr>
+      <tr><td><code>ALLOW_UNSIGNED_WEBHOOKS</code></td><td>If <code>1</code>, webhook receiver accepts requests with no signature. Default <code>0</code>.</td><td>Local smoke tests only. Never set to <code>1</code> on a publicly reachable host.</td></tr>
+      <tr><td><code>MAX_UPLOAD_BYTES</code></td><td>Hard cap on /api/uploads body size. Default 2 GB.</td><td>If you upload larger files.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>YouTube Direct (Data API v3)</h4>
+  <table class="ref">
+    <thead><tr><th>Key</th><th>What it does</th><th>When to set</th></tr></thead>
+    <tbody>
+      <tr><td><code>GOOGLE_OAUTH_CLIENT_ID</code></td><td>OAuth 2.0 Client ID from Google Cloud Console. One client supports all brands.</td><td>Once, per ChannelHelm instance. See <a href="#youtube-direct">Chapter 13</a>.</td></tr>
+      <tr><td><code>GOOGLE_OAUTH_CLIENT_SECRET</code></td><td>OAuth 2.0 Client secret paired with the ID above. Encrypted at rest.</td><td>Same time as the client ID.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Storage lifecycle (archive worker)</h4>
+  <table class="ref">
+    <thead><tr><th>Key</th><th>What it does</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td><code>ARCHIVE_AFTER_DAYS</code></td><td>Days since the package&apos;s latest dispatch before it becomes eligible for the <code>archive_package</code> worker. Eligibility also requires <code>archived_at IS NULL</code>.</td><td class="num">14</td></tr>
+      <tr><td><code>ARCHIVE_DELETE_CLIPS</code></td><td>When <code>true</code>, the archive worker DELETES rendered clip MP4s instead of moving them to the archive. The source <code>original.mp4</code> always moves (clip_render needs it for re-renders).</td><td class="num">false</td></tr>
+      <tr><td><code>KEEP_PIPELINE_ARTIFACTS</code></td><td>When <code>1</code>, disables the inline Stage-1 cleanup in <code>transcribe_audio / analyze_visual / fuse / analyze_intelligence</code> — the debugging escape hatch that keeps <code>frames_*/</code> and intermediate JSONs on disk.</td><td class="num">unset</td></tr>
+    </tbody>
+  </table>
+  <p>Full detail in <a href="#storage">Chapter 16 · Storage &amp; the file lifecycle</a>. <code>ARCHIVE_ROOT</code> (the destination path) is boot-only — see the table below.</p>
+
+  <h3>Boot-only settings (edit in .env, restart required)</h3>
+  <p>These can&apos;t change mid-flight without breaking running workers — they&apos;re shown read-only on <code>/settings</code> with an "edit .env and restart" hint.</p>
+  <table class="ref">
+    <thead><tr><th>Key</th><th>Why boot-only</th></tr></thead>
+    <tbody>
+      <tr><td><code>DATABASE_URL</code></td><td>The Postgres pool initializes at boot — you can&apos;t swap the database connection from inside the app.</td></tr>
+      <tr><td><code>MEDIA_ROOT</code></td><td>Workers spawn ffmpeg/ml subprocesses that resolve paths against this at startup. Mid-flight change would desync running jobs.</td></tr>
+      <tr><td><code>ARCHIVE_ROOT</code></td><td>External-drive path for the post-publish archive worker. Unset = archiving disabled. Boot-only — workers cache the absolute path at startup and refuse to operate when it changes mid-run (e.g. drive unmounted).</td></tr>
+      <tr><td><code>LOCAL_BEARER_TOKEN</code></td><td>API bearer token. Rotation invalidates every in-flight worker request. Use the <strong>Rotate bearer token</strong> button on <code>/settings</code> to mint a new value; paste into .env; restart.</td></tr>
+      <tr><td><code>PROVIDER_SECRET_KEY</code></td><td>AES-256-GCM key that encrypts all sensitive setting values + provider API keys + OAuth refresh tokens. Rotating mid-flight locks every saved secret out until re-encryption. Set once at install, leave alone.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn"><strong>Heads up</strong> The first time you visit <code>/settings</code> on a freshly migrated install, you may see a teal "Restart needed for live propagation" banner. That&apos;s because the worker boot hook (which opens the LISTEN connection) only runs at process start. Restart <code>pnpm dev:all</code> once and the banner clears.</div>
+</section>
+
+<!-- ─── 12 · PUBLISHING ────────────────────────────────────────── -->
+<section class="ch wrap" id="publishing">
+  <div class="ch-num">Chapter 12</div>
+  <div class="chap-divider"><span class="num">12</span><span class="line"></span></div>
+  <h2>Publishing to YouTube.</h2>
+  <p class="intro">There are four ways to get a video from ChannelHelm onto YouTube. Each suits a different setup. Pick one.</p>
+
+  <table class="ref">
+    <thead><tr><th>Path</th><th>Operator effort</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Manual paste</strong> (default)</td><td>Copy 4 fields into YouTube Studio</td><td>First-time use; no setup beyond the ChannelHelm install.</td></tr>
+      <tr><td><strong>YouTube Direct (Data API)</strong> ⭐</td><td>One-time Google Cloud OAuth, then automated</td><td>Local-first setups. Recommended for most operators.</td></tr>
+      <tr><td><strong>Zernio (LATE) → YouTube</strong></td><td>Cloudflare Tunnel + Zernio account</td><td>Operators who also publish to LinkedIn / X / TikTok and want one unified pipeline.</td></tr>
+      <tr><td><strong>ngrok + Zernio</strong></td><td>One ngrok command (temporary)</td><td>Smoke-testing the Zernio flow without committing to Cloudflare.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Manual paste — the default</h3>
+  <p>Approve the YouTube assets in the Studio. ChannelHelm marks them <code>dispatched (manual)</code> — that&apos;s an audit record meaning "operator confirmed they&apos;ll paste this manually." Open YouTube Studio, upload your <code>original.mp4</code>, paste each field. Done.</p>
+  <p>If you also want to record the resulting YouTube URL back into ChannelHelm (so the package header shows the red ▶ youtu.be/… chip), paste the URL into the "+ Paste YouTube URL" pill that appears next to the status pill.</p>
+
+  <h3>YouTube Direct — recommended</h3>
+  <p>The cleanest path for a local-first setup. After a one-time Google Cloud OAuth setup, approving a video automatically uploads it via the YouTube Data API v3. No third party in the loop except Google itself.</p>
+  <p>Full walkthrough: <a href="#youtube-direct">Chapter 13 · YouTube Direct setup</a>.</p>
+
+  <h3>Zernio (LATE) — for multi-platform operators</h3>
+  <p>Zernio is a third-party social publishing service that supports 15+ platforms including YouTube. If you&apos;re already paying for Zernio for LinkedIn/X/TikTok, you can also use it for YouTube. Setup requires a Cloudflare Tunnel so Zernio can download your video file.</p>
+
+  <h3>ngrok + Zernio — for smoke tests</h3>
+  <p>ngrok exposes <code>localhost:3000</code> via a temporary public URL. Use it to verify the Zernio → YouTube flow works before committing to a permanent Cloudflare Tunnel. Free tier limits: URL rotates every restart, 2-hour sessions.</p>
+
+  <div class="related"><strong>Side-by-side comparison</strong> <a href="/youtube-publish-options.html">YouTube publish options</a> compares all four paths with diagrams, pros, cons, and a decision tree.</div>
+</section>
+
+<!-- ─── 13 · YOUTUBE DIRECT ────────────────────────────────────── -->
+<section class="ch wrap" id="youtube-direct">
+  <div class="ch-num">Chapter 13</div>
+  <div class="chap-divider"><span class="num">13</span><span class="line"></span></div>
+  <h2>YouTube Direct setup.</h2>
+  <p class="intro">The longest single chapter in the book. Worth the read because once it&apos;s done, every future video publishes with a single click. ~15 minutes including Google Cloud Console.</p>
+
+  <h3>Before you start: pick your browser</h3>
+  <p>The whole flow works smoothest signed in as <strong>the Google account that owns your YouTube channel</strong>. Two recommended approaches:</p>
+  <ul class="bullets">
+    <li><strong>Option A (recommended)</strong>: open a Chrome Incognito window. Sign in once as your channel-owning Google account. Do everything below in that window.</li>
+    <li><strong>Option B</strong>: sign out of all Google sessions at <code>accounts.google.com/Logout</code>, then sign back in as your channel-owning account.</li>
+  </ul>
+
+  <h3>Step 1 · Create the Google Cloud OAuth app (one-time)</h3>
+  <ol class="steps">
+    <li>Go to <a href="https://console.cloud.google.com/">console.cloud.google.com</a>.</li>
+    <li>Top-left dropdown → <strong>New Project</strong> → name it <code>ChannelHelm</code> → Create.</li>
+    <li>Left nav → <strong>APIs &amp; Services → Library</strong> → search "YouTube Data API v3" → <strong>Enable</strong>.</li>
+    <li>Left nav → <strong>APIs &amp; Services → OAuth consent screen</strong>:
+      <ul class="bullets">
+        <li>User Type: <strong>External</strong> → Create</li>
+        <li>App name: <code>ChannelHelm</code>; support email + dev contact: your email</li>
+        <li>Scopes → Add or Remove → check <code>youtube.upload</code> AND <code>youtube</code></li>
+        <li>Test users → add the email of your channel-owning Google account</li>
+        <li>Save through to Dashboard</li>
+      </ul>
+    </li>
+    <li>Left nav → <strong>APIs &amp; Services → Credentials → + Create credentials → OAuth client ID</strong>:
+      <ul class="bullets">
+        <li>Application type: <strong>Web application</strong></li>
+        <li>Name: <code>ChannelHelm local</code></li>
+        <li>Authorized redirect URI: <code>http://localhost:3000/api/youtube/oauth/callback</code> (exact)</li>
+        <li>Create</li>
+      </ul>
+    </li>
+    <li>Copy the resulting <strong>Client ID</strong> and <strong>Client Secret</strong>.</li>
+  </ol>
+
+  <div class="callout warn"><strong>Heads up</strong> Google reshuffled this UI recently. "Test users" now lives under <strong>Google Auth Platform → Audience</strong>. If you don&apos;t see it on the OAuth consent screen page, look there.</div>
+
+  <h3>Step 2 · Paste into ChannelHelm</h3>
+  <ol class="steps">
+    <li>Open <code>/settings</code> on ChannelHelm.</li>
+    <li><strong>GOOGLE_OAUTH_CLIENT_ID</strong> → paste the <code>…apps.googleusercontent.com</code> string → Save.</li>
+    <li><strong>GOOGLE_OAUTH_CLIENT_SECRET</strong> → paste the <code>GOCSPX-…</code> string → Save (encrypted at rest immediately).</li>
+  </ol>
+
+  <h3>Step 3 · Connect the brand to your YouTube channel</h3>
+  <p>Open <code>/brands/[your-brand-id]</code> in the same browser context that&apos;s signed in as the channel-owning Google account.</p>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/brands/[brand-id]</span>
+    </div>
+    <div class="body">
+      <div class="card-mock" style="border-color:color-mix(in oklab,var(--yt) 25%,var(--border))">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="width:22px;height:16px;background:var(--yt);border-radius:4px;color:white;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">YT</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">YouTube connection</div>
+            <div style="font-size:11px;color:var(--muted)">Direct upload via YouTube Data API v3 — bypasses Zernio.</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0">One-time consent on Google. Tokens encrypted at rest; never sent back to the browser.</p>
+        <div class="label-mock">Pre-fill account chooser (optional)</div>
+        <div class="input-mock" style="color:var(--faint)">your-channel-email@gmail.com</div>
+        <div style="margin-top:8px"><span class="btn-mock yt">▶ Connect YouTube</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="caption"><strong>YouTube connection card</strong> on the brand page — type your channel-owning Google email to pre-fill Google&apos;s account chooser, then click Connect.</div>
+
+  <ol class="steps">
+    <li>Scroll to the <strong>YouTube connection</strong> card.</li>
+    <li>(Optional) Pre-fill your channel-owning Google email. ChannelHelm passes it to Google as <code>login_hint</code> for the chooser.</li>
+    <li>Click <strong>▶ Connect YouTube</strong> (or "Connect YouTube as &lt;email&gt;" if you pre-filled).</li>
+    <li>Google redirects you. Sequence:
+      <ul class="bullets">
+        <li>Account chooser → pick your channel-owning account.</li>
+        <li>"This app isn&apos;t verified" warning → <strong>Advanced → Go to ChannelHelm (unsafe)</strong>. (Your personal app, your project; "unsafe" means "Google hasn&apos;t verified you to yourself" — fine.)</li>
+        <li>Consent screen lists 2 scopes — <strong>Allow</strong>.</li>
+      </ul>
+    </li>
+    <li>You land back on the brand page with a green <strong>✓ Connected to &lt;your channel name&gt;</strong> banner.</li>
+    <li>Click the <strong>Direct (this connection)</strong> radio under "Dispatch target for this brand&apos;s YouTube videos". Commits immediately.</li>
+  </ol>
+
+  <h3>Step 4 · Publish your first video via Direct</h3>
+  <ol class="steps">
+    <li>Open a package. The right panel&apos;s 4 YouTube assets are now grouped under the YouTube Title Set row (since Direct is on, the others are auto-bundled into the upload).</li>
+    <li>(Optional) Set publish privacy in the new "YT publish options" picker: Public / Unlisted / Private / Schedule.</li>
+    <li>Click <strong>Approve &amp; dispatch</strong>.</li>
+    <li>A teal pulsing pill appears below the button: <em>"dispatching N · auto-refresh every 2s"</em>. The worker streams <code>original.mp4</code> to YouTube&apos;s resumable endpoint (~1–3 min depending on your upstream).</li>
+    <li>When done: the red ▶ youtu.be/&lt;id&gt; chip appears in the package header. Click it to open the video on YouTube.</li>
+  </ol>
+
+  <div class="callout win"><strong>That&apos;s it.</strong> Every future video on this brand publishes with a single click on Approve &amp; dispatch. The OAuth grant is permanent (until you click Disconnect or revoke at <code>myaccount.google.com/permissions</code>).</div>
+
+  <h3>Quota</h3>
+  <p>YouTube Data API free tier: 10,000 units/day. Each upload costs 1,600 units = ~6 uploads/day. Fine for a single creator. If you need more, request a quota bump in the Google Cloud Console.</p>
+</section>
+
+<!-- ─── 14 · APPROVE ─────────────────────────────────────────────── -->
+<section class="ch wrap" id="approve">
+  <div class="ch-num">Chapter 14</div>
+  <div class="chap-divider"><span class="num">14</span><span class="line"></span></div>
+  <h2>Approve &amp; dispatch.</h2>
+  <p class="intro">The Approve &amp; Publish panel on the right side of the Studio is where you decide what ships. This chapter is a guided tour of that panel.</p>
+
+  <h3>The panel anatomy</h3>
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/packages/[id]</span>
+    </div>
+    <div class="body" style="max-width:280px;margin-left:auto">
+      <div style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono);margin-bottom:4px">Approve &amp; Publish</div>
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:500;margin-bottom:12px">2<span style="color:var(--faint);font-size:13px"> / 12</span> <span style="font-size:10px;color:var(--muted);margin-left:4px">assets approved</span></div>
+      <div style="height:3px;background:var(--panel-2);border-radius:999px;overflow:hidden;margin-bottom:14px"><div style="width:17%;height:100%;background:var(--accent)"></div></div>
+
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:10px 11px;margin-bottom:8px;font-size:10px">
+        <div style="color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono);margin-bottom:6px">YT publish options</div>
+        <div style="background:var(--panel-2);border:1px solid var(--border-strong);border-radius:5px;padding:6px 8px;font-size:12px">🔒 Private (default) ▾</div>
+        <div style="color:var(--text-faint);margin-top:6px">Only you. Flip to public in YouTube Studio when ready.</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:11.5px"><span class="checkbox-mock checked">✓</span>YouTube Title Set
+        <span style="font-size:10px;color:var(--faint);font-family:var(--font-mono);margin-left:auto">bundles: description · chapters · tags</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:11.5px;color:var(--faint)"><span class="checkbox-mock" style="border-color:var(--border)">⊘</span>Article Brief
+        <span style="font-size:9px;font-family:var(--font-mono);margin-left:auto">locked</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:11.5px"><span class="checkbox-mock checked">✓</span>Thumbnail Concept</div>
+
+      <div style="margin-top:12px"><span class="btn-mock" style="width:100%;text-align:center;display:block">↗ Approve &amp; dispatch · 2</span></div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px;padding:5px 8px;background:color-mix(in oklab,var(--teal) 10%,transparent);border:1px solid color-mix(in oklab,var(--teal) 28%,transparent);border-radius:5px;font-size:10px;color:var(--teal);font-family:var(--font-mono)">
+        <span style="width:6px;height:6px;border-radius:999px;background:var(--teal)"></span>dispatching 2 · auto-refresh every 2s
+      </div>
+    </div>
+  </div>
+  <div class="caption"><strong>The Approve panel</strong> — counter + progress bar · publish-options picker (YouTube Direct only) · asset list with checkboxes · dispatch button · live status</div>
+
+  <h3>The asset status lifecycle</h3>
+  <p>Every asset moves through a small state machine. The pipeline fills it to <code>ready_for_review</code>; you approve it; the dispatch worker ships it; a publish webhook can confirm it live.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Asset status state machine">
+      <defs><marker id="ar-st" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker>
+      <marker id="ar-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ef4444"/></marker></defs>
+      <style>
+        .n{ rx:8; ry:8 }
+        .draft{ fill:#16161a; stroke:#2e2e36 }
+        .rev{ fill:rgba(245,158,11,0.12); stroke:rgba(245,158,11,0.5) }
+        .apr{ fill:rgba(14,165,233,0.12); stroke:rgba(14,165,233,0.5) }
+        .dsp{ fill:rgba(168,85,247,0.12); stroke:rgba(168,85,247,0.5) }
+        .pub{ fill:rgba(16,185,129,0.12); stroke:rgba(16,185,129,0.55) }
+        .fail{ fill:rgba(239,68,68,0.10); stroke:rgba(239,68,68,0.5) }
+        .t{ fill:#f4f4f5; font:600 11.5px "JetBrains Mono", monospace }
+        .l{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .lf{ stroke:#ef4444; stroke-width:1.4; fill:none; stroke-dasharray:4 3 }
+        .cap{ fill:#71717a; font:9.5px Inter, sans-serif }
+      </style>
+
+      <!-- draft -->
+      <g transform="translate(8,72)"><rect class="draft n" width="92" height="40"/><text class="t" x="26" y="25">draft</text></g>
+      <!-- ready_for_review -->
+      <g transform="translate(132,72)"><rect class="rev n" width="138" height="40"/><text class="t" x="14" y="25" fill="#f59e0b">ready_for_review</text></g>
+      <!-- approved -->
+      <g transform="translate(312,72)"><rect class="apr n" width="100" height="40"/><text class="t" x="14" y="25" fill="#0ea5e9">approved</text></g>
+      <!-- dispatched -->
+      <g transform="translate(454,72)"><rect class="dsp n" width="110" height="40"/><text class="t" x="13" y="25" fill="#a855f7">dispatched</text></g>
+      <!-- published -->
+      <g transform="translate(606,72)"><rect class="pub n" width="104" height="40"/><text class="t" x="13" y="25" fill="#10b981">published</text></g>
+
+      <!-- happy path arrows -->
+      <path class="l" d="M100,92 h32" marker-end="url(#ar-st)"/>
+      <path class="l" d="M270,92 h42" marker-end="url(#ar-st)"/>
+      <path class="l" d="M412,92 h42" marker-end="url(#ar-st)"/>
+      <path class="l" d="M564,92 h42" marker-end="url(#ar-st)"/>
+      <text class="cap" x="98" y="64">pipeline</text>
+      <text class="cap" x="276" y="64">approve</text>
+      <text class="cap" x="418" y="64">dispatch</text>
+      <text class="cap" x="568" y="64">webhook</text>
+
+      <!-- failed branch -->
+      <g transform="translate(454,150)"><rect class="fail n" width="88" height="34"/><text class="t" x="22" y="22" fill="#ef4444">failed</text></g>
+      <path class="lf" d="M509,112 v38" marker-end="url(#ar-fail)"/>
+      <text class="cap" x="516" y="138" fill="#ef4444">error</text>
+
+      <!-- rejected branch -->
+      <g transform="translate(132,150)"><rect class="fail n" width="100" height="34"/><text class="t" x="16" y="22" fill="#ef4444">rejected</text></g>
+      <path class="lf" d="M200,112 v38" marker-end="url(#ar-fail)"/>
+      <text class="cap" x="207" y="138" fill="#ef4444">operator</text>
+    </svg>
+  </div>
+
+  <h3>Selection — what gets dispatched</h3>
+  <ul class="bullets">
+    <li><strong>Checked rows</strong> are included in the next dispatch. Default: every ready asset is checked.</li>
+    <li><strong>Click a row</strong> to toggle inclusion. The bottom button counter updates live.</li>
+    <li><strong>Locked rows</strong> (greyed with ⊘) can&apos;t be selected — they need config you haven&apos;t set yet. The reason is shown inline (e.g. "No Zernio account for linkedin. Connect one + paste the acc_… on the brand page.")</li>
+    <li><strong>Dispatched rows</strong> (faded with a status badge) are already done — they can&apos;t be re-selected unless you reset them.</li>
+    <li><strong>Bundled rows</strong> (hidden when YouTube Direct is on) — description, chapters, tags are bundled into the title_set&apos;s upload automatically, so they don&apos;t appear as separate rows.</li>
+  </ul>
+
+  <h3>The YT publish options picker</h3>
+  <p>Appears at the top of the panel only when the brand has YouTube Direct configured. A dropdown with four options:</p>
+  <ul class="bullets">
+    <li><strong>🌐 Public</strong> — live the moment upload finishes.</li>
+    <li><strong>🔗 Unlisted</strong> — link-shareable, not in search/recommendations.</li>
+    <li><strong>🔒 Private</strong> (default) — only you. Flip to public in YouTube Studio when ready.</li>
+    <li><strong>⏰ Schedule for…</strong> — pick a date/time; YouTube auto-publishes at that moment. Uploads as private until then.</li>
+  </ul>
+  <p>Choices commit immediately (no Save button). Saved on the package, so each video can have its own setting.</p>
+
+  <h3>Where each asset routes</h3>
+  <p>The <code>dispatch</code> worker reads the asset type and sends it to exactly one of three destinations (or records a <code>manual</code> audit entry). Editorial goes to DojoClaw on your LAN; social + rendered clips go to Zernio in the cloud; YouTube uploads go Direct via the Data API when the brand is configured for it.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dispatch routing by asset type">
+      <defs><marker id="ar-dsp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker></defs>
+      <style>
+        .src{ fill:#16161a; stroke:#2e2e36 }
+        .hub{ fill:rgba(14,165,233,0.12); stroke:rgba(14,165,233,0.45) }
+        .dojo{ fill:rgba(20,184,166,0.12); stroke:rgba(20,184,166,0.45) }
+        .zern{ fill:rgba(168,85,247,0.12); stroke:rgba(168,85,247,0.45) }
+        .yt{ fill:rgba(255,0,51,0.10); stroke:rgba(255,0,51,0.42) }
+        .man{ fill:#16161a; stroke:#2e2e36 }
+        .t{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .ty{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .l{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .tag{ fill:#71717a; font:9.5px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- central dispatch worker -->
+      <g transform="translate(300,128)">
+        <rect class="hub" width="160" height="64" rx="10"/>
+        <text class="t" x="22" y="28">dispatch worker</text>
+        <text class="ty" x="22" y="48">pickTarget(type)</text>
+      </g>
+
+      <!-- source asset types (left) -->
+      <g transform="translate(16,30)">
+        <rect class="src" width="200" height="44" rx="8"/>
+        <text class="ty" x="14" y="20" fill="#f4f4f5">article_brief</text>
+        <text class="tag" x="14" y="36">editorial</text>
+      </g>
+      <g transform="translate(16,90)">
+        <rect class="src" width="200" height="44" rx="8"/>
+        <text class="ty" x="14" y="20" fill="#f4f4f5">linkedin · x_post · x_thread</text>
+        <text class="tag" x="14" y="36">social</text>
+      </g>
+      <g transform="translate(16,150)">
+        <rect class="src" width="200" height="44" rx="8"/>
+        <text class="ty" x="14" y="20" fill="#f4f4f5">rendered_short_clip</text>
+        <text class="tag" x="14" y="36">rendered_long_clip</text>
+      </g>
+      <g transform="translate(16,210)">
+        <rect class="src" width="200" height="44" rx="8"/>
+        <text class="ty" x="14" y="20" fill="#f4f4f5">youtube_title_set</text>
+        <text class="tag" x="14" y="36">brand on Direct</text>
+      </g>
+      <g transform="translate(16,270)">
+        <rect class="src" width="200" height="40" rx="8"/>
+        <text class="ty" x="14" y="25" fill="#f4f4f5">everything else</text>
+      </g>
+
+      <!-- arrows into hub -->
+      <path class="l" d="M216,52 C260,52 270,150 300,156" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M216,112 C262,112 272,154 300,158" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M216,172 h84" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M216,232 C262,232 272,176 300,170" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M216,290 C262,290 272,180 300,172" marker-end="url(#ar-dsp)"/>
+
+      <!-- destinations (right) -->
+      <g transform="translate(560,24)">
+        <rect class="dojo" width="184" height="48" rx="9"/>
+        <text class="t" x="16" y="22">DojoClaw</text>
+        <text class="ty" x="16" y="40">LAN · article</text>
+      </g>
+      <g transform="translate(560,90)">
+        <rect class="zern" width="184" height="48" rx="9"/>
+        <text class="t" x="16" y="22">Zernio (LATE)</text>
+        <text class="ty" x="16" y="40">cloud · 15+ networks</text>
+      </g>
+      <g transform="translate(560,156)">
+        <rect class="yt" width="184" height="48" rx="9"/>
+        <text class="t" x="16" y="22">YouTube Direct</text>
+        <text class="ty" x="16" y="40">Data API v3</text>
+      </g>
+      <g transform="translate(560,222)">
+        <rect class="man" width="184" height="48" rx="9"/>
+        <text class="t" x="16" y="22">manual</text>
+        <text class="ty" x="16" y="40">audit record only</text>
+      </g>
+
+      <!-- arrows out of hub -->
+      <path class="l" d="M460,150 C510,150 520,52 560,48" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M460,158 C510,158 520,116 560,114" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M460,168 C510,168 520,180 560,180" marker-end="url(#ar-dsp)"/>
+      <path class="l" d="M460,176 C510,176 520,244 560,246" marker-end="url(#ar-dsp)"/>
+    </svg>
+  </div>
+
+  <h3>What happens after you click Approve &amp; dispatch</h3>
+  <ol class="steps">
+    <li><code>publishAsset</code> server action runs for each selected asset: flips status to <code>approved</code>, enqueues a <code>dispatch:&lt;assetId&gt;</code> job.</li>
+    <li>Teal "dispatching N · auto-refresh every 2s" pill appears under the button. The panel polls every 2 seconds and refreshes row statuses live.</li>
+    <li>Each dispatch worker picks up its job, routes by asset type:
+      <ul class="bullets">
+        <li><code>article_brief</code> → DojoClaw</li>
+        <li><code>linkedin_post / x_post / x_thread / rendered_*_clip</code> → Zernio</li>
+        <li><code>youtube_title_set</code> (with brand on YouTube Direct) → Direct upload via Data API</li>
+        <li>Everything else → <code>manual</code> (recorded as dispatched; operator handles posting)</li>
+      </ul>
+    </li>
+    <li>Per row, the status flips to <code>dispatched</code> on success or <code>failed</code> with an inline error message on failure.</li>
+    <li>Package status recomputes: <code>dispatched</code> (all good), <code>partially_dispatched</code> (some failed), or <code>failed</code> (all failed).</li>
+  </ol>
+
+  <h3>Failed dispatches — what to do</h3>
+  <p>Click the row to see the worker error inline. Most common causes:</p>
+  <ul class="bullets">
+    <li><strong>"No Zernio account for &lt;platform&gt;"</strong> — add the <code>acc_…</code> id to the brand&apos;s zernio_accounts.</li>
+    <li><strong>"Set ZERNIO_API_KEY"</strong> — paste it on <code>/settings</code>.</li>
+    <li><strong>"youtube: brand has no YouTube connection"</strong> — Connect on the brand page.</li>
+    <li><strong>"quotaExceeded"</strong> — YouTube Data API daily limit hit (10k units = ~6 uploads/day). Wait until tomorrow UTC.</li>
+  </ul>
+</section>
+
+<!-- ─── 15 · PERFORMANCE ─────────────────────────────────────────── -->
+<section class="ch wrap" id="performance">
+  <div class="ch-num">Chapter 15</div>
+  <div class="chap-divider"><span class="num">15</span><span class="line"></span></div>
+  <h2>Performance &amp; tuning.</h2>
+  <p class="intro">On a typical 8-minute video, ChannelHelm&apos;s pipeline completes in ~2–2.5 minutes. That includes everything from drop to "ready for review." This chapter explains the performance budget and how to tune it.</p>
+
+  <h3>Where wall time goes</h3>
+  <table class="ref">
+    <thead><tr><th>Phase</th><th>Wall</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td>ingest</td><td>~12 s</td><td>Audio extract + scene-cut detection (ffmpeg)</td></tr>
+      <tr><td>transcribe_audio</td><td>~45 s</td><td>MLX Whisper large-v3 over the audio track</td></tr>
+      <tr><td>analyze_visual</td><td>~65 s</td><td>OCR ∥ VLM keyframe descriptions (max of the two)</td></tr>
+      <tr><td>fuse</td><td>~1 s</td><td>TypeScript scene log composition</td></tr>
+      <tr><td>analyze_intelligence</td><td>~10 s</td><td>One LLM call for topics/hooks/retention</td></tr>
+      <tr><td>generate_asset × 10</td><td>~35 s</td><td>10 LLM calls running 3-way parallel</td></tr>
+      <tr><td>thumbnail_concepts</td><td>~7 s</td><td>ffmpeg frame extraction + scoring</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>~2–2.5 min</strong></td><td>End-to-end on an 8-min video</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Worker concurrency tuning</h3>
+  <p>Default: 3 concurrent claim slots. Set via:</p>
+  <pre class="cmd"><span class="c"># in scripts/dev.sh or shell env</span>
+WORKER_CONCURRENCY=<span class="n">3</span>  <span class="c"># default</span>
+
+<span class="c"># bump if generate_asset jobs queue up</span>
+WORKER_CONCURRENCY=<span class="n">6</span> pnpm dev:all
+
+<span class="c"># drop if your LLM provider rate-limits you</span>
+WORKER_CONCURRENCY=<span class="n">1</span> pnpm dev:all</pre>
+
+  <p>Reasonable maxes per LLM provider:</p>
+  <table class="ref">
+    <thead><tr><th>Provider</th><th>Reasonable concurrency</th></tr></thead>
+    <tbody>
+      <tr><td>Anthropic (Claude)</td><td>5–10</td></tr>
+      <tr><td>OpenAI</td><td>3–8 (depends on tier)</td></tr>
+      <tr><td>Codex CLI (local)</td><td>2–4 (bounded by CPU)</td></tr>
+      <tr><td>LM Studio (local)</td><td>1–2 (local server queues internally)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Processing profile tradeoffs</h3>
+  <table class="ref">
+    <thead><tr><th>Profile</th><th>Pipeline wall</th><th>Quality</th></tr></thead>
+    <tbody>
+      <tr><td><code>fast_audio_only</code></td><td>~1 min (skips visual)</td><td>Audio-only metadata. Fine for podcasts.</td></tr>
+      <tr><td><code>standard_audio_visual</code></td><td>~2–2.5 min</td><td>Full pipeline at sensible defaults. Best ratio.</td></tr>
+      <tr><td><code>premium_multimodal</code></td><td>~4–6 min</td><td>32B VLM, dense OCR. Use for content where descriptions really matter.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="related"><strong>Deep dives</strong> <a href="/visual-optimization-analysis.html">Visual phase post-mortem</a> (~12× speedup explained) · <a href="/worker-concurrency.html">Worker concurrency deep dive</a> (architecture + safety audit)</div>
+</section>
+
+<!-- ─── 16 · STORAGE ─────────────────────────────────────────────── -->
+<section class="ch wrap" id="storage">
+  <div class="ch-num">Chapter 16</div>
+  <div class="chap-divider"><span class="num">16</span><span class="line"></span></div>
+  <h2>Storage &amp; the file lifecycle.</h2>
+  <p class="intro">Every file ChannelHelm writes has exactly one lifecycle. Most are throwaway by the time the pipeline finishes; a few are permanent. Left alone, a typical 8-minute video would sit at ~85 MB on disk forever. Two cleanup mechanisms — inline cleanup and the archive worker — keep that lean. Here&apos;s the whole map.</p>
+
+  <h3>The four stages</h3>
+  <p>An artifact&apos;s stage is set by its <em>last legitimate consumer</em>. After that read, it&apos;s either re-readable later (a later stage) or never touched again (delete).</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Storage lifecycle stages over time">
+      <style>
+        .lbl{ fill:#a1a1aa; font:500 11px Inter, sans-serif }
+        .tk{ fill:#71717a; font:9.5px "JetBrains Mono", monospace }
+        .head{ fill:#f4f4f5; font:600 10.5px Inter, sans-serif }
+      </style>
+      <defs>
+        <pattern id="dim-hb" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="rgba(255,255,255,0.02)"/>
+          <line x1="0" y1="0" x2="6" y2="6" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+
+      <!-- phase headers -->
+      <text class="head" x="208" y="16">Pipeline</text>
+      <text class="head" x="430" y="16">Review</text>
+      <text class="head" x="600" y="16">Published</text>
+      <text class="head" x="690" y="16">+N days</text>
+
+      <!-- phase grid -->
+      <g stroke="#232329" stroke-dasharray="2 3">
+        <line x1="200" y1="24" x2="200" y2="250"/>
+        <line x1="420" y1="24" x2="420" y2="250"/>
+        <line x1="590" y1="24" x2="590" y2="250"/>
+        <line x1="680" y1="24" x2="680" y2="250"/>
+      </g>
+
+      <!-- original.mp4 — stage 3, archived after publish -->
+      <text class="lbl" x="10" y="48">original.mp4</text>
+      <rect x="200" y="36" width="480" height="13" fill="#a78bfa" opacity="0.85" rx="2"/>
+      <rect x="680" y="36" width="70" height="13" fill="url(#dim-hb)" stroke="#a78bfa" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- audio.wav / frames — stage 1, inline-deleted -->
+      <text class="lbl" x="10" y="72">audio.wav · frames_*/</text>
+      <rect x="200" y="60" width="120" height="13" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- intermediate JSONs — stage 1, Postgres-mirrored -->
+      <text class="lbl" x="10" y="96">scene_log · frame_index</text>
+      <rect x="260" y="84" width="120" height="13" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- transcript.json — stage 2, review (word-snap) -->
+      <text class="lbl" x="10" y="120">transcript.json</text>
+      <rect x="200" y="108" width="220" height="13" fill="#f59e0b" opacity="0.85" rx="2"/>
+      <rect x="420" y="108" width="330" height="13" fill="url(#dim-hb)" stroke="#f59e0b" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- thumbs — stage 2 -->
+      <text class="lbl" x="10" y="144">thumbs/concept_*.jpg</text>
+      <rect x="340" y="132" width="250" height="13" fill="#f59e0b" opacity="0.85" rx="2"/>
+
+      <!-- clips — stage 3 -->
+      <text class="lbl" x="10" y="168">clips/clip_NNN.mp4</text>
+      <rect x="420" y="156" width="260" height="13" fill="#a78bfa" opacity="0.85" rx="2"/>
+      <rect x="680" y="156" width="70" height="13" fill="url(#dim-hb)" stroke="#a78bfa" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- Postgres — stage 4 -->
+      <text class="lbl" x="10" y="192">Postgres rows</text>
+      <rect x="200" y="180" width="550" height="13" fill="#10b981" opacity="0.85" rx="2"/>
+
+      <!-- legend -->
+      <g transform="translate(12,224)">
+        <rect width="13" height="13" fill="#14b8a6" rx="2"/>
+        <text class="tk" x="19" y="11">Stage 1 — pipeline only</text>
+        <rect x="172" width="13" height="13" fill="#f59e0b" rx="2"/>
+        <text class="tk" x="191" y="11">Stage 2 — review-only</text>
+        <rect x="338" width="13" height="13" fill="#a78bfa" rx="2"/>
+        <text class="tk" x="357" y="11">Stage 3 — archive after publish</text>
+        <rect x="540" width="13" height="13" fill="#10b981" rx="2"/>
+        <text class="tk" x="559" y="11">Stage 4 — permanent</text>
+      </g>
+      <g transform="translate(12,250)">
+        <rect width="13" height="13" fill="url(#dim-hb)" stroke="#71717a" stroke-dasharray="2 2" rx="2"/>
+        <text class="tk" x="19" y="11">Archived off local (ARCHIVE_ROOT) or deleted</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>What each file is for</h3>
+  <table class="ref">
+    <thead><tr><th>Artifact</th><th>Last consumer</th><th>Stage</th></tr></thead>
+    <tbody>
+      <tr><td><code>original.mp4</code></td><td>clip_render (future re-renders)</td><td><span class="meh">3 · post-publish</span></td></tr>
+      <tr><td><code>audio.wav</code> · <code>frames_ocr/</code> · <code>frames_vlm/</code></td><td>the step that produced them (one read)</td><td><span class="good">1 · pipeline</span></td></tr>
+      <tr><td><code>scene_log.json</code> · <code>frame_index.json</code></td><td>fuse / analyze_intelligence — <strong>also mirrored in Postgres</strong></td><td><span class="good">1 · pipeline</span></td></tr>
+      <tr><td><code>transcript.json</code></td><td>Shorts editor word-snap — <strong>also mirrored in Postgres</strong></td><td><span class="meh">2 · review</span></td></tr>
+      <tr><td><code>thumbs/concept_*.jpg</code></td><td>thumbnail selection + dispatch upload</td><td><span class="meh">2 · review</span></td></tr>
+      <tr><td><code>clips/clip_NNN.mp4</code> · <code>.ass</code></td><td>dispatch + Studio preview</td><td><span class="meh">3 · post-publish</span></td></tr>
+      <tr><td>Postgres rows</td><td>everything — the audit trail</td><td><span class="bad">4 · permanent</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mechanism 1 · Inline cleanup (automatic, on by default)</h3>
+  <p>Each pipeline worker deletes its single-consumer inputs the moment the next step starts. <code>transcribe_audio</code> drops <code>audio.wav</code>; <code>analyze_visual</code> drops the frame folders + intermediate JSONs; <code>fuse</code> and <code>analyze_intelligence</code> drop their Postgres-mirrored JSONs. No DB changes, no policy — a freshly ingested video averages ~40 MB instead of ~85 MB.</p>
+  <pre class="cmd"><span class="c"># keep everything on disk for debugging (e.g. ls the VLM frames)</span>
+KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
+
+  <h3>Mechanism 2 · The archive worker (post-publish, opt-in)</h3>
+  <p>The <code>archive_package</code> worker runs on a schedule (enqueued by <code>scripts/enqueue-recurring.ts</code>, fired by launchd). For each package whose latest dispatch is older than <code>ARCHIVE_AFTER_DAYS</code> and that hasn&apos;t been archived yet, it moves <code>original.mp4</code> (and <code>clips/</code>, unless <code>ARCHIVE_DELETE_CLIPS=true</code>) from <code>MEDIA_ROOT</code> to <code>ARCHIVE_ROOT</code>, then records the move so re-renders still resolve.</p>
+  <ul class="bullets">
+    <li><strong>Set <code>ARCHIVE_ROOT</code></strong> (boot-only, in .env) to your external-drive path. Unset = archiving disabled.</li>
+    <li><strong>Eligibility</strong>: latest dispatch older than <code>ARCHIVE_AFTER_DAYS</code> (default 14) AND <code>packages.archived_at IS NULL</code>.</li>
+    <li><strong>Idempotent</strong>: keyed <code>archive_package:&lt;packageId&gt;</code> — at most one archive per package per cycle.</li>
+    <li><strong>Drive offline?</strong> The worker refuses cleanly (throws, requeues) rather than losing data — source files stay on local until the move succeeds.</li>
+    <li><strong>Re-render survives archive</strong>: <code>clip_render</code> reads <code>sources.archive_path</code> as a fallback when the local file is gone, so Shorts re-renders still work as long as the drive is mounted.</li>
+  </ul>
+  <p>Migration <code>0007</code> added the two columns this relies on: <code>packages.archived_at</code> and <code>sources.archive_path</code>.</p>
+
+  <div class="callout tip"><strong>The duplication insight</strong> Three on-disk JSONs (<code>scene_log.json</code>, <code>frame_index.json</code>, <code>transcript.json</code>) are also mirrored into the <code>packages.intelligence</code> JSONB column. The disk copies are pure duplication — every downstream reader can use the Postgres version — which is exactly why inline cleanup can delete them safely.</div>
+
+  <div class="related"><strong>Deep dive</strong> <a href="/storage-lifecycle.html">Storage lifecycle</a> has the full artifact map, per-option pros/cons, and a 1→10,000-video cost table.</div>
+</section>
+
+<!-- ─── 17 · TROUBLESHOOTING ─────────────────────────────────────── -->
+<section class="ch wrap" id="troubleshooting">
+  <div class="ch-num">Chapter 17</div>
+  <div class="chap-divider"><span class="num">17</span><span class="line"></span></div>
+  <h2>Troubleshooting.</h2>
+  <p class="intro">The eight problems you&apos;re most likely to hit and the exact fix for each.</p>
+
+  <h3>1. "Settings table not migrated yet"</h3>
+  <p><strong>Symptom</strong>: Red banner on <code>/settings</code>; saves fail.<br/>
+  <strong>Cause</strong>: <code>pnpm db:migrate</code> hasn&apos;t been run on this database.<br/>
+  <strong>Fix</strong>: <code>pnpm db:migrate</code>. Reload.</p>
+
+  <h3>2. "Restart needed for live propagation"</h3>
+  <p><strong>Symptom</strong>: Yellow banner on <code>/settings</code> right after first install or after a code update.<br/>
+  <strong>Cause</strong>: The worker boot hook (which opens the LISTEN connection) only runs at process start.<br/>
+  <strong>Fix</strong>: Ctrl-C <code>pnpm dev:all</code>, run it again. One-time per code update.</p>
+
+  <h3>3. Asset cards stuck on "Generate" buttons</h3>
+  <p><strong>Symptom</strong>: Titles/Description/Tags cards show "Generate" buttons instead of content, but the pipeline indicator shows all 4 layers as done.<br/>
+  <strong>Cause</strong>: The <code>generate_asset</code> jobs for those types either failed or weren&apos;t enqueued.<br/>
+  <strong>Fix</strong>: Click the manual Generate button (it&apos;s the fallback recovery affordance), OR open <code>/jobs</code> to see which generate_asset jobs failed and why.</p>
+
+  <h3>4. YouTube upload fails with ENOENT</h3>
+  <p><strong>Symptom</strong>: Worker log shows <code>ENOENT: no such file or directory, stat '…/your-brand/src_…/original.mp4'</code>.<br/>
+  <strong>Cause</strong>: A brand slug rename moved the media folder but didn&apos;t rewrite all stored paths. Should be auto-fixed by the renorm action; if you hit this, the file probably lives at a different path.<br/>
+  <strong>Fix</strong>: Check <code>MEDIA_ROOT/&lt;brand-slug&gt;/src_…/</code> on disk. If the file is there, the issue is a stale stored path — contact for a backfill script.</p>
+
+  <h3>5. "Google did not return a refresh_token" during OAuth</h3>
+  <p><strong>Symptom</strong>: YouTube Connect flow lands back on the brand page with a red error banner mentioning refresh_token.<br/>
+  <strong>Cause</strong>: Google only issues a refresh_token on the FIRST grant. If you&apos;ve granted ChannelHelm access before, subsequent re-grants don&apos;t include one.<br/>
+  <strong>Fix</strong>: Visit <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> as the channel-owning account, find ChannelHelm, click Remove access. Then click Connect on the brand page again.</p>
+
+  <h3>6. YouTube upload fails with quotaExceeded</h3>
+  <p><strong>Symptom</strong>: Worker log: <code>The user has exceeded the number of videos they may upload.</code><br/>
+  <strong>Cause</strong>: YouTube Data API daily quota (10,000 units/day, 1,600 per upload = 6 uploads).<br/>
+  <strong>Fix</strong>: Wait until tomorrow UTC. To raise it: Google Cloud Console → APIs &amp; Services → Quotas → request bump.</p>
+
+  <h3>7. Worker not picking up jobs</h3>
+  <p><strong>Symptom</strong>: Drop a video, package created, status stuck at <code>draft</code> or <code>ingested</code> indefinitely.<br/>
+  <strong>Cause</strong>: Worker process not running, OR worker is running but has no handler for the queued job&apos;s kind.<br/>
+  <strong>Fix</strong>: Check <code>tail -f /tmp/channelhelm-dev.log</code> for <code>[runner] started lockedBy=…</code>. If absent, restart <code>pnpm dev:all</code>. If present but no <code>[ingest]</code> lines after dropping a video, the queue lookup might be off — check <code>/jobs</code> for pending rows.</p>
+
+  <h3>8. LLM call fails with context-length error</h3>
+  <p><strong>Symptom</strong>: Worker log: <code>tokens to keep &gt; context length</code> (LM Studio) or similar from another provider.<br/>
+  <strong>Cause</strong>: Your model&apos;s context window is too small for the prompt + scene log + response. Common with Qwen3-32B loaded at 4096-token default.<br/>
+  <strong>Fix</strong>: For LM Studio: <code>lms load &lt;model&gt; --context-length 16384</code>. For cloud providers: switch to a longer-context model (most cloud models default to 200k+ tokens).</p>
+</section>
+
+<!-- ─── 18 · GLOSSARY ────────────────────────────────────────────── -->
+<section class="ch wrap" id="glossary">
+  <div class="ch-num">Chapter 18</div>
+  <div class="chap-divider"><span class="num">18</span><span class="line"></span></div>
+  <h2>Glossary.</h2>
+  <p class="intro">Every ChannelHelm-specific term, defined once.</p>
+
+  <dl class="gloss">
+    <dt>Brand</dt><dd>One publishing identity, typically mapped to one YouTube channel. Every package/asset/source is brand-scoped.</dd>
+    <dt>Source</dt><dd>The raw video input — either a file you uploaded or a YouTube URL you ingested. Lives in <code>MEDIA_ROOT/&lt;brand-slug&gt;/src_…/</code>.</dd>
+    <dt>Package</dt><dd>One "unit of work" for a single video. Wraps the source + all derived intelligence + all generated assets. The Studio shows one package at a time.</dd>
+    <dt>Asset</dt><dd>One generated artifact — e.g. youtube_title_set, youtube_description, linkedin_post, thumbnail_concept. Each has a type, payload, status, and dispatch metadata.</dd>
+    <dt>Processing profile</dt><dd>Which pipeline tier a package runs under. <code>fast_audio_only</code> · <code>standard_audio_visual</code> · <code>premium_multimodal</code>. Set on the brand as default; per-package override allowed.</dd>
+    <dt>Pipeline</dt><dd>The four sequential layers that turn a source into intelligence: audio → visual → fusion → intelligence.</dd>
+    <dt>Scene log</dt><dd>The fused output of the pipeline. Array of time windows, each carrying the spoken text + visual descriptions + on-screen text for that interval. Used by analyze_intelligence as the LLM&apos;s input.</dd>
+    <dt>Intelligence</dt><dd>Two meanings: (1) the fourth pipeline layer (the LLM call that produces topics/hooks/retention), (2) the JSONB column on packages that holds all derived artifacts.</dd>
+    <dt>Dispatch</dt><dd>The act of sending an approved asset to its destination — DojoClaw, Zernio, YouTube Direct, or "manual". Recorded in the <code>dispatches</code> table for audit.</dd>
+    <dt>Dispatch target</dt><dd>Where a specific asset type routes on dispatch. For YouTube, the brand picks one of: manual / youtube_direct / zernio.</dd>
+    <dt>Idempotency key</dt><dd>A stable string set on enqueue (e.g. <code>dispatch:&lt;assetId&gt;</code>) that prevents duplicate job rows. Postgres unique index enforces.</dd>
+    <dt>Provenance</dt><dd>Metadata stamped on every generated artifact: provider, model, host, prompt_version, input_refs, generated_at, profile. Lets you trace any output back to its inputs.</dd>
+    <dt>short_clip_plan</dt><dd>The editable source of truth for one or more Shorts. Holds per-clip trim, title, description, tags, subtitle styling, and publish options under <code>payload.clips[i]</code>. Operators edit this; the renderer reads it.</dd>
+    <dt>rendered_short_clip</dt><dd>The built vertical MP4 (with burned-in subtitles) produced by clip_render. A build output — never edit it directly; edits would be lost on the next re-render. Long-form equivalent: <code>rendered_long_clip</code>.</dd>
+    <dt>render_rev</dt><dd>Monotonic revision counter on a plan&apos;s clip. renderClip() bumps it; clip_render skips a re-encode when the rendered asset&apos;s rev already matches. Makes re-renders idempotent.</dd>
+    <dt>Word-snap</dt><dd>Trim handles lock to the nearest word boundary so a clip never starts or ends mid-word. Runs client-side (Timeline) and server-side (clip_render). See <code>src/lib/word-snap.ts</code>.</dd>
+    <dt>ASS subtitles</dt><dd>Advanced SubStation Alpha — the subtitle file format clip_render burns into Shorts. Supports six animations (Word Highlight, Pop, Single Word, Typewriter, Motion, Banner). Replaces VTT when a styling block is set.</dd>
+    <dt>Auto-render</dt><dd>When generate_asset writes a <code>*_plan</code>, it fans out one clip_render job per clip so rendered MP4s exist before you open the Shorts tab. Backfill older packages with <code>scripts/render-shorts.ts</code>.</dd>
+    <dt>Lifecycle stage</dt><dd>Which of the four storage classes a file belongs to: 1 pipeline-only, 2 review-only, 3 post-publish (archivable), 4 permanent. Set by the file&apos;s last legitimate consumer.</dd>
+    <dt>archive_package</dt><dd>Scheduled worker that moves a published package&apos;s original.mp4 (+ clips/) from MEDIA_ROOT to ARCHIVE_ROOT after ARCHIVE_AFTER_DAYS. Sets <code>packages.archived_at</code> and <code>sources.archive_path</code>.</dd>
+    <dt>RequeueLater</dt><dd>A special exception a worker can throw to ask the queue to defer the job to a specific future time instead of failing it. Used for Zernio&apos;s 24-hour rate limit.</dd>
+    <dt>Bundled (in approval panel)</dt><dd>An asset that doesn&apos;t dispatch on its own but is auto-included in another asset&apos;s upload. For YouTube Direct, description/chapters/tags are bundled into the title_set&apos;s upload.</dd>
+    <dt>Studio</dt><dd>The per-package page at <code>/packages/[id]</code>. Where you review and approve.</dd>
+    <dt>Console / Editor / Atlas</dt><dd>The three layout modes the Studio supports. Console is the default 3-column view.</dd>
+    <dt>Voice example</dt><dd>An operator edit captured automatically as a few-shot example for future LLM calls. Lets the model learn your editing style over time.</dd>
+    <dt>Worker / runner / slot</dt><dd>Worker = a Node process running <code>workers/runner.ts</code>. Runner = the main loop in that process. Slot = one concurrent claim loop inside the runner (default 3 per worker).</dd>
+    <dt>SKIP LOCKED</dt><dd>Postgres SQL clause that makes the queue claim atomic across N concurrent slots without any in-process mutex.</dd>
+    <dt>MEDIA_ROOT</dt><dd>Filesystem root where ChannelHelm stores all source video files + derived artifacts (audio.wav, frames_*/, transcript.json, etc.).</dd>
+    <dt>Zernio (LATE)</dt><dd>Third-party social publishing service. ChannelHelm uses it for LinkedIn / X / TikTok / etc. dispatches. Optional.</dd>
+    <dt>DojoClaw</dt><dd>Local HTTP service on the LAN for article publishing. Called via <code>/api/v1/articles/from-brief</code>. Optional.</dd>
+    <dt>Cloudflare Tunnel</dt><dd>Free Cloudflare service that exposes a local port via a public HTTPS URL. Used by ChannelHelm for webhook callbacks + signed /media URLs when going beyond local-only.</dd>
+  </dl>
+
+  <h3>Beyond the handbook</h3>
+  <p>Seven companion docs go deeper than this handbook can:</p>
+  <ul class="bullets">
+    <li><a href="/how-it-works.html">How ChannelHelm works</a> — system map + pipeline diagrams</li>
+    <li><a href="/setup-guide.html">Setup guide</a> — install walkthrough with mockups</li>
+    <li><a href="/llm-routing.html">LLM routing field guide</a> — per-task LLM selection matrix</li>
+    <li><a href="/youtube-publish-options.html">YouTube publish options</a> — 4-path comparison</li>
+    <li><a href="/visual-optimization-analysis.html">Visual phase post-mortem</a> — measured performance</li>
+    <li><a href="/worker-concurrency.html">Worker concurrency deep dive</a> — architecture + safety</li>
+    <li><a href="/storage-lifecycle.html">Storage lifecycle</a> — artifact map + cleanup options at scale</li>
+  </ul>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm operator handbook · 2026-05-28</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/handbook/" style="color:var(--muted)">handbook index</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

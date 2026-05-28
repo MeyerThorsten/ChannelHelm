@@ -1,5 +1,7 @@
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { db } from '@/db/client';
-import { brands, packages } from '@/db/schema';
+import { brands, packages, sources } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
@@ -43,6 +45,23 @@ export async function run(job: JobRow): Promise<void> {
   const profile = processingProfile ?? pkg.processingProfile;
 
   await produceAnalysis(packageId);
+
+  // Storage lifecycle (Option A): scene_log.json is fully consumed —
+  // the LLM has finished reading it and the canonical copy is in
+  // packages.intelligence.scene_log. The on-demand section-regen path
+  // calls produceAnalysis() alone (no rm), so deletion lives here in
+  // run() not in produceAnalysis(). Set KEEP_PIPELINE_ARTIFACTS=1 to
+  // retain the file for debugging.
+  if (process.env.KEEP_PIPELINE_ARTIFACTS !== '1') {
+    const [src] = await db
+      .select({ localMediaPath: sources.localMediaPath })
+      .from(sources)
+      .where(eq(sources.id, sourceId))
+      .limit(1);
+    if (src?.localMediaPath) {
+      await rm(join(src.localMediaPath, 'scene_log.json'), { force: true });
+    }
+  }
 
   // Fan out generate_asset for every type from §13 step 9 (now includes
   // short_clip_plan). Plans remain non-dispatchable; approving a plan

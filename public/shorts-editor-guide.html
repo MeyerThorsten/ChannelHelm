@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shorts editor — word-snap trim, animated subtitles, per-clip publishing</title>
+<meta name="description" content="Operator guide to ChannelHelm's per-Short editor: the plan-as-source-of-truth model, word-snap trimming, six animated subtitle styles, live preview, auto-generated descriptions, and per-clip publishing via Zernio." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --purple: #a855f7;
+    --status-analyzing: #14b8a6;
+    --status-ready: #f59e0b;
+    --status-published: #10b981;
+    --status-scheduled: #a855f7;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --bg-elev-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:880px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.9em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero .kicker{display:inline-flex;align-items:center;gap:8px;
+    padding:5px 12px 5px 9px;border-radius:999px;border:1px solid var(--border);
+    background:var(--panel);font-size:12px;color:var(--muted);margin-bottom:22px}
+  .hero .kicker .dot{width:7px;height:7px;border-radius:999px;background:var(--accent);
+    box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 22%,transparent)}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(40px,6vw,64px);line-height:1.02;letter-spacing:-.8px;margin:8px 0 16px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:760px;margin:0}
+
+  section{padding:48px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(26px,3.6vw,38px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.12;
+  }
+  h3{font-size:16px;margin:24px 0 8px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:15.5px;max-width:800px}
+
+  /* generic figure frame */
+  .figure{
+    margin:22px 0;background:var(--panel);border:1px solid var(--border);
+    border-radius:14px;padding:20px;
+  }
+  .figure svg{width:100%;height:auto;display:block}
+  .figure .cap{margin:14px 2px 0;font-size:12.5px;color:var(--faint);line-height:1.55}
+
+  /* two-up split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  .panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;
+  }
+  .panel.editable{border-color:color-mix(in oklab,var(--accent) 35%,var(--border));
+    background:color-mix(in oklab,var(--accent) 4%,var(--panel))}
+  .panel.build{border-color:color-mix(in oklab,var(--purple) 30%,var(--border));
+    background:color-mix(in oklab,var(--purple) 4%,var(--panel))}
+  .panel .tag{
+    display:inline-block;font-size:9.5px;font-family:var(--font-mono);
+    padding:2px 8px;border-radius:4px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;
+  }
+  .panel.editable .tag{background:color-mix(in oklab,var(--accent) 16%,transparent);color:var(--accent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
+  .panel.build .tag{background:color-mix(in oklab,var(--purple) 16%,transparent);color:var(--purple);
+    border:1px solid color-mix(in oklab,var(--purple) 30%,transparent)}
+  .panel h3{margin:0 0 8px;font-size:16px}
+  .panel p{margin:0 0 10px;font-size:13.5px;color:var(--muted);line-height:1.6}
+  .panel ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.7}
+  .panel code{font-size:11.5px}
+
+  /* feature cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;
+    transition:border-color .14s,transform .14s}
+  .card:hover{border-color:var(--border-strong);transform:translateY(-2px)}
+  .card .ico{font-size:18px;margin-bottom:8px;display:block}
+  .card h3{margin:0 0 5px;font-size:14.5px}
+  .card p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
+
+  /* subtitle animation grid */
+  .anims{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}
+  .anim{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .anim .stage{height:118px;background:#08080a;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .anim .body{padding:14px 16px}
+  .anim .body h3{margin:0 0 3px;font-size:14px;display:flex;align-items:center;gap:7px}
+  .anim .body .v{font-family:var(--font-mono);font-size:10px;color:var(--faint)}
+  .anim .body p{margin:6px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+  .anim .new{font-size:9px;padding:1px 6px;border-radius:4px;font-weight:500;
+    background:color-mix(in oklab,var(--accent) 16%,transparent);color:var(--accent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
+
+  /* table */
+  table.ref{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:16px 0;
+  }
+  table.ref th, table.ref td{padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+  table.ref th{color:var(--faint);font-weight:500;font-size:11px;text-transform:uppercase;
+    letter-spacing:.06em;background:var(--panel-2)}
+  table.ref tr:last-child td{border-bottom:none}
+  table.ref code{font-size:11.5px}
+
+  /* steps */
+  .steps{counter-reset:step;display:grid;gap:12px;margin:18px 0}
+  .step{display:flex;gap:16px;align-items:flex-start;padding:16px 18px;
+    background:var(--panel);border:1px solid var(--border);border-radius:12px}
+  .step .num{counter-increment:step;flex-shrink:0;width:28px;height:28px;border-radius:8px;
+    font-family:var(--font-mono);font-weight:600;display:inline-flex;align-items:center;justify-content:center;
+    background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
+  .step .num::before{content:counter(step)}
+  .step h3{margin:1px 0 4px;font-size:15px}
+  .step p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.6}
+
+  .callout{margin:16px 0;padding:14px 18px;border-radius:10px;
+    background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.6}
+  .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 30%,var(--border))}
+  .callout.warn{background:color-mix(in oklab,var(--amber) 6%,var(--panel));border-color:color-mix(in oklab,var(--amber) 30%,var(--border))}
+  .callout.win{background:color-mix(in oklab,var(--green) 6%,var(--panel));border-color:color-mix(in oklab,var(--green) 30%,var(--border))}
+  .callout strong{margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.win strong{color:var(--green)}
+
+  /* see-also grid */
+  .docs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+  .doc-card{display:block;background:var(--panel);border:1px solid var(--border);
+    border-radius:12px;padding:18px 20px;transition:border-color .14s,transform .14s,background .14s}
+  .doc-card:hover{border-color:var(--border-strong);transform:translateY(-2px);background:var(--bg-elev-2);text-decoration:none}
+  .doc-card .doc-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .doc-card .doc-ico{flex-shrink:0;width:30px;height:30px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;
+    color:var(--accent);background:var(--accent-soft);
+    border:1px solid color-mix(in oklab,var(--accent) 28%,transparent)}
+  .doc-card h3{margin:0;font-size:14.5px;color:var(--text)}
+  .doc-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
+  .doc-card .doc-go{font-family:var(--font-mono);font-size:11px;color:var(--faint);margin-left:auto}
+  .doc-card:hover .doc-go{color:var(--accent)}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:40px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:center}
+  .foot-inner .logo{font-size:14px;color:var(--faint)}
+
+  /* SVG shared text classes */
+  svg .lbl{fill:#a1a1aa;font:500 12px Inter,sans-serif}
+  svg .lbl-sm{fill:#71717a;font:11px Inter,sans-serif}
+  svg .mono-lbl{fill:#a1a1aa;font:11px "JetBrains Mono",monospace}
+  svg .mono-sm{fill:#71717a;font:10px "JetBrains Mono",monospace}
+  svg .head{fill:#f4f4f5;font:600 13px Inter,sans-serif}
+  svg .accent-t{fill:#0ea5e9;font:600 12px Inter,sans-serif}
+
+  @media (max-width:860px){
+    .cards,.anims{grid-template-columns:1fr 1fr}
+    .split,.docs-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:560px){
+    .cards,.anims{grid-template-columns:1fr}
+    .nav-links a:nth-child(-n+3){display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#model">Mental model</a>
+    <a href="#anatomy">Anatomy</a>
+    <a href="#snap">Word-snap</a>
+    <a href="#subtitles">Subtitles</a>
+    <a href="#publish">Publishing</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<!-- ─── HERO ───────────────────────────────────────────────────────── -->
+<section class="hero narrow">
+  <span class="kicker"><span class="dot"></span> Operator guide · the Shorts editor</span>
+  <h1>Cut a Short.<br /><em>Style it. Ship it.</em></h1>
+  <p class="lede">
+    Every package's highest-retention moments arrive as a clip plan, pre-rendered into
+    vertical MP4s. The Shorts editor is where you retrim them on whole words, layer animated
+    subtitles, write the post, and publish to TikTok, Instagram Reels, and YouTube Shorts —
+    all from one screen, all without leaving your Mac.
+  </p>
+</section>
+
+<!-- ─── MENTAL MODEL ───────────────────────────────────────────────── -->
+<section class="narrow" id="model">
+  <div class="eyebrow">The mental model</div>
+  <h2>The plan is the truth. The clip is the build.</h2>
+  <p class="sub">
+    One idea makes the whole editor coherent: <strong>everything you edit lives on the
+    <code>short_clip_plan</code> asset.</strong> The <code>rendered_short_clip</code> MP4 is a
+    build output — produced from the plan, never the other way around. Edit the recipe; the
+    worker rebuilds the dish.
+  </p>
+
+  <div class="split">
+    <div class="panel editable">
+      <span class="tag">editable · source of truth</span>
+      <h3>short_clip_plan</h3>
+      <p>A blueprint asset. <code>payload.clips[clipIndex]</code> holds every operator-editable field:</p>
+      <ul>
+        <li><code>trim.start / trim.end</code> — word-snapped boundaries</li>
+        <li><code>title · caption · description · tags</code></li>
+        <li><code>styling</code> — font, animation, colours, position, size</li>
+        <li><code>description_links · publish_options</code></li>
+        <li><code>render_rev</code> — monotonic render counter</li>
+      </ul>
+    </div>
+    <div class="panel build">
+      <span class="tag">build output · disposable</span>
+      <h3>rendered_short_clip</h3>
+      <p>The burned-in vertical MP4 (1080&times;1920). <code>clip_render</code> writes it and copies
+         the plan's editorial fields into its payload so the Studio and dispatch don't re-traverse.</p>
+      <ul>
+        <li><code>local_path</code> — the rendered file on disk</li>
+        <li>mirrored <code>title · description · tags · styling</code></li>
+        <li><code>render_rev</code> — matches the plan at build time</li>
+        <li>carries dispatch / publish history on a <em>stable asset id</em></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Never edit the rendered clip.</strong>
+    Operator edits are <em>never</em> persisted on <code>rendered_short_clip</code> — the next
+    Render would overwrite them. The plan is the only place edits stick. The worker copies plan
+    fields <em>into</em> the rendered row; it never reads edits back out.
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Plan to rendered clip to dispatch flow">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="arr-p" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a855f7"/>
+        </marker>
+      </defs>
+
+      <!-- operator -->
+      <rect x="20" y="120" width="150" height="80" rx="10" fill="#16161a" stroke="#2e2e36"/>
+      <text class="head" x="95" y="150" text-anchor="middle">Operator</text>
+      <text class="mono-sm" x="95" y="170" text-anchor="middle">edits + clicks</text>
+      <text class="mono-sm" x="95" y="184" text-anchor="middle">Render</text>
+
+      <!-- plan -->
+      <rect x="230" y="100" width="200" height="120" rx="12" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.55"/>
+      <text class="accent-t" x="330" y="128" text-anchor="middle">short_clip_plan</text>
+      <text class="mono-sm" x="330" y="148" text-anchor="middle">clips[i] = source of truth</text>
+      <rect x="252" y="160" width="156" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+      <text class="mono-sm" x="330" y="175" text-anchor="middle">render_rev = N</text>
+      <rect x="252" y="188" width="156" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+      <text class="mono-sm" x="330" y="203" text-anchor="middle">pending_render = true</text>
+
+      <!-- worker -->
+      <rect x="495" y="118" width="160" height="84" rx="12" fill="#16161a" stroke="#2e2e36"/>
+      <text class="head" x="575" y="146" text-anchor="middle">clip_render</text>
+      <text class="mono-sm" x="575" y="166" text-anchor="middle">worker · ffmpeg</text>
+      <text class="mono-sm" x="575" y="182" text-anchor="middle">word-snap · ASS burn-in</text>
+      <text class="mono-sm" x="575" y="196" text-anchor="middle">UPSERT (plan_id, clip_index)</text>
+
+      <!-- rendered -->
+      <rect x="720" y="100" width="200" height="120" rx="12" fill="#160d20" stroke="#a855f7" stroke-opacity="0.5"/>
+      <text x="820" y="128" text-anchor="middle" fill="#a855f7" style="font:600 12px Inter,sans-serif">rendered_short_clip</text>
+      <text class="mono-sm" x="820" y="148" text-anchor="middle">1080×1920 MP4 build</text>
+      <rect x="742" y="160" width="156" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+      <text class="mono-sm" x="820" y="175" text-anchor="middle">stable asset id</text>
+      <rect x="742" y="188" width="156" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+      <text class="mono-sm" x="820" y="203" text-anchor="middle">dispatch history bound</text>
+
+      <!-- flows -->
+      <g fill="none" stroke="#0ea5e9" stroke-width="1.6">
+        <path d="M170 160 H224" marker-end="url(#arr)"/>
+        <path d="M430 160 H489" marker-end="url(#arr)"/>
+      </g>
+      <path d="M655 160 H714" fill="none" stroke="#a855f7" stroke-width="1.6" marker-end="url(#arr-p)"/>
+
+      <!-- re-edit loop -->
+      <path d="M820 220 C 820 280, 330 280, 330 226" fill="none" stroke="#71717a" stroke-width="1.3"
+            stroke-dasharray="4 4" marker-end="url(#arr)"/>
+      <text class="mono-sm" x="575" y="296" text-anchor="middle">re-edit → bump render_rev → re-render (same asset id)</text>
+
+      <!-- downstream -->
+      <text class="mono-sm" x="820" y="58" text-anchor="middle">↓ only rendered_* assets are dispatchable</text>
+      <rect x="745" y="64" width="150" height="22" rx="5" fill="#0d1410" stroke="#10b981" stroke-opacity="0.5"/>
+      <text x="820" y="79" text-anchor="middle" fill="#10b981" style="font:600 11px 'JetBrains Mono',monospace">dispatch → Zernio</text>
+    </svg>
+    <p class="cap">
+      <code>*_plan</code> assets are never dispatched — they're internal blueprints. Only the
+      <code>rendered_short_clip</code> carries a real <code>local_path</code> and is eligible
+      for dispatch. Re-renders update the existing rendered row in place (UPSERT) so the asset id
+      — and its publish history — survives every re-edit.
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card"><span class="ico">⚡</span><h3>Pre-rendered on arrival</h3>
+      <p>When a plan first lands, <code>generate_asset</code> fans out one <code>clip_render</code> job per clip
+         — so the Shorts tab shows ready-to-preview MP4s instead of "click Render per clip."</p></div>
+    <div class="card"><span class="ico">🔁</span><h3>Idempotent re-renders</h3>
+      <p>Render bumps <code>render_rev</code> and enqueues with key <code>clip_render:&lt;plan&gt;:&lt;i&gt;:rev&lt;N&gt;</code>.
+         The worker skips when the rendered row already has an equal-or-newer rev — double-click and crash safe.</p></div>
+    <div class="card"><span class="ico">🗂</span><h3>Backfill existing packages</h3>
+      <p>Older packages with missing renders? Run <code>tsx scripts/render-shorts.ts</code>. It enqueues only
+         the missing clips by default; the queue dedupes on the idempotency key, so re-runs are no-ops.</p></div>
+  </div>
+</section>
+
+<!-- ─── ANATOMY ────────────────────────────────────────────────────── -->
+<section class="narrow" id="anatomy">
+  <div class="eyebrow">Anatomy of the editor</div>
+  <h2>Two columns. Everything in reach.</h2>
+  <p class="sub">
+    Open a Short from the Studio's <strong>Shorts tab</strong> (the <code>ShortsList</code> — one card per
+    <code>clip_index</code>) or jump straight to <code class="mono">/packages/[id]/shorts/[clipIndex]</code>.
+    The URL keys on the clip index, not the asset id, so it stays stable across re-renders. The left column
+    is the preview rig; the right column is the metadata rail. Edits auto-save to the plan (~800&nbsp;ms debounce)
+    with a <span style="color:var(--green)">✓ saved</span> indicator.
+  </p>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Editor two-column wireframe">
+      <!-- header bar -->
+      <rect x="20" y="18" width="940" height="44" rx="9" fill="#16161a" stroke="#232329"/>
+      <rect x="30" y="30" width="26" height="20" rx="5" fill="#111114" stroke="#2e2e36"/>
+      <text class="mono-sm" x="43" y="44" text-anchor="middle">←</text>
+      <text class="mono-sm" x="68" y="34">PACKAGE · CLIP 3</text>
+      <text class="head" x="68" y="52">Short editor</text>
+      <text x="690" y="46" fill="#10b981" style="font:11px 'JetBrains Mono',monospace">✓ saved</text>
+      <rect x="760" y="30" width="84" height="22" rx="6" fill="#111114" stroke="#2e2e36"/>
+      <text class="mono-sm" x="802" y="45" text-anchor="middle">↺ Render</text>
+      <rect x="852" y="30" width="96" height="22" rx="6" fill="#0ea5e9"/>
+      <text x="900" y="45" text-anchor="middle" fill="#fff" style="font:600 11px 'JetBrains Mono',monospace">↗ Publish</text>
+
+      <!-- LEFT column -->
+      <!-- preview -->
+      <rect x="20" y="78" width="440" height="262" rx="11" fill="#111114" stroke="#232329"/>
+      <text class="lbl-sm" x="32" y="98">Preview · 9:16 + live subtitle overlay</text>
+      <rect x="178" y="106" width="124" height="216" rx="8" fill="#08080a" stroke="#2e2e36"/>
+      <!-- live caption mock in phone -->
+      <rect x="190" y="262" width="100" height="26" rx="5" fill="#16161a" stroke="#0ea5e9" stroke-opacity="0.4"/>
+      <text x="240" y="279" text-anchor="middle" fill="#39FF14" style="font:700 11px Inter,sans-serif">caption</text>
+      <rect x="250" y="300" width="46" height="12" rx="3" fill="#000" fill-opacity="0.6"/>
+      <text x="273" y="309" text-anchor="middle" fill="#a1a1aa" style="font:7px 'JetBrains Mono',monospace">live preview</text>
+
+      <!-- timeline -->
+      <rect x="20" y="350" width="440" height="56" rx="11" fill="#111114" stroke="#232329"/>
+      <text class="lbl-sm" x="32" y="368">Timeline · drag to trim · snaps to words</text>
+      <rect x="32" y="376" width="416" height="20" rx="5" fill="#16161a" stroke="#2e2e36"/>
+      <rect x="120" y="376" width="230" height="20" rx="4" fill="#0ea5e9" fill-opacity="0.12" stroke="#0ea5e9" stroke-opacity="0.4"/>
+      <rect x="116" y="373" width="8" height="26" rx="2" fill="#0ea5e9"/>
+      <rect x="346" y="373" width="8" height="26" rx="2" fill="#0ea5e9"/>
+
+      <!-- transcript -->
+      <rect x="20" y="416" width="440" height="38" rx="11" fill="#111114" stroke="#232329"/>
+      <text class="lbl-sm" x="32" y="434">Transcript · in-trim words highlighted · click to seek</text>
+      <text class="mono-sm" x="32" y="448">the · words · in · the · clip · light · up · here</text>
+
+      <!-- RIGHT column -->
+      <g>
+        <rect x="480" y="78" width="480" height="84" rx="11" fill="#111114" stroke="#232329"/>
+        <text class="head" x="496" y="100">Title &amp; Caption</text>
+        <rect x="496" y="112" width="448" height="18" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="504" y="125">Title — ≤ 70 chars renders best</text>
+        <rect x="496" y="136" width="448" height="18" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="504" y="149">Caption Title — on-screen overlay</text>
+
+        <rect x="480" y="170" width="480" height="80" rx="11" fill="#111114" stroke="#232329"/>
+        <text class="head" x="496" y="192">Subtitles</text>
+        <text class="lbl-sm" x="496" y="212">font · 6 animations · colours · X/Y · size</text>
+        <rect x="496" y="220" width="86" height="20" rx="4" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.4"/>
+        <text class="mono-sm" x="539" y="234" text-anchor="middle" fill="#0ea5e9">Word Hi.</text>
+        <rect x="590" y="220" width="60" height="20" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="620" y="234" text-anchor="middle">Pop</text>
+        <rect x="658" y="220" width="86" height="20" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="701" y="234" text-anchor="middle">Single W.</text>
+        <rect x="752" y="220" width="86" height="20" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="795" y="234" text-anchor="middle">Banner…</text>
+
+        <rect x="480" y="258" width="480" height="106" rx="11" fill="#111114" stroke="#232329"/>
+        <text class="head" x="496" y="280">Description &amp; Tags</text>
+        <text x="600" y="280" fill="#0ea5e9" style="font:11px Inter,sans-serif">✨ auto-generated</text>
+        <rect x="496" y="290" width="448" height="40" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="504" y="306">post body · hashtags inline · CTA</text>
+        <rect x="496" y="338" width="448" height="18" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="504" y="351">tags, comma-separated · Description Links</text>
+
+        <rect x="480" y="372" width="480" height="82" rx="11" fill="#111114" stroke="#232329"/>
+        <text class="head" x="496" y="394">Publish options</text>
+        <text class="lbl-sm" x="496" y="414">platforms · privacy · schedule</text>
+        <rect x="496" y="422" width="120" height="20" rx="4" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.4"/>
+        <text class="mono-sm" x="556" y="436" text-anchor="middle" fill="#0ea5e9">▶ ♪ ◎ on</text>
+        <rect x="624" y="422" width="150" height="20" rx="4" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-sm" x="699" y="436" text-anchor="middle">⏰ Schedule for…</text>
+      </g>
+    </svg>
+    <p class="cap">
+      Left rail: <code>PreviewPlayer</code> + <code>SubtitleOverlay</code> · <code>Timeline</code> ·
+      <code>TranscriptPanel</code>. Right rail: <code>Title &amp; Caption</code> ·
+      <code>SubtitleStylePanel</code> · <code>Description &amp; Tags</code> ·
+      <code>ClipPublishOptions</code>. The same publish control also opens in a modal from the header's
+      ↗ Publish button.
+    </p>
+  </div>
+</section>
+
+<!-- ─── WORD-SNAP ──────────────────────────────────────────────────── -->
+<section class="narrow" id="snap">
+  <div class="eyebrow">Word-snap trimming</div>
+  <h2>Drag freely. Land on a word.</h2>
+  <p class="sub">
+    Drag a trim handle anywhere — the ghost preview follows your pointer live. On release it snaps
+    to the nearest <strong>whole-word boundary</strong> within a 2-second window, so a clip never
+    starts or ends mid-word. A blue guide line shows where it <em>will</em> snap before you let go.
+    The same <code>snapToWordBoundary()</code> math runs twice: client-side on drag-end, and again
+    server-side in <code>clip_render</code> as a defensive snap before ffmpeg's <code>-ss</code>
+    (which is itself sub-frame-imprecise).
+  </p>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trim handle snapping to a word boundary">
+      <text class="lbl-sm" x="20" y="30">Transcript strip — each block is one word with its own start/end</text>
+
+      <!-- word blocks -->
+      <g>
+        <rect x="20" y="48" width="120" height="44" rx="6" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-lbl" x="80" y="75" text-anchor="middle">prompt</text>
+        <rect x="146" y="48" width="150" height="44" rx="6" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-lbl" x="221" y="75" text-anchor="middle">engineering</text>
+        <rect x="302" y="48" width="90" height="44" rx="6" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.55"/>
+        <text class="mono-lbl" x="347" y="75" text-anchor="middle" fill="#0ea5e9">is</text>
+        <rect x="398" y="48" width="130" height="44" rx="6" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-lbl" x="463" y="75" text-anchor="middle">basically</text>
+        <rect x="534" y="48" width="120" height="44" rx="6" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-lbl" x="594" y="75" text-anchor="middle">dead</text>
+        <rect x="660" y="48" width="120" height="44" rx="6" fill="#16161a" stroke="#2e2e36"/>
+        <text class="mono-lbl" x="720" y="75" text-anchor="middle">now</text>
+      </g>
+
+      <!-- raw drag pointer (mid-word) -->
+      <line x1="345" y1="38" x2="345" y2="150" stroke="#71717a" stroke-width="2" stroke-dasharray="4 4"/>
+      <text class="mono-sm" x="345" y="170" text-anchor="middle">raw pointer (mid-word)</text>
+
+      <!-- snap guide to the word start -->
+      <line x1="302" y1="38" x2="302" y2="150" stroke="#0ea5e9" stroke-width="2.5"/>
+      <path d="M345 130 C 330 130, 317 130, 305 102" fill="none" stroke="#0ea5e9" stroke-width="1.6"
+            marker-end="url(#arr)"/>
+      <text x="302" y="190" text-anchor="middle" fill="#0ea5e9" style="font:600 12px Inter,sans-serif">snaps to word start</text>
+
+      <!-- window shading -->
+      <rect x="240" y="44" width="210" height="52" rx="6" fill="none" stroke="#a855f7" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+      <text class="mono-sm" x="345" y="220" text-anchor="middle" fill="#a855f7">±2.0 s snap window — nearest boundary wins, else the raw time is kept</text>
+    </svg>
+    <p class="cap">
+      <code>side='start'</code> returns the chosen word's <code>start</code>; <code>side='end'</code>
+      returns its <code>end</code>. If no boundary falls inside the window (or there are no word
+      timings at all), the dragged time is kept unchanged. Word timings come from MLX Whisper's
+      <code>segments[].words[]</code>, flattened by <code>flattenTranscriptWords()</code>.
+    </p>
+  </div>
+
+  <div class="callout tip">
+    <strong>No word timings?</strong>
+    Packages processed under <code>fast_audio_only</code> without word timestamps have no
+    <code>segments[].words[]</code>. The editor degrades gracefully — the live subtitle overlay
+    is disabled (with a visible warning), snapping becomes a no-op, and trims commit at the exact
+    dragged time. Re-run <code>transcribe_audio</code> with word timestamps to light it back up.
+  </div>
+</section>
+
+<!-- ─── SUBTITLES ──────────────────────────────────────────────────── -->
+<section class="narrow" id="subtitles">
+  <div class="eyebrow">Subtitle animations</div>
+  <h2>Six styles, burned in clean.</h2>
+  <p class="sub">
+    Pick a style in the <code>Subtitles</code> panel — font, animation, colours, position, and size.
+    The plan stores a <code>styling</code> block; at render time <code>clip_render</code> emits an
+    <strong>ASS</strong> (Advanced SubStation Alpha) file via <code>src/lib/ass-subtitles.ts</code>,
+    and ffmpeg burns it into the MP4 through the <code>subtitles=</code> filter. Each animation maps
+    to per-word ASS override tags.
+  </p>
+
+  <div class="anims">
+    <!-- Word Highlight -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <text x="22" y="64" fill="#fff" style="font:700 17px Inter,sans-serif">word</text>
+          <text x="78" y="64" fill="#39FF14" style="font:700 17px Inter,sans-serif">by</text>
+          <text x="112" y="64" fill="#fff" style="font:700 17px Inter,sans-serif">word</text>
+          <rect x="74" y="48" width="30" height="3" rx="1.5" fill="#39FF14"/>
+        </svg>
+      </div>
+      <div class="body"><h3>Word Highlight</h3>
+        <span class="v">\k karaoke sweep</span>
+        <p>The active word fills with the highlight colour as it's spoken — the safe default.</p></div>
+    </div>
+
+    <!-- Pop -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <text x="30" y="64" fill="#fff" style="font:700 14px Inter,sans-serif">make</text>
+          <text x="86" y="66" fill="#39FF14" style="font:800 22px Inter,sans-serif">it</text>
+          <text x="116" y="64" fill="#fff" style="font:700 14px Inter,sans-serif">pop</text>
+        </svg>
+      </div>
+      <div class="body"><h3>Pop <span class="new">new</span></h3>
+        <span class="v">\t scale 100→120→100%</span>
+        <p>Each word scales up then settles — a bouncy "pop in" beat per word.</p></div>
+    </div>
+
+    <!-- Single Word -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <text x="100" y="68" text-anchor="middle" fill="#39FF14" style="font:800 30px Inter,sans-serif">NOW</text>
+        </svg>
+      </div>
+      <div class="body"><h3>Single Word</h3>
+        <span class="v">one word per line · \fscx150</span>
+        <p>Just the current word, big and centred — maximum punch, minimal clutter.</p></div>
+    </div>
+
+    <!-- Typewriter -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <text x="30" y="64" fill="#fff" style="font:700 16px Inter,sans-serif" opacity="1">type</text>
+          <text x="80" y="64" fill="#39FF14" style="font:700 16px Inter,sans-serif" opacity="0.55">it</text>
+          <text x="106" y="64" fill="#fff" style="font:700 16px Inter,sans-serif" opacity="0.18">out</text>
+        </svg>
+      </div>
+      <div class="body"><h3>Typewriter <span class="new">new</span></h3>
+        <span class="v">\1a alpha fade per word</span>
+        <p>Words fade in across their duration — a clean reveal that tracks the speech.</p></div>
+    </div>
+
+    <!-- Motion -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <text x="30" y="64" fill="#fff" style="font:700 16px Inter,sans-serif">with</text>
+          <text x="100" y="60" fill="#39FF14" style="font:700 16px Inter,sans-serif" transform="rotate(-8 100 60)">motion</text>
+        </svg>
+      </div>
+      <div class="body"><h3>Motion <span class="new">new</span></h3>
+        <span class="v">\frx rotate + colour pulse</span>
+        <p>The active word tilts on its X-axis with a colour pulse — energetic, hook-y.</p></div>
+    </div>
+
+    <!-- Banner -->
+    <div class="anim">
+      <div class="stage">
+        <svg viewBox="0 0 200 118" width="100%" height="118">
+          <rect x="40" y="46" width="120" height="28" rx="5" fill="#39FF14"/>
+          <text x="100" y="65" text-anchor="middle" fill="#000" style="font:800 15px Inter,sans-serif">BANNER</text>
+        </svg>
+      </div>
+      <div class="body"><h3>Banner</h3>
+        <span class="v">BorderStyle=4 box · BackColour</span>
+        <p>Words sit on a solid coloured bar — bold, legible on busy footage.</p></div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <strong>ASS colour quirk.</strong>
+    Your <code>#RRGGBB</code> picks are converted to ASS's reversed, alpha-first
+    <code>&amp;H00BBGGRR</code> form by <code>hexToAss()</code>, which falls back to white on a
+    parse error rather than breaking the render on a typo. Word rows group ~4 words per line
+    (Single Word = one), matching the live overlay exactly.
+  </div>
+</section>
+
+<!-- ─── LIVE PREVIEW VS RENDER ─────────────────────────────────────── -->
+<section class="narrow" id="live">
+  <div class="eyebrow">Live preview vs burned-in render</div>
+  <h2>Two subtitle paths. One look.</h2>
+  <p class="sub">
+    Styling a Short shouldn't cost you a render cycle. The editor draws a DOM
+    <code>SubtitleOverlay</code> on top of the preview <code>&lt;video&gt;</code> — using the current
+    playhead time, the word timings, and your styling block — so every colour, position, and
+    animation change updates <em>instantly</em>. It mirrors what <code>serializeAss()</code> will
+    emit, close enough for editorial review. The rendered MP4 stays the source of truth.
+  </p>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Live overlay path vs ffmpeg burn-in path">
+      <!-- shared styling block -->
+      <rect x="380" y="20" width="220" height="56" rx="10" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.5"/>
+      <text class="accent-t" x="490" y="44" text-anchor="middle">plan.clips[i].styling</text>
+      <text class="mono-sm" x="490" y="62" text-anchor="middle">font · animation · colours · X/Y</text>
+
+      <!-- LIVE path -->
+      <rect x="60" y="140" width="360" height="110" rx="12" fill="#111114" stroke="#232329"/>
+      <text class="head" x="80" y="166">Live preview path · instant</text>
+      <text class="mono-sm" x="80" y="188">SubtitleOverlay (React DOM)</text>
+      <text class="mono-sm" x="80" y="206">currentTime + word timings + styling</text>
+      <text class="mono-sm" x="80" y="224">→ positioned over the preview video</text>
+      <rect x="80" y="232" width="150" height="14" rx="3" fill="#000" fill-opacity="0.5"/>
+      <text x="155" y="243" text-anchor="middle" fill="#a1a1aa" style="font:9px 'JetBrains Mono',monospace">live preview · N words</text>
+
+      <!-- RENDER path -->
+      <rect x="560" y="140" width="360" height="110" rx="12" fill="#111114" stroke="#232329"/>
+      <text class="head" x="580" y="166">Render path · burned-in</text>
+      <text class="mono-sm" x="580" y="188">serializeAss() → clip_000.ass</text>
+      <text class="mono-sm" x="580" y="206">ffmpeg -vf "subtitles=clip_000.ass"</text>
+      <text class="mono-sm" x="580" y="224">→ pixels baked into rendered MP4</text>
+      <rect x="580" y="232" width="120" height="14" rx="3" fill="#160d20" stroke="#a855f7" stroke-opacity="0.4"/>
+      <text x="640" y="243" text-anchor="middle" fill="#a855f7" style="font:9px 'JetBrains Mono',monospace">rendered_short_clip</text>
+
+      <!-- arrows -->
+      <g fill="none" stroke="#0ea5e9" stroke-width="1.6">
+        <path d="M400 76 C 300 100, 240 110, 240 134" marker-end="url(#arr)"/>
+      </g>
+      <path d="M580 76 C 680 100, 740 110, 740 134" fill="none" stroke="#a855f7" stroke-width="1.6" marker-end="url(#arr-p)"/>
+
+      <text class="mono-sm" x="490" y="270" text-anchor="middle">same styling, two renderers — preview is approximate, the burn-in is canonical</text>
+    </svg>
+    <p class="cap">
+      The overlay needs word-level timings to run; without them it hides itself and the editor shows
+      a "missing word timings" warning instead. The "live preview · N words" tag in the corner
+      disambiguates "overlay mounted, currently between words" from "overlay not mounted at all."
+    </p>
+  </div>
+</section>
+
+<!-- ─── DESCRIPTIONS ───────────────────────────────────────────────── -->
+<section class="narrow" id="descriptions">
+  <div class="eyebrow">Auto-generated descriptions + links</div>
+  <h2>The post writes its own first draft.</h2>
+  <p class="sub">
+    Open a clip whose description has never been written and the editor generates one for you on
+    mount. <code>generateClipDescription</code> calls the LLM with the clip's title, caption, tags,
+    and the transcript inside the trim window, using the brand's voice profile. It's a bounded,
+    text-only call (≤ 280 chars) and a documented Server-Action carve-out — no worker round-trip
+    needed for this single interactive asset.
+  </p>
+
+  <div class="cards">
+    <div class="card"><span class="ico">✨</span><h3>Fires once, never loops</h3>
+      <p>It runs only when the description is empty <em>and</em> <code>description_generated_at</code>
+         is unset. The timestamp is stamped on success <em>or</em> failure, so it never retries on
+         the next open — you can always type one by hand.</p></div>
+    <div class="card"><span class="ico">🔗</span><h3>Source link auto-seeded</h3>
+      <p>When the plan has no Description Links yet and the source is a YouTube URL, the first link is
+         seeded as <em>"Watch the full video"</em> pointing at the long-form. Add up to 8 links total.</p></div>
+    <div class="card"><span class="ico">🏷</span><h3>Title, caption, tags</h3>
+      <p>Title (≤ 70 chars for Shorts/TikTok), Caption Title (the on-screen overlay, keep ≤ 50),
+         and comma-separated tags — all on-brand from the v2 clip plan, all editable.</p></div>
+  </div>
+</section>
+
+<!-- ─── PUBLISHING ─────────────────────────────────────────────────── -->
+<section class="narrow" id="publish">
+  <div class="eyebrow">Publishing a Short</div>
+  <h2>One post. Three networks.</h2>
+  <p class="sub">
+    Hit ↗ Publish (from the editor header or a Shorts list row) to open the publish modal. Toggle
+    platforms — <strong>YouTube Shorts · TikTok · Instagram Reels</strong> — pick a privacy / schedule
+    option, then "Publish now" or "Save as draft." In v1 a Short routes exclusively through
+    <strong>Zernio</strong>: a single <code>createPost</code> fans out to all selected networks at once.
+  </p>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Publish fan-out to three networks via Zernio">
+      <!-- modal -->
+      <rect x="30" y="60" width="230" height="180" rx="12" fill="#111114" stroke="#232329"/>
+      <text class="head" x="46" y="86">Publish modal</text>
+      <rect x="46" y="98" width="198" height="22" rx="5" fill="#0d1820" stroke="#0ea5e9" stroke-opacity="0.4"/>
+      <text class="mono-sm" x="145" y="113" text-anchor="middle" fill="#0ea5e9">✓ ▶  ✓ ♪  ✓ ◎</text>
+      <rect x="46" y="126" width="198" height="22" rx="5" fill="#16161a" stroke="#2e2e36"/>
+      <text class="mono-sm" x="145" y="141" text-anchor="middle">⏰ Schedule for…</text>
+      <rect x="46" y="154" width="198" height="22" rx="5" fill="#16161a" stroke="#2e2e36"/>
+      <text class="mono-sm" x="145" y="169" text-anchor="middle">datetime-local · ≥1 min ahead</text>
+      <rect x="142" y="206" width="100" height="24" rx="6" fill="#0ea5e9"/>
+      <text x="192" y="222" text-anchor="middle" fill="#fff" style="font:600 11px 'JetBrains Mono',monospace">Publish now</text>
+
+      <!-- rendered asset -->
+      <rect x="320" y="118" width="170" height="64" rx="11" fill="#160d20" stroke="#a855f7" stroke-opacity="0.5"/>
+      <text x="405" y="144" text-anchor="middle" fill="#a855f7" style="font:600 11px Inter,sans-serif">rendered_short_clip</text>
+      <text class="mono-sm" x="405" y="162" text-anchor="middle">publishAsset(id)</text>
+
+      <!-- dispatch / zernio -->
+      <rect x="540" y="110" width="150" height="80" rx="12" fill="#0d1410" stroke="#10b981" stroke-opacity="0.5"/>
+      <text x="615" y="138" text-anchor="middle" fill="#10b981" style="font:600 13px Inter,sans-serif">Zernio</text>
+      <text class="mono-sm" x="615" y="158" text-anchor="middle">createPost</text>
+      <text class="mono-sm" x="615" y="172" text-anchor="middle">platforms[] filter</text>
+
+      <!-- 3 networks -->
+      <g>
+        <rect x="770" y="50" width="180" height="44" rx="9" fill="#16161a" stroke="#2e2e36"/>
+        <text class="lbl" x="788" y="77">▶  YouTube Shorts</text>
+        <rect x="770" y="128" width="180" height="44" rx="9" fill="#16161a" stroke="#2e2e36"/>
+        <text class="lbl" x="788" y="155">♪  TikTok</text>
+        <rect x="770" y="206" width="180" height="44" rx="9" fill="#16161a" stroke="#2e2e36"/>
+        <text class="lbl" x="788" y="233">◎  Instagram Reels</text>
+      </g>
+
+      <!-- arrows -->
+      <g fill="none" stroke="#0ea5e9" stroke-width="1.6">
+        <path d="M260 150 H314" marker-end="url(#arr)"/>
+      </g>
+      <path d="M490 150 H534" fill="none" stroke="#10b981" stroke-width="1.6" marker-end="url(#arr)"/>
+      <g fill="none" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.8">
+        <path d="M690 140 C 730 110, 740 80, 766 72" marker-end="url(#arr)"/>
+        <path d="M690 150 H766" marker-end="url(#arr)"/>
+        <path d="M690 160 C 730 190, 740 220, 766 228" marker-end="url(#arr)"/>
+      </g>
+    </svg>
+    <p class="cap">
+      <code>publish_options.platforms</code> filters which Zernio platforms the post hits.
+      <code>privacy: 'schedule'</code> + a future <code>publish_at</code> maps to Zernio's
+      <code>scheduledFor</code> (must be ≥ 1 minute ahead). Other privacy values aren't enforced —
+      Zernio's current SDK doesn't expose per-platform privacy, so you manage that on the platform side.
+    </p>
+  </div>
+
+  <table class="ref">
+    <thead><tr><th>Control</th><th>What it does</th><th>Stored as</th></tr></thead>
+    <tbody>
+      <tr><td>Platform toggles</td><td>YouTube Shorts · TikTok · Instagram Reels (default: all on)</td><td><code>publish_options.platforms</code></td></tr>
+      <tr><td>Public</td><td>Live the moment Zernio publishes</td><td><code>privacy: 'public'</code></td></tr>
+      <tr><td>Unlisted</td><td>Link-only visibility</td><td><code>privacy: 'unlisted'</code></td></tr>
+      <tr><td>Draft / Private</td><td>Held private (the default)</td><td><code>privacy: 'private'</code></td></tr>
+      <tr><td>Schedule for…</td><td>Auto-publish at a chosen local time</td><td><code>privacy: 'schedule'</code> + <code>publish_at</code></td></tr>
+      <tr><td>Save as draft</td><td>Persist options only — no dispatch</td><td><code>setClipPublishOptions</code></td></tr>
+      <tr><td>Publish now</td><td>Save options, then <code>publishAsset(renderedAssetId)</code></td><td>dispatch → Zernio</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>Render before you publish.</strong>
+    "Publish now" is disabled until a <code>rendered_short_clip</code> exists — there's nothing to
+    post otherwise. Edit the plan, hit Render, wait for the rendered file, then publish. (YouTube
+    Direct upload for Shorts is deferred to v2; for now the YouTube Shorts toggle ships through Zernio
+    alongside TikTok and Instagram.)
+  </div>
+</section>
+
+<!-- ─── RENDER LIFECYCLE ───────────────────────────────────────────── -->
+<section class="narrow" id="lifecycle">
+  <div class="eyebrow">Render lifecycle</div>
+  <h2>Every render is a revision.</h2>
+  <p class="sub">
+    <code>render_rev</code> is the spine of the whole flow. Editing the plan is free and instant.
+    Clicking Render bumps the rev, sets <code>pending_render</code>, and enqueues a job; the worker
+    builds, UPSERTs the rendered row at the new rev, and clears the flag. Re-edit and the cycle
+    repeats — always on the same rendered asset id, so dispatches stay bound across versions.
+  </p>
+
+  <div class="figure">
+    <svg viewBox="0 0 980 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="render_rev state machine">
+      <!-- states -->
+      <rect x="20" y="90" width="150" height="56" rx="11" fill="#16161a" stroke="#2e2e36"/>
+      <text class="head" x="95" y="116" text-anchor="middle">Editing</text>
+      <text class="mono-sm" x="95" y="134" text-anchor="middle">auto-save plan</text>
+
+      <rect x="250" y="90" width="170" height="56" rx="11" fill="#1c1605" stroke="#f59e0b" stroke-opacity="0.5"/>
+      <text x="335" y="116" text-anchor="middle" fill="#f59e0b" style="font:600 13px Inter,sans-serif">pending_render</text>
+      <text class="mono-sm" x="335" y="134" text-anchor="middle">render_rev = N · job queued</text>
+
+      <rect x="500" y="90" width="160" height="56" rx="11" fill="#0d1410" stroke="#10b981" stroke-opacity="0.5"/>
+      <text x="580" y="116" text-anchor="middle" fill="#10b981" style="font:600 13px Inter,sans-serif">rendered</text>
+      <text class="mono-sm" x="580" y="134" text-anchor="middle">UPSERT · flag cleared</text>
+
+      <rect x="740" y="90" width="200" height="56" rx="11" fill="#160d20" stroke="#a855f7" stroke-opacity="0.5"/>
+      <text x="840" y="112" text-anchor="middle" fill="#a855f7" style="font:600 13px Inter,sans-serif">ready_for_review</text>
+      <text class="mono-sm" x="840" y="132" text-anchor="middle">→ approve → dispatch</text>
+
+      <!-- arrows -->
+      <g fill="none" stroke="#0ea5e9" stroke-width="1.6">
+        <path d="M170 118 H244" marker-end="url(#arr)"/>
+        <path d="M420 118 H494" marker-end="url(#arr)"/>
+        <path d="M660 118 H734" marker-end="url(#arr)"/>
+      </g>
+      <text class="mono-sm" x="207" y="106" text-anchor="middle">↺ Render</text>
+      <text class="mono-sm" x="457" y="106" text-anchor="middle">worker</text>
+
+      <!-- re-edit loop -->
+      <path d="M580 146 C 580 200, 95 200, 95 150" fill="none" stroke="#71717a" stroke-width="1.3"
+            stroke-dasharray="4 4" marker-end="url(#arr)"/>
+      <text class="mono-sm" x="337" y="216" text-anchor="middle">re-edit → bump render_rev → re-render (worker skips if existing rev ≥ plan rev)</text>
+    </svg>
+    <p class="cap">
+      Idempotency: the render job key is <code>clip_render:&lt;plan&gt;:&lt;clipIndex&gt;:rev&lt;N&gt;</code>.
+      The worker skips when the rendered row's <code>render_rev</code> is already ≥ the plan's — safe
+      under double-clicks and crash recovery. A re-render of an already-shipped clip overwrites the
+      bytes but keeps its dispatch/published status; an <code>approved</code> clip flips back to
+      <code>ready_for_review</code>.
+    </p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><span class="num"></span><div><h3>Open the Short</h3>
+      <p>From the Studio's Shorts tab or <code class="mono">/packages/[id]/shorts/[clipIndex]</code>.
+         A pre-rendered MP4 is usually already waiting from the plan's first landing.</p></div></div>
+    <div class="step"><span class="num"></span><div><h3>Trim &amp; style</h3>
+      <p>Drag the timeline handles (they snap to words), pick a subtitle animation, tweak colours and
+         position. The live overlay updates instantly; edits auto-save to the plan.</p></div></div>
+    <div class="step"><span class="num"></span><div><h3>Write the post</h3>
+      <p>Accept or edit the auto-generated description, set the title/caption/tags, and confirm the
+         "Watch the full video" link.</p></div></div>
+    <div class="step"><span class="num"></span><div><h3>Render</h3>
+      <p>Click ↺ Render. <code>render_rev</code> bumps, the job runs, and the burned-in MP4 refreshes
+         in place. The header shows ⏳ Rendering… then the rendered status chip.</p></div></div>
+    <div class="step"><span class="num"></span><div><h3>Publish</h3>
+      <p>Choose platforms + privacy/schedule and Publish now — or Save as draft. After review/approval
+         it dispatches through Zernio to all selected networks.</p></div></div>
+  </div>
+
+  <div class="callout win">
+    <strong>The one rule to remember.</strong>
+    Edit the plan, not the clip. The plan is the recipe; <code>clip_render</code> is the oven. Every
+    Render produces a fresh build at a new <code>render_rev</code> on the same stable asset id — so
+    your trims, styling, and publish history never drift apart.
+  </div>
+</section>
+
+<!-- ─── SEE ALSO ───────────────────────────────────────────────────── -->
+<section class="narrow" id="see-also">
+  <div class="eyebrow">See also</div>
+  <h2>Where this connects.</h2>
+  <div class="docs-grid">
+    <a class="doc-card" href="/how-it-works.html">
+      <div class="doc-top"><span class="doc-ico">✦</span><h3>How it works</h3><span class="doc-go">→</span></div>
+      <p>The four-layer pipeline that turns a video into the intelligence the clip plan is drafted from.</p>
+    </a>
+    <a class="doc-card" href="/handbook.html">
+      <div class="doc-top"><span class="doc-ico">📖</span><h3>Handbook</h3><span class="doc-go">→</span></div>
+      <p>The full operator manual — every screen, asset type, and workflow end to end.</p>
+    </a>
+    <a class="doc-card" href="/youtube-publish-options.html">
+      <div class="doc-top"><span class="doc-ico">▶</span><h3>YouTube publishing</h3><span class="doc-go">→</span></div>
+      <p>Direct long-form upload with per-brand OAuth — the Shorts companion to the publish flow above.</p>
+    </a>
+    <a class="doc-card" href="/storage-lifecycle.html">
+      <div class="doc-top"><span class="doc-ico">🗄</span><h3>Storage lifecycle</h3><span class="doc-go">→</span></div>
+      <p>What the rendered clips and source video cost on disk, and when each becomes deletable.</p>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="logo"><span class="logo-mark" style="width:20px;height:20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>ChannelHelm</span>
+    <span style="display:flex;gap:16px;flex-wrap:wrap">
+      <a href="/privacy.html" style="color:var(--muted)">Privacy</a>
+      <a href="/terms.html" style="color:var(--muted)">Terms</a>
+      <a href="/contact.html" style="color:var(--muted)">Contact</a>
+      <a href="/impressum.html" style="color:var(--muted)">Impressum</a>
+    </span>
+    <span class="mono">local-first · <span id="year"></span></span>
+  </div>
+</footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

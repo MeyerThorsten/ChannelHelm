@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Worker concurrency + OCR fps — deep dive</title>
+<meta name="description" content="How ChannelHelm parallelises generate_asset jobs via SKIP LOCKED, plus the profile-aware OCR rate. The two changes that cut pipeline wall time from ~3.5–4 min to ~2–2.5 min." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --purple: #a78bfa;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:820px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(36px,5.2vw,54px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:740px;margin:0}
+
+  section{padding:44px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(24px,3.2vw,32px);letter-spacing:-.4px;margin:0 0 6px;line-height:1.1;
+  }
+  h3{font-size:16px;margin:24px 0 8px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px;max-width:780px}
+
+  pre.cmd{
+    margin:8px 0 14px;padding:14px 16px;
+    background:#0c0c0d;border:1px solid var(--border-strong);border-radius:8px;
+    font-family:var(--font-mono);font-size:12.5px;color:#dadce0;
+    line-height:1.65;overflow-x:auto;white-space:pre;
+  }
+  pre.cmd .c{color:#71717a}
+  pre.cmd .k{color:#0ea5e9}
+  pre.cmd .s{color:#86efac}
+  pre.cmd .n{color:#fbbf24}
+
+  .callout{
+    margin:14px 0;padding:14px 18px;border-radius:10px;
+    background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55;
+  }
+  .callout.tip{
+    background:color-mix(in oklab,var(--accent) 6%,var(--panel));
+    border-color:color-mix(in oklab,var(--accent) 28%,var(--border));
+  }
+  .callout.warn{
+    background:color-mix(in oklab,var(--amber) 7%,var(--panel));
+    border-color:color-mix(in oklab,var(--amber) 28%,var(--border));
+  }
+  .callout.win{
+    background:color-mix(in oklab,var(--green) 7%,var(--panel));
+    border-color:color-mix(in oklab,var(--green) 28%,var(--border));
+  }
+  .callout strong{margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.win strong{color:var(--green)}
+
+  /* timeline figure */
+  .timeline{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;margin:14px 0;
+  }
+  .timeline svg{width:100%;height:auto;display:block}
+  .timeline-caption{font-size:11.5px;color:var(--faint);font-family:var(--font-mono);margin-top:8px;text-align:center}
+
+  table.data{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  }
+  table.data th, table.data td{
+    padding:11px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);
+  }
+  table.data th{
+    color:var(--faint);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2);
+  }
+  table.data tr:last-child td{border-bottom:none}
+  table.data td.num{font-family:var(--font-mono);text-align:right}
+  .good{color:var(--green)}
+  .bad{color:var(--red)}
+  .meh{color:var(--amber)}
+
+  /* slot rows */
+  .slot-grid{display:grid;grid-template-columns:60px 1fr;gap:6px;margin:8px 0}
+  .slot-label{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+    display:flex;align-items:center;
+  }
+  .slot-track{
+    height:24px;background:var(--bg);border:1px solid var(--border);border-radius:5px;
+    position:relative;overflow:hidden;
+  }
+  .slot-chip{
+    position:absolute;top:0;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-family:var(--font-mono);color:white;font-weight:600;
+    border-radius:3px;padding:0 4px;white-space:nowrap;
+  }
+  .chip-gen{background:linear-gradient(180deg, #0ea5e9, #0284c7)}
+  .chip-other{background:linear-gradient(180deg, #14b8a6, #0d9488)}
+  .chip-idle{background:#2a2a2c}
+
+  /* fps comparison */
+  .fps-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .fps-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .fps-card h3{margin:0 0 4px;font-size:14px}
+  .fps-card .num{font-family:var(--font-serif);font-size:28px;color:var(--accent);font-weight:400}
+  .fps-card .desc{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:30px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:760px){
+    .fps-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#why">Why</a>
+    <a href="#how">How</a>
+    <a href="#safety">Safety</a>
+    <a href="#tune">Tune</a>
+    <a href="#ocr">OCR fps</a>
+    <a href="/llm-routing.html">LLM routing</a>
+    <a href="/visual-optimization-analysis.html">Post-mortem</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero narrow">
+  <div class="eyebrow">Worker concurrency + OCR fps · 2026-05-26</div>
+  <h1>Three slots, <em>one queue, no locks.</em></h1>
+  <p class="lede">
+    Two performance changes shipped together: the worker runs N concurrent claim slots (default
+    3) so the 10 generate_asset jobs per package don&apos;t serialize, and the OCR sample rate
+    drops to 0.5 fps for the standard profile (premium stays at 1 fps). Combined effect: pipeline
+    wall time falls from ~3.5–4 min to ~2–2.5 min on a typical 8-minute video.
+  </p>
+</section>
+
+<!-- ─── WHY ─────────────────────────────────────────────────────────── -->
+<section class="narrow" id="why">
+  <div class="eyebrow">Why concurrency mattered most</div>
+  <h2>generate_asset is LLM-bound, not CPU-bound.</h2>
+  <p class="sub">A single package produces 10 generate_asset jobs (one per asset type — title set, description, chapters, tags, linkedin post, x post, x thread, article brief, newsletter summary, short clip plan). Each is a single LLM call. None of them touch any shared mutable state. Serializing them through a single worker slot was leaving ~65 s on the table per package.</p>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Phase</th>
+        <th>Before (single slot)</th>
+        <th>After (3 slots)</th>
+        <th>Savings</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>generate_asset × 10</td>
+        <td class="num">~100 s</td>
+        <td class="num">~35 s</td>
+        <td class="good">~65 s (~3×)</td>
+      </tr>
+      <tr>
+        <td>analyze_intelligence (1 call)</td>
+        <td class="num">~10 s</td>
+        <td class="num">~10 s</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>thumbnail_concepts</td>
+        <td class="num">~7 s</td>
+        <td class="num">~7 s</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><strong>Total pipeline wall</strong></td>
+        <td class="num"><strong>~3.5–4 min</strong></td>
+        <td class="num"><strong>~2–2.5 min</strong></td>
+        <td class="good"><strong>~30%</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ─── HOW IT WORKS ────────────────────────────────────────────────── -->
+<section class="narrow" id="how">
+  <div class="eyebrow">How it works</div>
+  <h2>SKIP LOCKED is the only mutex.</h2>
+  <p class="sub">No new tables, no semaphores, no in-process locks. The Postgres queue already does the right thing — we just spawn N independent claim loops in the same process and let them race.</p>
+
+  <h3>The architectural picture</h3>
+  <div class="timeline">
+    <svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#71717a"/>
+        </marker>
+      </defs>
+      <style>
+        .b{ fill:#16161a; stroke:#2e2e36 }
+        .a{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.50) }
+        .g{ fill:rgba(16,185,129,0.10); stroke:rgba(16,185,129,0.45) }
+        .t{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .s{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .e{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.06em; text-transform:uppercase }
+        .l{ stroke:#71717a; stroke-width:1.4; fill:none }
+      </style>
+
+      <!-- Queue -->
+      <g transform="translate(30,30)">
+        <text class="e" x="0" y="-10">Postgres queue</text>
+        <rect class="g" width="180" height="180" rx="10"/>
+        <text class="t" x="14" y="26">jobs</text>
+        <text class="s" x="14" y="46">SELECT … FOR UPDATE</text>
+        <text class="s" x="14" y="62">SKIP LOCKED LIMIT 1</text>
+        <text class="s" x="14" y="86">→ atomically returns 1</text>
+        <text class="s" x="14" y="102">  unclaimed row OR null</text>
+        <text class="s" x="14" y="126">10 generate_asset jobs:</text>
+        <text class="s" x="14" y="142">[#203] [#204] [#205] …</text>
+        <text class="s" x="14" y="158">[#206] [#207] [#208] …</text>
+      </g>
+
+      <!-- Slots -->
+      <g transform="translate(290,30)">
+        <text class="e" x="0" y="-10">worker process (one)</text>
+
+        <rect class="a" width="320" height="46" rx="8"/>
+        <text class="t" x="12" y="28">slot 0  ←  claim()  →  generate_asset</text>
+        <text class="s" x="12" y="42" style="opacity:.65">[runner] done job=203 kind=generate_asset</text>
+
+        <rect class="a" x="0" y="56" width="320" height="46" rx="8"/>
+        <text class="t" x="12" y="84">slot 1  ←  claim()  →  generate_asset</text>
+        <text class="s" x="12" y="98" style="opacity:.65">[runner:1] done job=204 kind=generate_asset</text>
+
+        <rect class="a" x="0" y="112" width="320" height="46" rx="8"/>
+        <text class="t" x="12" y="140">slot 2  ←  claim()  →  generate_asset</text>
+        <text class="s" x="12" y="154" style="opacity:.65">[runner:2] done job=205 kind=generate_asset</text>
+
+        <text class="s" x="0" y="180" style="opacity:.7">All three slots race for the next job;</text>
+        <text class="s" x="0" y="194" style="opacity:.7">SKIP LOCKED guarantees they don't collide.</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="l" d="M210,80 h80" marker-end="url(#ar)"/>
+      <path class="l" d="M210,80 h80 l-80,55 h80" marker-end="url(#ar)"/>
+      <path class="l" d="M210,80 h80 l-80,110 h80" marker-end="url(#ar)"/>
+
+      <!-- LLM destination -->
+      <g transform="translate(660,30)">
+        <text class="e" x="0" y="-10">LLM provider</text>
+        <rect class="b" width="110" height="180" rx="10"/>
+        <text class="t" x="14" y="26">Anthropic /</text>
+        <text class="t" x="14" y="42">OpenAI /</text>
+        <text class="t" x="14" y="58">Codex CLI</text>
+        <text class="s" x="14" y="84">N concurrent</text>
+        <text class="s" x="14" y="100">requests</text>
+        <text class="s" x="14" y="124">(bounded by</text>
+        <text class="s" x="14" y="140">provider rate</text>
+        <text class="s" x="14" y="156">limits, not</text>
+        <text class="s" x="14" y="172">by ChannelHelm)</text>
+      </g>
+      <path class="l" d="M610,53 h50" marker-end="url(#ar)"/>
+      <path class="l" d="M610,109 h50" marker-end="url(#ar)"/>
+      <path class="l" d="M610,165 h50" marker-end="url(#ar)"/>
+    </svg>
+    <div class="timeline-caption">N claim slots → one queue → one provider. The queue is the synchronisation primitive; nothing in the worker process needs a lock.</div>
+  </div>
+
+  <h3>Why SKIP LOCKED is enough</h3>
+  <p class="sub">When three slots call <code>claim()</code> at the same instant, each opens its own transaction and runs the identical <code>SELECT … FOR UPDATE SKIP LOCKED LIMIT 1</code>. The first to reach a row locks it; the others <em>skip past</em> the locked row and grab the next unlocked one. No slot ever blocks, and no two slots ever return the same job.</p>
+
+  <div class="timeline">
+    <svg viewBox="0 0 840 320" xmlns="http://www.w3.org/2000/svg" aria-labelledby="skiplocked-title">
+      <title id="skiplocked-title">SKIP LOCKED contention between three claim slots</title>
+      <defs>
+        <marker id="sl-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#71717a"/>
+        </marker>
+      </defs>
+      <style>
+        .slb{ fill:#16161a; stroke:#2e2e36 }
+        .row{ fill:#111114; stroke:#232329 }
+        .locked{ fill:rgba(245,158,11,0.12); stroke:rgba(245,158,11,0.55) }
+        .taken{ fill:rgba(16,185,129,0.12); stroke:rgba(16,185,129,0.50) }
+        .free{ fill:#111114; stroke:#232329 }
+        .slt{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .sls{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .sle{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.07em; text-transform:uppercase }
+        .slg{ fill:#10b981; font:600 11px "JetBrains Mono", monospace }
+        .slline{ stroke:#71717a; stroke-width:1.4; fill:none }
+      </style>
+
+      <!-- three slots firing claim() at once -->
+      <text class="sle" x="20" y="20">t0 — three slots call claim() simultaneously</text>
+      <rect class="slb" x="20" y="30" width="150" height="34" rx="7"/>
+      <text class="slt" x="34" y="51">slot 0 · claim()</text>
+      <rect class="slb" x="20" y="72" width="150" height="34" rx="7"/>
+      <text class="slt" x="34" y="93">slot 1 · claim()</text>
+      <rect class="slb" x="20" y="114" width="150" height="34" rx="7"/>
+      <text class="slt" x="34" y="135">slot 2 · claim()</text>
+
+      <!-- the jobs table -->
+      <text class="sle" x="400" y="20">jobs (status='pending', ORDER BY priority, id)</text>
+      <!-- row 203 -->
+      <rect class="taken" x="400" y="30" width="420" height="30" rx="6"/>
+      <text class="sls" x="414" y="49">#203</text>
+      <text class="slg" x="470" y="49">→ slot 0 locks it (FOR UPDATE)</text>
+      <!-- row 204 -->
+      <rect class="taken" x="400" y="66" width="420" height="30" rx="6"/>
+      <text class="sls" x="414" y="85">#204</text>
+      <text class="slg" x="470" y="85">→ slot 1 SKIPs #203, locks #204</text>
+      <!-- row 205 -->
+      <rect class="taken" x="400" y="102" width="420" height="30" rx="6"/>
+      <text class="sls" x="414" y="121">#205</text>
+      <text class="slg" x="470" y="121">→ slot 2 SKIPs #203/#204, locks #205</text>
+      <!-- remaining free rows -->
+      <rect class="free" x="400" y="138" width="420" height="26" rx="6"/>
+      <text class="sls" x="414" y="155" style="fill:#71717a">#206 … #212  (still pending — next claim() round)</text>
+
+      <!-- arrows from slots to their rows -->
+      <path class="slline" d="M170,47 C 300,47 320,45 400,45" marker-end="url(#sl-ar)"/>
+      <path class="slline" d="M170,89 C 300,89 320,81 400,81" marker-end="url(#sl-ar)"/>
+      <path class="slline" d="M170,131 C 300,131 320,117 400,117" marker-end="url(#sl-ar)"/>
+
+      <!-- the no-collision guarantee callout -->
+      <rect class="slb" x="20" y="200" width="800" height="96" rx="10" style="fill:rgba(14,165,233,0.05);stroke:rgba(14,165,233,0.35)"/>
+      <text class="slt" x="40" y="226" style="fill:#0ea5e9">The guarantee</text>
+      <text class="sls" x="40" y="250">• FOR UPDATE takes a row lock; a concurrent txn that would block on it instead SKIPs it.</text>
+      <text class="sls" x="40" y="270">• LIMIT 1 + ORDER BY priority,id means each slot deterministically grabs the next-best free row.</text>
+      <text class="sls" x="40" y="290">• Zero in-process state. Add a 4th slot and it just claims #206 — no code change, no lock manager.</text>
+    </svg>
+    <div class="timeline-caption">Same millisecond, three claims, three distinct rows. No retries, no deadlocks, no application-level mutex.</div>
+  </div>
+
+  <h3>The timeline difference, visualised</h3>
+
+  <div class="timeline">
+    <div style="font-size:12px;font-weight:500;margin-bottom:8px;color:var(--text-muted)">BEFORE — single slot (~100 s)</div>
+    <div class="slot-grid">
+      <div class="slot-label">slot 0</div>
+      <div class="slot-track">
+        <div class="slot-chip chip-gen" style="left:0%;width:10%">203</div>
+        <div class="slot-chip chip-gen" style="left:10%;width:10%">204</div>
+        <div class="slot-chip chip-gen" style="left:20%;width:10%">205</div>
+        <div class="slot-chip chip-gen" style="left:30%;width:10%">206</div>
+        <div class="slot-chip chip-gen" style="left:40%;width:10%">207</div>
+        <div class="slot-chip chip-gen" style="left:50%;width:10%">208</div>
+        <div class="slot-chip chip-gen" style="left:60%;width:10%">209</div>
+        <div class="slot-chip chip-gen" style="left:70%;width:10%">210</div>
+        <div class="slot-chip chip-gen" style="left:80%;width:10%">211</div>
+        <div class="slot-chip chip-gen" style="left:90%;width:10%">212</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;font-weight:500;margin:18px 0 8px;color:var(--text-muted)">AFTER — 3 slots (~35 s)</div>
+    <div class="slot-grid">
+      <div class="slot-label">slot 0</div>
+      <div class="slot-track">
+        <div class="slot-chip chip-gen" style="left:0%;width:10%">203</div>
+        <div class="slot-chip chip-gen" style="left:10%;width:10%">206</div>
+        <div class="slot-chip chip-gen" style="left:20%;width:10%">209</div>
+        <div class="slot-chip chip-gen" style="left:30%;width:5%">212</div>
+        <div class="slot-chip chip-idle" style="left:35%;width:65%">idle</div>
+      </div>
+    </div>
+    <div class="slot-grid">
+      <div class="slot-label">slot 1</div>
+      <div class="slot-track">
+        <div class="slot-chip chip-gen" style="left:0%;width:10%">204</div>
+        <div class="slot-chip chip-gen" style="left:10%;width:10%">207</div>
+        <div class="slot-chip chip-gen" style="left:20%;width:10%">210</div>
+        <div class="slot-chip chip-idle" style="left:30%;width:70%">idle</div>
+      </div>
+    </div>
+    <div class="slot-grid">
+      <div class="slot-label">slot 2</div>
+      <div class="slot-track">
+        <div class="slot-chip chip-gen" style="left:0%;width:10%">205</div>
+        <div class="slot-chip chip-gen" style="left:10%;width:10%">208</div>
+        <div class="slot-chip chip-gen" style="left:20%;width:10%">211</div>
+        <div class="slot-chip chip-idle" style="left:30%;width:70%">idle</div>
+      </div>
+    </div>
+    <div class="timeline-caption">Same 10 jobs, same provider, ~3× faster wall. The "idle" tails happen because there are no more generate_asset jobs queued — the slots wait for the next package or transition kind.</div>
+  </div>
+
+  <h3>The code change</h3>
+  <pre class="cmd"><span class="c">// workers/runner.ts — abridged</span>
+
+<span class="k">async function</span> main() {
+  <span class="k">const</span> { kinds, concurrency, … } = parseArgs(process.argv.slice(<span class="n">2</span>));
+
+  <span class="c">// One stale-lock reclaim timer for the whole process</span>
+  setInterval(reclaim, <span class="n">30_000</span>);
+
+  <span class="c">// Spawn N independent slots — SKIP LOCKED handles mutex</span>
+  <span class="k">await</span> Promise.all(
+    Array.from({ length: concurrency }, (_, slot) =>
+      runSlot({ slot, lockedBy, kinds, … })
+    )
+  );
+}
+
+<span class="k">async function</span> runSlot({ slot, kinds, … }) {
+  <span class="k">while</span> (!shuttingDown) {
+    <span class="k">const</span> job = <span class="k">await</span> claim(kinds, lockedBy);   <span class="c">// SKIP LOCKED inside</span>
+    <span class="k">if</span> (!job) { <span class="k">await</span> sleep(idleMs); <span class="k">continue</span>; }
+    <span class="k">try</span> {
+      <span class="k">await</span> HANDLERS[job.kind](job);
+      <span class="k">await</span> complete(job.id);
+    } <span class="k">catch</span> (err) { … }
+  }
+}</pre>
+</section>
+
+<!-- ─── SAFETY ─────────────────────────────────────────────────────── -->
+<section class="narrow" id="safety">
+  <div class="eyebrow">Why it's safe</div>
+  <h2>Every handler audited for idempotency.</h2>
+  <p class="sub">With N parallel slots, the same handler kind can run concurrently. We checked each handler against the "could two of these stomp on each other?" question.</p>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Handler</th>
+        <th>Concurrency-safe?</th>
+        <th>Why</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>generate_asset</code></td>
+        <td class="good">✓ yes</td>
+        <td>Each job writes ONE asset row per (package_id, asset_type). No two parallel jobs ever target the same row.</td>
+      </tr>
+      <tr>
+        <td><code>analyze_intelligence</code></td>
+        <td class="good">✓ yes</td>
+        <td>Idempotency key <code>analyze_intelligence:{sourceId}:{profile}</code> means at most one runs per source.</td>
+      </tr>
+      <tr>
+        <td><code>analyze_visual</code> / <code>fuse</code> / <code>transcribe_audio</code></td>
+        <td class="good">✓ yes</td>
+        <td>Same — single-source idempotency keys prevent any two from racing on the same source.</td>
+      </tr>
+      <tr>
+        <td><code>dispatch</code></td>
+        <td class="good">✓ yes</td>
+        <td>One asset = one dispatch row (idempotency key <code>dispatch:{assetId}</code>). The youtube_direct branch reads sibling asset payloads but only runs post-approval, so generate_asset jobs aren't writing concurrently.</td>
+      </tr>
+      <tr>
+        <td><code>markReadyForReviewIfComplete</code> (lifecycle helper)</td>
+        <td class="good">✓ yes</td>
+        <td>Pure status-update — multiple calls produce the same final state regardless of ordering.</td>
+      </tr>
+      <tr>
+        <td><code>recomputePackageDispatchState</code> (lifecycle helper)</td>
+        <td class="good">✓ yes</td>
+        <td>Derives the package's dispatch state from the current assets table — order-independent.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <strong>Rule for new handlers</strong> When adding a new worker kind, set an idempotency key on the enqueue (per CLAUDE.md), make all writes per-row scoped (no read-modify-write on shared JSONB without conflict handling), and you're concurrency-safe by construction.
+  </div>
+</section>
+
+<!-- ─── TUNING ─────────────────────────────────────────────────────── -->
+<section class="narrow" id="tune">
+  <div class="eyebrow">Tuning</div>
+  <h2>How to raise or lower the slot count.</h2>
+
+  <h3>Default</h3>
+  <p style="font-size:14px">3 slots. Set in <code>scripts/dev.sh</code>:</p>
+  <pre class="cmd">WORKER_CONCURRENCY=<span class="n">3</span>  <span class="c"># env var, picked up by --concurrency default</span></pre>
+
+  <h3>Bump it (more parallelism)</h3>
+  <p style="font-size:14px">If you see lots of <code>generate_asset</code> jobs queued in the Jobs page:</p>
+  <pre class="cmd"><span class="c"># env at process start</span>
+WORKER_CONCURRENCY=<span class="n">6</span> pnpm dev:all
+
+<span class="c"># OR via flag</span>
+pnpm exec tsx workers/runner.ts --kinds <span class="s">…</span> --concurrency <span class="n">6</span></pre>
+
+  <h3>Drop it (hitting provider rate limits)</h3>
+  <p style="font-size:14px">If you see <code>429 too many requests</code> in the dispatch log or your provider's dashboard:</p>
+  <pre class="cmd">WORKER_CONCURRENCY=<span class="n">1</span>  <span class="c"># back to serial — no parallelism</span></pre>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Provider</th>
+        <th>Reasonable max concurrency</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Anthropic (Claude)</td>
+        <td class="num">5–10</td>
+        <td>Default RPM is high enough for a single-creator workload. Bumps available on request.</td>
+      </tr>
+      <tr>
+        <td>OpenAI</td>
+        <td class="num">3–8</td>
+        <td>Depends on tier. Tier-1 accounts hit 429 around 3–4 concurrent for gpt-4o.</td>
+      </tr>
+      <tr>
+        <td>OpenRouter</td>
+        <td class="num">3–5</td>
+        <td>Varies by upstream model; conservative default recommended.</td>
+      </tr>
+      <tr>
+        <td>Codex CLI (local subprocess)</td>
+        <td class="num">2–4</td>
+        <td>Bounded by local CPU more than by API. 3 is comfortable on M-series.</td>
+      </tr>
+      <tr>
+        <td>LM Studio (local HTTP)</td>
+        <td class="num">1–2</td>
+        <td>Most local servers queue requests internally; bumping concurrency doesn't help and may slow each call.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>Future work</strong> A per-provider <code>max_concurrent</code> column on <code>llm_providers</code> would let the worker auto-cap based on which provider is serving each call. Not built today — for now, the global <code>WORKER_CONCURRENCY</code> setting applies to all kinds equally.
+  </div>
+</section>
+
+<!-- ─── OCR fps ─────────────────────────────────────────────────────── -->
+<section class="narrow" id="ocr">
+  <div class="eyebrow">Side-quest</div>
+  <h2>OCR fps is now profile-aware.</h2>
+  <p class="sub">The standard profile drops OCR from 1 fps → 0.5 fps. Premium stays at 1 fps. Halves the OCR subprocess wall on standard content with no measurable quality loss on overlay/lower-third detection. Today this saves time only on its own (since VLM is currently the bottleneck of the Visual phase), but it pairs perfectly with any future VLM-speed work.</p>
+
+  <div class="fps-grid">
+    <div class="fps-card">
+      <h3><code>fast_audio_only</code></h3>
+      <div class="num">— skipped —</div>
+      <div class="desc">Visual phase doesn&apos;t run at all under this profile.</div>
+    </div>
+    <div class="fps-card">
+      <h3><code>standard_audio_visual</code></h3>
+      <div class="num">0.5 fps</div>
+      <div class="desc">One OCR frame every 2 seconds. Catches overlay text changes; misses sub-2s flashes (rare in talking-head content).</div>
+    </div>
+    <div class="fps-card">
+      <h3><code>premium_multimodal</code></h3>
+      <div class="num">1 fps</div>
+      <div class="desc">Dense OCR for high-stakes content where a flashed lower-third or single-frame graphic might matter.</div>
+    </div>
+    <div class="fps-card" style="background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 30%,var(--border))">
+      <h3>Effective wall savings</h3>
+      <div class="num">~30 s</div>
+      <div class="desc">On the standard 7:18 measurement video. Currently bounded by VLM (65 s) — surfaces as direct savings once VLM gets faster too.</div>
+    </div>
+  </div>
+
+  <pre class="cmd"><span class="c">// workers/kinds/analyze_visual.ts</span>
+
+<span class="k">const</span> OCR_FPS_BY_PROFILE: Record&lt;string, number&gt; = {
+  standard_audio_visual: <span class="n">0.5</span>,
+  premium_multimodal: <span class="n">1</span>,
+};
+
+<span class="k">const</span> ocrFps = OCR_FPS_BY_PROFILE[profile] ?? <span class="n">0.5</span>;
+<span class="k">const</span> ocrFrames = <span class="k">await</span> sampleFrames({
+  inputPath: videoPath,
+  outputDir: ocrFramesDir,
+  fps: ocrFps,
+});</pre>
+</section>
+
+<!-- ─── BEFORE/AFTER ───────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">End-to-end impact</div>
+  <h2>Where we are now.</h2>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Round</th>
+        <th>What landed</th>
+        <th>Pipeline wall</th>
+        <th>Δ from previous</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>baseline</td>
+        <td>fps=1 OCR + VLM, sequential</td>
+        <td class="num">~25–30 min</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>round 1</td>
+        <td>A + B + C (scene-cut VLM, 768 px downscale, OCR ∥ VLM)</td>
+        <td class="num">~3.5–4 min</td>
+        <td class="good">~8×</td>
+      </tr>
+      <tr>
+        <td><strong>round 2 (today)</strong></td>
+        <td>D + E (worker concurrency, OCR 0.5 fps)</td>
+        <td class="num"><strong>~2–2.5 min</strong></td>
+        <td class="good"><strong>+30% on top</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Throughput, drawn to scale</h3>
+  <p class="sub">Bars are pipeline wall time on a typical 8-minute video, log-spaced so the 25-min baseline and the 2-min current state both stay legible. Lower is better.</p>
+
+  <div class="timeline">
+    <svg viewBox="0 0 840 260" xmlns="http://www.w3.org/2000/svg" aria-labelledby="thru-title">
+      <title id="thru-title">Pipeline wall time across optimization rounds</title>
+      <style>
+        .tht{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .ths{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .the{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.07em; text-transform:uppercase }
+        .axis{ stroke:#232329; stroke-width:1 }
+        .axt{ fill:#52525b; font:9px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- log-scale x gridlines: 1, 2, 5, 10, 30 min mapped across width 560 starting x=160 -->
+      <!-- map: x = 160 + (log10(min) - log10(1)) / (log10(30)-log10(1)) * 600 -->
+      <!-- 1→160, 2→340.6, 2.5→ , 4→520, 30→760 ; we'll just place ticks -->
+      <g>
+        <line class="axis" x1="160" y1="30" x2="160" y2="210"/>
+        <text class="axt" x="160" y="226" text-anchor="middle">1m</text>
+        <line class="axis" x1="341" y1="30" x2="341" y2="210"/>
+        <text class="axt" x="341" y="226" text-anchor="middle">2m</text>
+        <line class="axis" x1="520" y1="30" x2="520" y2="210"/>
+        <text class="axt" x="520" y="226" text-anchor="middle">4m</text>
+        <line class="axis" x1="641" y1="30" x2="641" y2="210"/>
+        <text class="axt" x="641" y="226" text-anchor="middle">10m</text>
+        <line class="axis" x1="760" y1="30" x2="760" y2="210"/>
+        <text class="axt" x="760" y="226" text-anchor="middle">30m</text>
+      </g>
+
+      <!-- baseline: ~27 min → x ≈ 745 -->
+      <text class="tht" x="20" y="58">baseline</text>
+      <text class="the" x="20" y="74">fps1 OCR+VLM, serial</text>
+      <rect x="160" y="44" width="585" height="26" rx="4" fill="#ef4444" opacity="0.55"/>
+      <text class="ths" x="735" y="62" text-anchor="end" style="fill:#fff">~25–30 min</text>
+
+      <!-- round 1: ~3.75 min → x ≈ 508 -->
+      <text class="tht" x="20" y="118">round 1</text>
+      <text class="the" x="20" y="134">scene-cut VLM · 768px · OCR∥VLM</text>
+      <rect x="160" y="104" width="348" height="26" rx="4" fill="#f59e0b" opacity="0.7"/>
+      <text class="ths" x="498" y="122" text-anchor="end" style="fill:#0a0a0b;font-weight:600">~3.5–4 min</text>
+
+      <!-- round 2: ~2.25 min → x ≈ 357 -->
+      <text class="tht" x="20" y="178">round 2 (today)</text>
+      <text class="the" x="20" y="194">worker concurrency · OCR 0.5fps</text>
+      <rect x="160" y="164" width="197" height="26" rx="4" fill="#10b981" opacity="0.85"/>
+      <text class="ths" x="367" y="182" style="fill:#10b981;font-weight:600">~2–2.5 min</text>
+
+      <!-- cumulative bracket -->
+      <text class="the" x="20" y="248" style="fill:#10b981">cumulative ≈ 10–12× faster end-to-end</text>
+    </svg>
+    <div class="timeline-caption">Round 1 did the heavy lifting (~8× from the visual rewrite); round 2's concurrency + OCR change shaves a further ~30% off an already-fast pipeline.</div>
+  </div>
+
+  <div class="callout win" style="text-align:center;margin-top:18px">
+    <strong>Cumulative</strong> From ~25–30 min down to ~2–2.5 min — roughly <strong style="color:var(--green)">10–12×</strong> faster end-to-end. The pipeline is now in "by the time you switch tabs, your video is ready" territory.
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · worker concurrency + OCR fps · 2026-05-26</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/llm-routing.html" style="color:var(--muted)">llm routing</a> ·
+      <a href="/visual-optimization-analysis.html" style="color:var(--muted)">post-mortem</a> ·
+      <a href="/setup-guide.html" style="color:var(--muted)">setup</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

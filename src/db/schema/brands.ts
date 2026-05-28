@@ -39,6 +39,24 @@ export const brands = pgTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    // YouTube Data API v3 OAuth connection. refresh_token is AES-256-GCM
+    // encrypted via secret-box (same as llm_providers.api_key). Empty/null
+    // until the operator runs the OAuth flow at /api/youtube/oauth/start.
+    youtubeOauth: jsonb('youtube_oauth').$type<{
+      refresh_token: string; // encrypted
+      access_token?: string; // encrypted; cached, may be expired
+      access_token_expires_at?: string; // ISO
+      channel_id?: string;
+      channel_title?: string;
+      scope: string;
+      connected_at: string; // ISO
+    } | null>(),
+    // Routing for YouTube long-form dispatch:
+    //   manual         → operator pastes the URL (default; safe)
+    //   youtube_direct → dispatch worker uploads via YouTube Data API v3
+    //   zernio         → dispatch worker hands off to Zernio (requires
+    //                    public media URL — only when CF tunnel is up)
+    youtubeDispatchTarget: text('youtube_dispatch_target').notNull().default('manual'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

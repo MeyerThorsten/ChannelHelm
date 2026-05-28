@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
@@ -106,6 +106,16 @@ export async function run(job: JobRow): Promise<void> {
       },
     },
   });
+
+  // Storage lifecycle (Option A): audio.wav has been fully consumed —
+  // its only reader is this worker, and the transcript JSON is now in
+  // Postgres. Same for diarization.json (one-shot input to the
+  // pyannote step). Set KEEP_PIPELINE_ARTIFACTS=1 to retain the WAV for
+  // debugging (e.g. re-running transcribe.py against the same input).
+  if (process.env.KEEP_PIPELINE_ARTIFACTS !== '1') {
+    await rm(audioPath, { force: true });
+    await rm(diarizationPath, { force: true });
+  }
 
   await maybeEnqueueFuse({ sourceId, packageId, profile });
 }

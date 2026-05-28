@@ -373,6 +373,20 @@ export type PipelineProgress = {
   fusion: number;
   intelligence: number;
 };
+
+/**
+ * Optional per-layer status strings rendered under each layer's label.
+ *  - `produced` is shown when the layer is complete (e.g. "transcript · 4,212 words").
+ *  - `preparing` is shown when the layer is actively running (e.g. "transcribing (MLX Whisper)").
+ *  - `idle` is shown when the layer hasn't started yet (e.g. "needs fusion").
+ * Computed by `pipelineDetails()` in src/lib/pipeline.ts.
+ */
+export type PipelineDetails = {
+  audio?: { produced?: string; preparing?: string; idle?: string };
+  visual?: { produced?: string; preparing?: string; idle?: string };
+  fusion?: { produced?: string; preparing?: string; idle?: string };
+  intelligence?: { produced?: string; preparing?: string; idle?: string };
+};
 const PIPELINE_LAYERS = [
   { key: 'audio', label: 'Audio', glyph: '♬' },
   { key: 'visual', label: 'Visual', glyph: '▦' },
@@ -382,10 +396,12 @@ const PIPELINE_LAYERS = [
 
 export function Pipeline({
   progress,
+  details,
   compact,
   layout = 'row',
 }: {
   progress: PipelineProgress;
+  details?: PipelineDetails;
   compact?: boolean;
   layout?: 'row' | 'col';
 }) {
@@ -494,7 +510,7 @@ export function Pipeline({
                   l.glyph
                 )}
               </span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flex: 1 }}>
                 <span
                   style={{
                     fontSize: 11,
@@ -507,11 +523,29 @@ export function Pipeline({
                 <span
                   style={{
                     fontSize: 10,
-                    color: 'var(--text-faint)',
+                    color: running
+                      ? 'var(--status-analyzing)'
+                      : done
+                        ? 'var(--text-faint)'
+                        : 'var(--text-dim)',
                     fontFamily: 'var(--font-mono)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
+                  title={
+                    done
+                      ? details?.[l.key]?.produced
+                      : running
+                        ? details?.[l.key]?.preparing
+                        : details?.[l.key]?.idle
+                  }
                 >
-                  {done ? 'ready' : running ? `${Math.round(v * 100)}%` : '—'}
+                  {done
+                    ? (details?.[l.key]?.produced ?? 'ready')
+                    : running
+                      ? (details?.[l.key]?.preparing ?? `${Math.round(v * 100)}%`)
+                      : (details?.[l.key]?.idle ?? '—')}
                 </span>
               </div>
             </div>

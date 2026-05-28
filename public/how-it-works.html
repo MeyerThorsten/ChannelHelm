@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How ChannelHelm works</title>
+<meta name="description" content="What ChannelHelm does, and what happens when you load a video — with diagrams." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --status-analyzing: #14b8a6;
+    --status-ready: #f59e0b;
+    --status-approved: #0ea5e9;
+    --status-published: #10b981;
+    --status-failed: #ef4444;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .serif{font-family:var(--font-serif)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+
+  /* nav */
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  /* hero */
+  .hero{padding:72px 0 32px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(40px,6vw,64px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:720px;margin:0}
+
+  /* sections */
+  section{padding:48px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(26px,3.4vw,36px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.1;
+  }
+  h3{font-size:14px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 28px;font-size:15px}
+
+  /* feature grid */
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;
+    transition:border-color .14s;
+  }
+  .card:hover{border-color:var(--border-strong)}
+  a.card{display:block}
+  a.card:hover{text-decoration:none;transform:translateY(-2px);background:var(--panel-2)}
+  a.card{transition:border-color .14s,transform .14s,background .14s}
+  .card .ico{font-size:18px;margin-bottom:8px;display:block;color:var(--accent)}
+  .card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .card h3{margin:0 0 6px;font-size:15px;color:var(--text)}
+
+  /* SVG card chrome */
+  .figure{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;margin:8px 0 22px;
+  }
+  .figure svg{display:block;width:100%;height:auto}
+  .caption{margin-top:10px;font-size:12px;color:var(--faint);font-family:var(--font-mono)}
+
+  /* numbered steps */
+  .steps{counter-reset:s;display:grid;gap:12px}
+  .step{
+    counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:12px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;
+  }
+  .step::before{
+    content:counter(s);
+    width:30px;height:30px;border-radius:8px;
+    background:var(--accent-soft);color:var(--accent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:600;font-size:13px;
+  }
+  .step h3{margin:2px 0 4px;font-size:15px}
+  .step p{margin:0;font-size:14px;color:var(--muted)}
+  .step .mono{color:var(--faint);font-size:12px}
+
+  /* lifecycle pill row */
+  .pillrow{display:flex;flex-wrap:wrap;gap:6px}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    font-size:11px;font-weight:500;border:1px solid;font-family:var(--font-sans)
+  }
+  .pill .dot{width:6px;height:6px;border-radius:999px}
+  .p-draft{color:var(--faint);background:color-mix(in oklab,var(--faint) 14%,transparent);border-color:color-mix(in oklab,var(--faint) 28%,transparent)}
+  .p-draft .dot{background:var(--faint)}
+  .p-prog{color:var(--status-analyzing);background:color-mix(in oklab,var(--status-analyzing) 14%,transparent);border-color:color-mix(in oklab,var(--status-analyzing) 30%,transparent)}
+  .p-prog .dot{background:var(--status-analyzing)}
+  .p-ready{color:var(--status-ready);background:color-mix(in oklab,var(--status-ready) 14%,transparent);border-color:color-mix(in oklab,var(--status-ready) 30%,transparent)}
+  .p-ready .dot{background:var(--status-ready)}
+  .p-app{color:var(--accent);background:color-mix(in oklab,var(--accent) 14%,transparent);border-color:color-mix(in oklab,var(--accent) 30%,transparent)}
+  .p-app .dot{background:var(--accent)}
+  .p-pub{color:var(--status-published);background:color-mix(in oklab,var(--status-published) 14%,transparent);border-color:color-mix(in oklab,var(--status-published) 30%,transparent)}
+  .p-pub .dot{background:var(--status-published)}
+  .p-fail{color:var(--status-failed);background:color-mix(in oklab,var(--status-failed) 14%,transparent);border-color:color-mix(in oklab,var(--status-failed) 30%,transparent)}
+  .p-fail .dot{background:var(--status-failed)}
+
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:var(--faint)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width: 820px){
+    .g3,.g2{grid-template-columns:1fr 1fr}
+    .nav-links a:not(.btn){display:none}
+  }
+  @media (max-width: 540px){
+    .g3,.g2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#built">What's built</a>
+    <a href="#flow">Video flow</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#shorts">Shorts</a>
+    <a href="#routing">Routing</a>
+    <a href="#docs">More docs</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <div class="eyebrow">How it works</div>
+  <h1>Drop a video. <em>Get a publishing kit.</em></h1>
+  <p class="lede">
+    ChannelHelm understands a video through a four-layer pipeline (audio → visual → fusion → intelligence) and drafts every asset for every platform — locally, on your own Mac. This page is the picture-version of what's built and what happens behind that "drop or paste a link" button.
+  </p>
+</section>
+
+<!-- SYSTEM MAP -->
+<section class="wrap" id="map">
+  <div class="eyebrow">System map</div>
+  <h2>The pieces, and how they talk.</h2>
+  <p class="sub">A Next.js dashboard, a custom job queue, a fleet of small workers, four Python ML CLIs, and a couple of external services for publishing — all running locally.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 460" xmlns="http://www.w3.org/2000/svg" aria-labelledby="map-title">
+      <title id="map-title">ChannelHelm system map</title>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+        <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+      </defs>
+      <style>
+        .b{ fill:#111114; stroke:#232329 }
+        .ba{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .bx{ fill:#16161a; stroke:#2e2e36 }
+        .t{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .ts{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .te{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .line{ stroke:#52525b; stroke-width:1.5; fill:none }
+        .lineA{ stroke:#0ea5e9; stroke-width:1.5; fill:none; opacity:.85 }
+      </style>
+
+      <!-- Operator -->
+      <g transform="translate(40,30)">
+        <text class="te" x="0" y="0">Operator</text>
+        <rect class="b" x="0" y="10" width="170" height="64" rx="10"/>
+        <text class="t" x="14" y="36">You</text>
+        <text class="ts" x="14" y="56">browser · single user</text>
+      </g>
+
+      <!-- Dashboard / Next.js -->
+      <g transform="translate(40,120)">
+        <text class="te" x="0" y="0">Dashboard (Next.js 15)</text>
+        <rect class="ba" x="0" y="10" width="240" height="120" rx="10"/>
+        <text class="t" x="14" y="36">Studio · Brands · Providers</text>
+        <text class="ts" x="14" y="56">Server components + actions</text>
+        <text class="ts" x="14" y="74">/api/uploads · /api/media</text>
+        <text class="ts" x="14" y="92">/api/webhooks/{zernio,dojoclaw}</text>
+        <text class="ts" x="14" y="110">⌘K palette · theme toggle</text>
+      </g>
+
+      <!-- Postgres -->
+      <g transform="translate(40,290)">
+        <text class="te" x="0" y="0">Postgres 16 (local)</text>
+        <rect class="b" x="0" y="10" width="240" height="120" rx="10"/>
+        <text class="t" x="14" y="36">Drizzle ORM</text>
+        <text class="ts" x="14" y="56">brands · sources · packages</text>
+        <text class="ts" x="14" y="74">assets · jobs · dispatches</text>
+        <text class="ts" x="14" y="92">webhook_events · signals</text>
+        <text class="ts" x="14" y="110">llm_providers · voice_examples</text>
+      </g>
+
+      <!-- Queue -->
+      <g transform="translate(330,120)">
+        <text class="te" x="0" y="0">Job queue</text>
+        <rect class="bx" x="0" y="10" width="180" height="120" rx="10"/>
+        <text class="t" x="14" y="36">SKIP LOCKED</text>
+        <text class="ts" x="14" y="56">enqueue + claim</text>
+        <text class="ts" x="14" y="74">idempotency keys</text>
+        <text class="ts" x="14" y="92">stale-lock reclaim</text>
+        <text class="ts" x="14" y="110">RequeueLater (rate limits)</text>
+      </g>
+
+      <!-- Workers -->
+      <g transform="translate(560,30)">
+        <text class="te" x="0" y="0">Workers (one Node proc per kind)</text>
+        <rect class="ba" x="0" y="10" width="280" height="270" rx="10"/>
+        <text class="t" x="14" y="36">tsx workers/runner.ts</text>
+        <text class="ts" x="14" y="58">ingest</text>
+        <text class="ts" x="14" y="76">transcribe_audio</text>
+        <text class="ts" x="14" y="94">analyze_visual</text>
+        <text class="ts" x="14" y="112">fuse</text>
+        <text class="ts" x="14" y="130">analyze_intelligence</text>
+        <text class="ts" x="14" y="148">generate_asset · thumbnail_concepts</text>
+        <text class="ts" x="14" y="166">clip_render</text>
+        <text class="ts" x="14" y="184">dispatch</text>
+        <text class="ts" x="14" y="202">collect_signal · promote_voice_examples</text>
+        <text class="te" x="14" y="232">Provenance on every artifact</text>
+        <text class="ts" x="14" y="252">{provider, model, host, prompt_version, …}</text>
+      </g>
+
+      <!-- ML CLIs -->
+      <g transform="translate(560,310)">
+        <text class="te" x="0" y="0">ML CLIs (Python, uv)</text>
+        <rect class="bx" x="0" y="10" width="280" height="120" rx="10"/>
+        <text class="t" x="14" y="36">ml/*.py</text>
+        <text class="ts" x="14" y="56">transcribe.py (MLX Whisper)</text>
+        <text class="ts" x="14" y="74">describe_frames.py (mlx-vlm)</text>
+        <text class="ts" x="14" y="92">ocr.py (Apple Vision)</text>
+        <text class="ts" x="14" y="110">diarize.py (pyannote + align)</text>
+      </g>
+
+      <!-- External -->
+      <g transform="translate(870,30)">
+        <text class="te" x="0" y="0">External</text>
+        <rect class="b" x="0" y="10" width="140" height="80" rx="10"/>
+        <text class="t" x="14" y="36">LLM provider</text>
+        <text class="ts" x="14" y="56">OpenAI · Anthropic</text>
+        <text class="ts" x="14" y="74">LM Studio · Codex</text>
+
+        <rect class="b" x="0" y="105" width="140" height="80" rx="10"/>
+        <text class="t" x="14" y="131">Zernio (LATE)</text>
+        <text class="ts" x="14" y="151">socials · 15 nets</text>
+        <text class="ts" x="14" y="169">posts.create §9.3</text>
+
+        <rect class="b" x="0" y="200" width="140" height="80" rx="10"/>
+        <text class="t" x="14" y="226">DojoClaw</text>
+        <text class="ts" x="14" y="246">articles (local LAN)</text>
+        <text class="ts" x="14" y="264">from-brief §8.2</text>
+      </g>
+
+      <!-- Storage -->
+      <g transform="translate(870,310)">
+        <text class="te" x="0" y="0">Local storage</text>
+        <rect class="bx" x="0" y="10" width="140" height="120" rx="10"/>
+        <text class="t" x="14" y="36">MEDIA_ROOT/</text>
+        <text class="ts" x="14" y="56">{brand}/{src}/</text>
+        <text class="ts" x="14" y="74"> original.mp4</text>
+        <text class="ts" x="14" y="92"> audio.wav</text>
+        <text class="ts" x="14" y="110"> clips/clip_NNN.mp4</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="lineA" d="M125,94 v26"  marker-end="url(#arrA)" />
+      <path class="lineA" d="M125,250 v40" marker-end="url(#arrA)" />
+      <path class="lineA" d="M125,250 v40" />
+
+      <path class="line" d="M280,180 h50"   marker-end="url(#arr)" />
+      <path class="line" d="M510,180 h50"   marker-end="url(#arr)" />
+      <path class="line" d="M280,350 h280"  marker-end="url(#arr)" />
+      <path class="line" d="M840,70  h30"   marker-end="url(#arr)" />
+      <path class="line" d="M840,145 h30"   marker-end="url(#arr)" />
+      <path class="line" d="M840,240 h30"   marker-end="url(#arr)" />
+      <path class="line" d="M840,370 h30"   marker-end="url(#arr)" />
+      <!-- webhook return arrow -->
+      <path class="line" d="M870,70 q-40,-30 -120,-30 q-300,0 -550,80 v0" stroke-dasharray="4 4"/>
+      <text class="ts" x="430" y="22">webhooks (HMAC, fail-closed)</text>
+    </svg>
+    <div class="caption">Browser → Next.js → queue → workers. Workers call out to your LLM provider, Zernio, DojoClaw, and the local ML CLIs. Webhooks come back through /api/webhooks (signed).</div>
+  </div>
+</section>
+
+<!-- WHAT'S BUILT -->
+<section class="wrap" id="built">
+  <div class="eyebrow">What's developed</div>
+  <h2>The product, in a dozen bricks.</h2>
+  <p class="sub">Every piece below is on <span class="mono">main</span>: typecheck/lint/build clean, with a real Postgres test suite (Vitest + Testcontainers).</p>
+
+  <div class="grid g3">
+    <div class="card"><span class="ico">▤</span><h3>Studio (the hero)</h3>
+      <p>Dark "content studio" identity. Three switchable layouts — Console (review), Editor (deep edit + side-by-side compare), Atlas (platform overview). Scored titles/tags, inline edit, per-section Regenerate + on-demand Generate, AI thumbnails, approval panel.</p>
+    </div>
+    <div class="card"><span class="ico">⬆</span><h3>Ingest</h3>
+      <p>Drop a file or paste a URL. YouTube links <strong>auto-detect the brand</strong> from the channel (yt-dlp + website fallback). Uploads stream to MEDIA_ROOT under a CSRF guard with a hard size cap.</p>
+    </div>
+    <div class="card"><span class="ico">✦</span><h3>Pipeline</h3>
+      <p>Four layers: <strong>audio</strong> (transcribe + diarize), <strong>visual</strong> (frames + OCR + VLM), <strong>fusion</strong> (scene log), <strong>intelligence</strong> (LLM analysis). Visual phase: scene-cut-driven VLM keyframes (vs fps=1), 768 px downscale, OCR ∥ VLM, and profile-aware OCR fps (0.5 standard / 1 premium) — ~12–14× faster than the original. Workers claim jobs with SKIP LOCKED; stale locks self-reclaim.</p>
+    </div>
+    <div class="card"><span class="ico">⌘</span><h3>Job queue + worker concurrency</h3>
+      <p>Custom ~150-line layer on Postgres. Idempotency keys de-dupe; per-kind lock timeouts requeue crashed jobs; <code>RequeueLater</code> defers rate-limited dispatches to the next UTC day instead of failing. Worker runs N concurrent claim slots (default 3, tune via <code>WORKER_CONCURRENCY</code>) — SKIP LOCKED is the only mutex; the 10 generate_asset jobs per package finish ~3× faster.</p>
+    </div>
+    <div class="card"><span class="ico">🔌</span><h3>Pluggable LLM providers</h3>
+      <p>OpenAI · Anthropic · OpenRouter · Ollama · LM Studio · OpenClaw · Codex CLI. Quick Presets, Fetch Models, per-profile routing. API keys <strong>encrypted at rest</strong> + never serialized to the client.</p>
+    </div>
+    <div class="card"><span class="ico">↗</span><h3>Dispatch</h3>
+      <p>Editorial → DojoClaw §8.2 (<code>/api/v1/articles/from-brief</code>). Social → Zernio §9.3 (per-account <code>platforms[]</code>, ChannelHelm metadata, X threads, signed clip URLs §9.4, 24-h rate limit §9.6). YouTube → <strong>direct upload</strong> via per-brand OAuth (defaults to private).</p>
+    </div>
+    <div class="card"><span class="ico">✂</span><h3>Shorts editor</h3>
+      <p>Per-Short workspace: word-snap trim (never mid-word), captions, <strong>6 animated subtitle styles</strong> (ASS), and a <strong>live overlay</strong> that previews styling without re-rendering. Auto-written descriptions, per-clip publish modal → Zernio. The <code>short_clip_plan</code> is the editable truth; <code>clip_render</code> UPSERTs the build output and bumps <code>render_rev</code>.</p>
+    </div>
+    <div class="card"><span class="ico">⚡</span><h3>Auto-render</h3>
+      <p>When a clip plan lands, <code>generate_asset</code> fans out one <code>clip_render</code> per clip — so you open the Shorts tab to ready-to-preview MP4s, not an empty "click Render" list. Renders still need separate approval before dispatch.</p>
+    </div>
+    <div class="card"><span class="ico">🗄</span><h3>Storage lifecycle</h3>
+      <p>Inline Stage-1 cleanup removes pipeline scratch the moment its last consumer is done. An <code>archive_package</code> worker moves published media to <code>ARCHIVE_ROOT</code> after N days. Postgres stays the permanent audit trail. <a href="/storage-lifecycle.html">Full map →</a></p>
+    </div>
+    <div class="card"><span class="ico">⎘</span><h3>Webhooks</h3>
+      <p>HMAC-signed, <strong>fail-closed</strong>. Correlate by external id or metadata. Duplicate deliveries swallowed by a unique <code>(source, source_event_id)</code> index.</p>
+    </div>
+    <div class="card"><span class="ico">🔒</span><h3>Local-first + secure</h3>
+      <p>Your media never leaves your Mac unless you publish. Brand-scoped API by default; <code>MEDIA_ROOT</code> traversal guards; optional signed <code>/media/*</code> URLs; package ↔ source brand consistency enforced in DB.</p>
+    </div>
+    <div class="card"><span class="ico">🌐</span><h3>Marketing + legal</h3>
+      <p>Static pages in <code>public/</code> — landing (<code>index.html</code>), Privacy, Terms, Contact, Impressum — styled in the same identity, ready for any web host that serves <code>index.html</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VIDEO FLOW -->
+<section class="wrap" id="flow">
+  <div class="eyebrow">When you load a video</div>
+  <h2>From drop to dispatched, in five moves.</h2>
+  <p class="sub">Each step shows the worker that runs it, the file/DB state it produces, and what the operator sees.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 320" xmlns="http://www.w3.org/2000/svg" aria-labelledby="flow-title">
+      <title id="flow-title">Video flow swimlanes</title>
+      <defs>
+        <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+      </defs>
+      <style>
+        .lane{ fill:#111114; stroke:#232329 }
+        .lab{ fill:#a1a1aa; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .nodeA{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .nodeI{ fill:rgba(20,184,166,0.10); stroke:rgba(20,184,166,0.40) }
+        .nodeR{ fill:rgba(245,158,11,0.10); stroke:rgba(245,158,11,0.40) }
+        .nodeP{ fill:rgba(16,185,129,0.10); stroke:rgba(16,185,129,0.40) }
+        .nt{ font:600 12px Inter, sans-serif; fill:#f4f4f5 }
+        .ns{ font:10px "JetBrains Mono", monospace; fill:#a1a1aa }
+        .lA{ stroke:#0ea5e9; stroke-width:1.5; fill:none }
+        .lN{ stroke:#52525b; stroke-width:1.2; fill:none }
+        .lD{ stroke:#52525b; stroke-width:1.2; fill:none; stroke-dasharray:4 4 }
+      </style>
+
+      <!-- swimlanes -->
+      <rect class="lane" x="20" y="40" width="1000" height="62" rx="8"/>
+      <text class="lab" x="32" y="62">Browser</text>
+
+      <rect class="lane" x="20" y="118" width="1000" height="84" rx="8"/>
+      <text class="lab" x="32" y="140">Workers + ML</text>
+
+      <rect class="lane" x="20" y="218" width="1000" height="80" rx="8"/>
+      <text class="lab" x="32" y="240">External</text>
+
+      <!-- Browser nodes -->
+      <g transform="translate(110,52)">
+        <rect class="nodeA" width="170" height="38" rx="7"/>
+        <text class="nt" x="12" y="16">1 · Drop / paste</text>
+        <text class="ns" x="12" y="30">POST /api/uploads or URL</text>
+      </g>
+      <g transform="translate(730,52)">
+        <rect class="nodeR" width="170" height="38" rx="7"/>
+        <text class="nt" x="12" y="16">3 · Review in Studio</text>
+        <text class="ns" x="12" y="30">/packages/[id]</text>
+      </g>
+
+      <!-- Workers nodes -->
+      <g transform="translate(110,130)">
+        <rect class="nodeI" width="120" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">ingest</text>
+        <text class="ns" x="10" y="32">audio.wav</text>
+        <text class="ns" x="10" y="46">scene_cuts</text>
+      </g>
+      <g transform="translate(245,130)">
+        <rect class="nodeI" width="120" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">transcribe</text>
+        <text class="ns" x="10" y="32">MLX Whisper</text>
+        <text class="ns" x="10" y="46">transcript.json</text>
+      </g>
+      <g transform="translate(245,200)" opacity="0">
+      </g>
+      <g transform="translate(245,200)" />
+      <g transform="translate(380,130)">
+        <rect class="nodeI" width="120" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">analyze_visual</text>
+        <text class="ns" x="10" y="32">mlx-vlm + OCR</text>
+        <text class="ns" x="10" y="46">frame_index</text>
+      </g>
+      <g transform="translate(515,130)">
+        <rect class="nodeI" width="100" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">fuse</text>
+        <text class="ns" x="10" y="32">scene_log</text>
+        <text class="ns" x="10" y="46">(windows)</text>
+      </g>
+      <g transform="translate(630,130)">
+        <rect class="nodeI" width="140" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">analyze_intelligence</text>
+        <text class="ns" x="10" y="32">LLM analysis</text>
+        <text class="ns" x="10" y="46">topics · hooks</text>
+      </g>
+      <g transform="translate(785,130)">
+        <rect class="nodeR" width="120" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">generate_asset</text>
+        <text class="ns" x="10" y="32">×N (per type)</text>
+        <text class="ns" x="10" y="46">ready_for_review</text>
+      </g>
+      <g transform="translate(920,130)">
+        <rect class="nodeA" width="100" height="60" rx="7"/>
+        <text class="nt" x="10" y="18">dispatch</text>
+        <text class="ns" x="10" y="32">on approval</text>
+        <text class="ns" x="10" y="46">→ external</text>
+      </g>
+
+      <!-- External nodes -->
+      <g transform="translate(630,230)">
+        <rect class="nodeP" width="100" height="50" rx="7"/>
+        <text class="nt" x="10" y="18">LLM provider</text>
+        <text class="ns" x="10" y="34">analyze + generate</text>
+      </g>
+      <g transform="translate(810,230)">
+        <rect class="nodeP" width="110" height="50" rx="7"/>
+        <text class="nt" x="10" y="18">DojoClaw / Zernio</text>
+        <text class="ns" x="10" y="34">/articles · /posts</text>
+      </g>
+      <g transform="translate(940,230)">
+        <rect class="nodeP" width="80" height="50" rx="7"/>
+        <text class="nt" x="10" y="18">webhooks</text>
+        <text class="ns" x="10" y="34">→ published</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="lA" d="M195,90 v20 v15" marker-end="url(#ar1)"/>
+      <path class="lN" d="M230,160 h15" marker-end="url(#ar2)"/>
+      <path class="lN" d="M365,160 h15" marker-end="url(#ar2)"/>
+      <path class="lN" d="M500,160 h15" marker-end="url(#ar2)"/>
+      <path class="lN" d="M615,160 h15" marker-end="url(#ar2)"/>
+      <path class="lN" d="M770,160 h15" marker-end="url(#ar2)"/>
+      <path class="lA" d="M845,130 v-20 v-18" marker-end="url(#ar1)"/>
+      <path class="lN" d="M905,160 h15" marker-end="url(#ar2)"/>
+      <path class="lD" d="M695,190 v40" marker-end="url(#ar2)"/>
+      <path class="lD" d="M965,190 v40" marker-end="url(#ar2)"/>
+      <path class="lD" d="M965,230 q0,-30 -100,-78" />
+    </svg>
+    <div class="caption">Solid arrows = job hand-offs in the queue. Dashed arrows = external calls (LLM/Zernio/DojoClaw + webhooks back).</div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div>
+      <h3>You drop a file or paste a URL</h3>
+      <p>For a YouTube link, the brand is auto-detected from the channel (yt-dlp metadata → match by <code>youtube_channel_id</code> → by website domain → else auto-create). For a file, the browser streams the body to <code>/api/uploads</code> behind a same-origin guard with a hard size cap. Either way a <code>sources</code> row, a <code>packages</code> row, and an <code>ingest</code> job are created, and you land on <code>/packages/[id]</code>.</p>
+      <div class="mono">created: sources, packages · enqueued: ingest:{sourceId}</div>
+    </div></div>
+
+    <div class="step"><div>
+      <h3>The pipeline runs in the background</h3>
+      <p><strong>ingest</strong> downloads or probes the file, extracts <code>audio.wav</code>, detects scene cuts. <strong>transcribe_audio</strong> + <strong>analyze_visual</strong> run in parallel via <code>uv run python ml/*</code>. <strong>fuse</strong> stitches their outputs into a scene log. <strong>analyze_intelligence</strong> calls the LLM for topics/hooks/retention, then fans out one <strong>generate_asset</strong> per type (titles/description/tags/chapters/linkedin/x/article…) and a <strong>thumbnail_concepts</strong> job.</p>
+      <div class="mono">package: draft → ingested → fused → analyzed → ready_for_review</div>
+    </div></div>
+
+    <div class="step"><div>
+      <h3>You review in the Studio</h3>
+      <p>The Console layout shows the platform rail, the video player, a live 4-layer pipeline indicator, and an asset stack: Titles (scored 0–100), Description (with chapters + hashtags), Tags (scored pills), Transcript, Thumbnails. Each card has Copy / Regenerate; empty sections offer <strong>Generate</strong> (works straight from the transcript). Right pane: approval.</p>
+      <div class="mono">actions: selectTitle · saveAssetPayload · regenerateAsset · generateSection · generateThumbnails</div>
+    </div></div>
+
+    <div class="step"><div>
+      <h3>You approve → dispatch fires</h3>
+      <p>Approving an asset enqueues <code>dispatch:{assetId}</code>. Approving the whole package approves every non-plan asset and enqueues a dispatch each; <code>*_plan</code> assets enqueue one <strong>clip_render</strong> per clip (plans never dispatch). Dispatch routes by type: <strong>DojoClaw</strong> for articles, <strong>Zernio</strong> for social/clips (per-account platforms + ChannelHelm metadata + signed media URLs + 24-h rate limit), and <strong>direct upload</strong> for YouTube (per-brand OAuth, default private). Daily limit hit → <strong>RequeueLater</strong> to next UTC midnight.</p>
+      <div class="mono">package: ready_for_review → approved → dispatching → dispatched / partially_dispatched</div>
+    </div></div>
+
+    <div class="step"><div>
+      <h3>Webhooks close the loop</h3>
+      <p>Signed callbacks land at <code>/api/webhooks/{zernio,dojoclaw}</code> (HMAC-verified, fail-closed). The processor correlates by external id or metadata, flips the asset to <strong>published</strong> / <strong>failed</strong>, records WordPress URL / post URL, and writes analytics into <code>signals</code>. The package status follows.</p>
+      <div class="mono">asset: dispatched → published / failed · signals: impressions, engagement, ctr</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- PIPELINE INDICATOR -->
+<section class="wrap" id="pipeline">
+  <div class="eyebrow">The four-layer pipeline</div>
+  <h2>What "understanding the video" actually means.</h2>
+  <p class="sub">Each layer produces a concrete artifact that feeds the next. The same indicator runs across the dashboard — compact rows on the package list, an expanded card in the Studio.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 220" xmlns="http://www.w3.org/2000/svg" aria-labelledby="pipe-title">
+      <title id="pipe-title">Four-layer pipeline</title>
+      <style>
+        .gl{ stroke:#0ea5e9; stroke-width:2; fill:none; opacity:.6 }
+        .tt{ font:600 14px Inter, sans-serif; fill:#f4f4f5 }
+        .ts2{ font:11px "JetBrains Mono", monospace; fill:#a1a1aa }
+        .b{ fill:#111114; stroke:#232329 }
+        .g{ fill:rgba(14,165,233,0.12); stroke:rgba(14,165,233,0.45) }
+      </style>
+      <!-- 4 boxes -->
+      <g transform="translate(40,40)">
+        <rect class="b" width="220" height="140" rx="12"/>
+        <rect class="g" x="14" y="14" width="40" height="40" rx="8"/>
+        <text class="tt" x="22" y="40">♬</text>
+        <text class="tt" x="14" y="80">Audio</text>
+        <text class="ts2" x="14" y="100">MLX Whisper large-v3</text>
+        <text class="ts2" x="14" y="118">→ transcript.json</text>
+        <text class="ts2" x="14" y="134">(word-level timing)</text>
+      </g>
+      <g transform="translate(290,40)">
+        <rect class="b" width="220" height="140" rx="12"/>
+        <rect class="g" x="14" y="14" width="40" height="40" rx="8"/>
+        <text class="tt" x="22" y="40">▦</text>
+        <text class="tt" x="14" y="80">Visual</text>
+        <text class="ts2" x="14" y="100">mlx-vlm + Apple Vision</text>
+        <text class="ts2" x="14" y="118">→ frame_index</text>
+        <text class="ts2" x="14" y="134">descriptions + OCR</text>
+      </g>
+      <g transform="translate(540,40)">
+        <rect class="b" width="220" height="140" rx="12"/>
+        <rect class="g" x="14" y="14" width="40" height="40" rx="8"/>
+        <text class="tt" x="22" y="40">⌘</text>
+        <text class="tt" x="14" y="80">Fusion</text>
+        <text class="ts2" x="14" y="100">pure TS (composeSceneLog)</text>
+        <text class="ts2" x="14" y="118">→ scene_log</text>
+        <text class="ts2" x="14" y="134">timestamped windows</text>
+      </g>
+      <g transform="translate(790,40)">
+        <rect class="b" width="220" height="140" rx="12"/>
+        <rect class="g" x="14" y="14" width="40" height="40" rx="8"/>
+        <text class="tt" x="22" y="40">✦</text>
+        <text class="tt" x="14" y="80">Intelligence</text>
+        <text class="ts2" x="14" y="100">LLM (your provider)</text>
+        <text class="ts2" x="14" y="118">→ analysis</text>
+        <text class="ts2" x="14" y="134">topics · hooks · retention</text>
+      </g>
+      <!-- connectors -->
+      <path class="gl" d="M260,110 h30"/>
+      <path class="gl" d="M510,110 h30"/>
+      <path class="gl" d="M760,110 h30"/>
+    </svg>
+    <div class="caption">Audio + Visual run in parallel; Fusion merges them; Intelligence is the brief everything else is drafted from.</div>
+  </div>
+</section>
+
+<!-- ASSET / DISPATCH ROUTING -->
+<section class="wrap" id="routing">
+  <div class="eyebrow">Where every asset goes</div>
+  <h2>One package, three destinations.</h2>
+  <p class="sub">After review and approval, the <code>dispatch</code> worker routes each asset by type. Editorial goes to your local DojoClaw; social posts and rendered clips go to Zernio's cloud; YouTube uploads go direct via per-brand OAuth. <code>*_plan</code> assets never dispatch — they feed <code>clip_render</code>.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 420" xmlns="http://www.w3.org/2000/svg" aria-labelledby="route-title">
+      <title id="route-title">Asset and dispatch routing</title>
+      <defs>
+        <marker id="rar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+        <marker id="rarA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="rarG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#10b981"/>
+        </marker>
+      </defs>
+      <style>
+        .rb{ fill:#111114; stroke:#232329 }
+        .rba{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .rbx{ fill:#16161a; stroke:#2e2e36 }
+        .rgrp{ fill:none; stroke:#232329; stroke-dasharray:3 4 }
+        .rt{ fill:#f4f4f5; font:600 12.5px Inter, sans-serif }
+        .rts{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .rte{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .rline{ stroke:#52525b; stroke-width:1.4; fill:none }
+        .rlineA{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .rlineG{ stroke:#10b981; stroke-width:1.6; fill:none }
+        .rlineD{ stroke:#52525b; stroke-width:1.2; fill:none; stroke-dasharray:4 4 }
+      </style>
+
+      <!-- LEFT: asset types in the package -->
+      <text class="rte" x="30" y="28">The package (after generate_asset)</text>
+      <rect class="rgrp" x="20" y="40" width="270" height="350" rx="12"/>
+
+      <g transform="translate(38,58)">
+        <rect class="rb" width="234" height="44" rx="8"/>
+        <text class="rt" x="14" y="20">YouTube metadata</text>
+        <text class="rts" x="14" y="36">title · description · tags · chapters</text>
+      </g>
+      <g transform="translate(38,112)">
+        <rect class="rb" width="234" height="40" rx="8"/>
+        <text class="rt" x="14" y="18">Thumbnails</text>
+        <text class="rts" x="14" y="33">thumbnail_concepts · concept_*.jpg</text>
+      </g>
+      <g transform="translate(38,162)">
+        <rect class="rb" width="234" height="40" rx="8"/>
+        <text class="rt" x="14" y="18">Social posts</text>
+        <text class="rts" x="14" y="33">linkedin · x · instagram · …</text>
+      </g>
+      <g transform="translate(38,212)">
+        <rect class="rb" width="234" height="40" rx="8"/>
+        <text class="rt" x="14" y="18">Editorial</text>
+        <text class="rts" x="14" y="33">article_brief · blog_draft</text>
+      </g>
+      <g transform="translate(38,262)">
+        <rect class="rbx" width="234" height="56" rx="8"/>
+        <text class="rt" x="14" y="20">short_clip_plan ✎</text>
+        <text class="rts" x="14" y="36">editable truth — NEVER dispatched</text>
+        <text class="rts" x="14" y="50">→ clip_render → rendered_short_clip</text>
+      </g>
+      <g transform="translate(38,328)">
+        <rect class="rba" width="234" height="44" rx="8"/>
+        <text class="rt" x="14" y="20">rendered_short_clip ▶</text>
+        <text class="rts" x="14" y="36">build output · signed media URL</text>
+      </g>
+
+      <!-- MIDDLE: dispatch worker -->
+      <g transform="translate(360,180)">
+        <rect class="rba" width="150" height="86" rx="10"/>
+        <text class="rt" x="16" y="28">dispatch</text>
+        <text class="rts" x="16" y="46">routes by type</text>
+        <text class="rts" x="16" y="62">on approval</text>
+        <text class="rts" x="16" y="78">rate-limit aware</text>
+      </g>
+      <text class="rte" x="360" y="160">The router</text>
+
+      <!-- clip_render note (plan → rendered) -->
+      <path class="rlineD" d="M272,290 q40,0 40,-15 q0,-35 -40,-65" marker-end="url(#rar)"/>
+
+      <!-- RIGHT: destinations -->
+      <text class="rte" x="690" y="28">Destinations</text>
+      <rect class="rgrp" x="680" y="40" width="340" height="350" rx="12"/>
+
+      <g transform="translate(700,60)">
+        <rect class="rb" width="304" height="66" rx="10"/>
+        <text class="rt" x="16" y="26">YouTube (direct)</text>
+        <text class="rts" x="16" y="44">per-brand OAuth · default private</text>
+        <text class="rts" x="16" y="58">video + metadata + thumbnail</text>
+      </g>
+      <g transform="translate(700,140)">
+        <rect class="rb" width="304" height="92" rx="10"/>
+        <text class="rt" x="16" y="26">Zernio (cloud)</text>
+        <text class="rts" x="16" y="44">15 social destinations · §9.3</text>
+        <text class="rts" x="16" y="60">posts.create · X threads</text>
+        <text class="rts" x="16" y="76">signed clip URLs · 24-h rate limit</text>
+      </g>
+      <g transform="translate(700,246)">
+        <rect class="rb" width="304" height="66" rx="10"/>
+        <text class="rt" x="16" y="26">DojoClaw (local LAN)</text>
+        <text class="rts" x="16" y="44">articles/from-brief · §8.2</text>
+        <text class="rts" x="16" y="58">m4max.local:8788</text>
+      </g>
+      <g transform="translate(700,326)">
+        <rect class="rbx" width="304" height="46" rx="10"/>
+        <text class="rt" x="16" y="22">Webhooks back</text>
+        <text class="rts" x="16" y="38">→ published / failed · signals</text>
+      </g>
+
+      <!-- arrows: assets → dispatch -->
+      <path class="rline"  d="M272,80  C320,80 330,210 360,212" marker-end="url(#rar)"/>
+      <path class="rline"  d="M272,132 C320,132 330,214 360,216" marker-end="url(#rar)"/>
+      <path class="rlineA" d="M272,182 C320,182 330,218 360,220" marker-end="url(#rarA)"/>
+      <path class="rline"  d="M272,232 C320,232 330,224 360,224" marker-end="url(#rar)"/>
+      <path class="rlineA" d="M272,350 C320,350 330,230 360,230" marker-end="url(#rarA)"/>
+
+      <!-- arrows: dispatch → destinations -->
+      <path class="rline"  d="M510,200 C600,190 610,95  680,93"  marker-end="url(#rar)"/>
+      <path class="rlineA" d="M510,222 C600,222 610,185 680,186" marker-end="url(#rarA)"/>
+      <path class="rline"  d="M510,244 C600,255 610,278 680,279" marker-end="url(#rar)"/>
+
+      <!-- webhook return -->
+      <path class="rlineG" d="M852,326 C852,300 600,300 535,266" marker-end="url(#rarG)"/>
+    </svg>
+    <div class="caption">Blue paths = dispatchable now (rendered clips, social). Grey = editorial / metadata. The <code>short_clip_plan</code> never leaves the building — it renders into a <code>rendered_short_clip</code>, which does. Green = webhooks closing the loop to <code>published</code>.</div>
+  </div>
+</section>
+
+<!-- SHORTS EDITOR -->
+<section class="wrap" id="shorts">
+  <div class="eyebrow">The Shorts editor</div>
+  <h2>Cut a vertical clip without leaving the app.</h2>
+  <p class="sub">Each clip in a <code>short_clip_plan</code> opens a full editor: scrub the timeline, trim to whole words, restyle subtitles live, write a description, and publish — all before a single frame is re-rendered. The plan is the source of truth; the render is a disposable build output.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 300" xmlns="http://www.w3.org/2000/svg" aria-labelledby="shorts-title">
+      <title id="shorts-title">Shorts editor flow</title>
+      <defs>
+        <marker id="sar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="sarL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+      </defs>
+      <style>
+        .sb{ fill:#111114; stroke:#232329 }
+        .sba{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .sbx{ fill:#16161a; stroke:#2e2e36 }
+        .st{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .sts{ fill:#a1a1aa; font:10px "JetBrains Mono", monospace }
+        .ste{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .sline{ stroke:#52525b; stroke-width:1.3; fill:none }
+        .slineA{ stroke:#0ea5e9; stroke-width:1.5; fill:none }
+      </style>
+
+      <!-- 9:16 preview mock -->
+      <text class="ste" x="40" y="26">Live preview (9:16)</text>
+      <rect class="sb" x="40" y="38" width="120" height="214" rx="10"/>
+      <rect class="sbx" x="52" y="50" width="96" height="150" rx="6"/>
+      <!-- caption overlay -->
+      <rect x="56" y="160" width="88" height="22" rx="4" fill="rgba(14,165,233,0.18)" stroke="rgba(14,165,233,0.45)"/>
+      <text x="64" y="175" fill="#0ea5e9" font-family="Inter, sans-serif" font-weight="600" font-size="10">word ▮ highlight</text>
+      <text class="sts" x="52" y="222">SubtitleOverlay.tsx</text>
+      <text class="sts" x="52" y="238">no render needed</text>
+
+      <!-- timeline -->
+      <text class="ste" x="200" y="26">Timeline (word-snap)</text>
+      <rect class="sb" x="200" y="38" width="260" height="64" rx="10"/>
+      <rect x="214" y="58" width="232" height="24" rx="4" fill="#16161a" stroke="#2e2e36"/>
+      <rect x="252" y="58" width="150" height="24" rx="4" fill="rgba(14,165,233,0.16)" stroke="rgba(14,165,233,0.5)"/>
+      <line x1="252" y1="52" x2="252" y2="88" stroke="#0ea5e9" stroke-width="2"/>
+      <line x1="402" y1="52" x2="402" y2="88" stroke="#0ea5e9" stroke-width="2"/>
+      <text class="sts" x="214" y="98">snaps trim to whole words</text>
+
+      <!-- right panel: edit fields -->
+      <text class="ste" x="200" y="130">Editable plan fields</text>
+      <rect class="sb" x="200" y="142" width="260" height="118" rx="10"/>
+      <text class="sts" x="214" y="166">title · caption</text>
+      <text class="sts" x="214" y="184">subtitle style ×6 animations</text>
+      <text class="sts" x="214" y="202">description (auto-written ✨)</text>
+      <text class="sts" x="214" y="220">tags · description links</text>
+      <text class="sts" x="214" y="238">publish options → Zernio</text>
+
+      <!-- plan asset -->
+      <text class="ste" x="510" y="86">Source of truth</text>
+      <g transform="translate(510,98)">
+        <rect class="sbx" width="190" height="70" rx="10"/>
+        <text class="st" x="14" y="26">short_clip_plan ✎</text>
+        <text class="sts" x="14" y="44">debounced auto-save</text>
+        <text class="sts" x="14" y="60">clips[i] = editable</text>
+      </g>
+
+      <!-- clip_render -->
+      <g transform="translate(750,98)">
+        <rect class="sba" width="150" height="70" rx="10"/>
+        <text class="st" x="14" y="26">clip_render</text>
+        <text class="sts" x="14" y="44">ffmpeg + ASS subs</text>
+        <text class="sts" x="14" y="60">UPSERT · render_rev++</text>
+      </g>
+
+      <!-- rendered output -->
+      <g transform="translate(750,196)">
+        <rect class="sb" width="150" height="62" rx="10"/>
+        <text class="st" x="14" y="26">rendered_short_clip ▶</text>
+        <text class="sts" x="14" y="44">build output</text>
+        <text class="sts" x="14" y="58">dispatchable</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="slineA" d="M460,200 C490,200 490,150 510,140" marker-end="url(#sar)"/>
+      <path class="slineA" d="M700,133 h50" marker-end="url(#sar)"/>
+      <path class="slineA" d="M825,168 v28" marker-end="url(#sar)"/>
+      <path class="sline"  d="M750,227 C720,227 600,200 460,90 C300,40 200,52 160,90" marker-end="url(#sarL)" opacity="0.5"/>
+    </svg>
+    <div class="caption">Operator edits the <strong>plan</strong>; <code>clip_render</code> rebuilds the MP4 (bumping <code>render_rev</code>, reusing the asset id so publish history stays bound). The live overlay means most styling iterations need <em>zero</em> renders. <a href="/shorts-editor-guide.html">Shorts editor guide →</a></div>
+  </div>
+</section>
+
+<!-- LIFECYCLE -->
+<section class="wrap" id="lifecycle">
+  <div class="eyebrow">Package lifecycle</div>
+  <h2>Twelve well-defined states.</h2>
+  <p class="sub">A package moves through these in a strict order (workers advance it; the dashboard renders these pills everywhere). Two terminals after dispatch: full success or partial.</p>
+
+  <div class="figure">
+    <div class="pillrow">
+      <span class="pill p-draft"><span class="dot"></span>draft</span>
+      <span class="pill p-prog"><span class="dot"></span>ingested</span>
+      <span class="pill p-prog"><span class="dot"></span>transcribing</span>
+      <span class="pill p-prog"><span class="dot"></span>analyzing_visual</span>
+      <span class="pill p-prog"><span class="dot"></span>fused</span>
+      <span class="pill p-prog"><span class="dot"></span>analyzed</span>
+      <span class="pill p-ready"><span class="dot"></span>ready_for_review</span>
+      <span class="pill p-app"><span class="dot"></span>approved</span>
+      <span class="pill p-app"><span class="dot"></span>dispatching</span>
+      <span class="pill p-pub"><span class="dot"></span>dispatched</span>
+      <span class="pill p-ready"><span class="dot"></span>partially_dispatched</span>
+      <span class="pill p-fail"><span class="dot"></span>failed</span>
+    </div>
+    <div class="caption">Status enums match contract §10 exactly. Assets use §2.2 plus the documented internal marker <code>ready_for_review</code>.</div>
+  </div>
+</section>
+
+<!-- MORE DOCS -->
+<section class="wrap" id="docs">
+  <div class="eyebrow">Go deeper</div>
+  <h2>The rest of the documentation.</h2>
+  <p class="sub">Each of these is its own diagrammed deep-dive into one part of the system.</p>
+
+  <div class="grid g3">
+    <a class="card" href="/handbook.html"><span class="ico">📖</span><h3>Handbook</h3><p>The full operator manual — every screen, asset type, and workflow.</p></a>
+    <a class="card" href="/setup-guide.html"><span class="ico">⚙</span><h3>Setup guide</h3><p>Install on your Mac: Postgres, workers, Python ML CLIs, launchd.</p></a>
+    <a class="card" href="/shorts-editor-guide.html"><span class="ico">✂</span><h3>Shorts editor</h3><p>Word-snap trim, 6 subtitle animations, live preview, per-clip publish.</p></a>
+    <a class="card" href="/llm-routing.html"><span class="ico">🔌</span><h3>LLM routing</h3><p>Per-purpose provider routing, presets, at-rest key encryption.</p></a>
+    <a class="card" href="/youtube-publish-options.html"><span class="ico">▶</span><h3>YouTube publishing</h3><p>Direct upload, per-brand OAuth, privacy defaults, metadata mapping.</p></a>
+    <a class="card" href="/worker-concurrency.html"><span class="ico">⌘</span><h3>Worker concurrency</h3><p>The SKIP LOCKED queue and N concurrent claim slots.</p></a>
+    <a class="card" href="/visual-optimization-analysis.html"><span class="ico">▦</span><h3>Visual optimization</h3><p>Scene-cut VLM sampling — ~10–14× faster visual phase.</p></a>
+    <a class="card" href="/storage-lifecycle.html"><span class="ico">🗄</span><h3>Storage lifecycle</h3><p>What's temporary, archivable, and permanent — plus cleanup options.</p></a>
+    <a class="card" href="/youtube-readiness.html"><span class="ico">✅</span><h3>YouTube readiness</h3><p>How a package is judged ready to ship to YouTube.</p></a>
+  </div>
+</section>
+
+<!-- CTA / FOOTER -->
+<section class="wrap">
+  <div class="figure" style="text-align:center;padding:40px 20px">
+    <h2 style="margin:0 0 8px">Try it.</h2>
+    <p class="sub" style="margin:0 auto 22px;max-width:520px">The whole thing runs on your Mac. Drop a video and watch the cards fill in as the pipeline completes.</p>
+    <a href="/" style="display:inline-block;padding:10px 18px;font-weight:600;border-radius:8px;background:var(--accent);color:#fff;border:1px solid color-mix(in oklab,var(--accent) 80%,white);box-shadow:0 0 0 1px var(--accent-glow)">▶ Open the dashboard</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · local-first video-to-publishing</span>
+    <span><a href="/" style="color:var(--muted)">app</a> · <a href="/handbook.html" style="color:var(--muted)">handbook</a> · <a href="/storage-lifecycle.html" style="color:var(--muted)">storage</a> · <a href="/impressum.html" style="color:var(--muted)">impressum</a></span>
+  </div>
+</footer>
+</body>
+</html>

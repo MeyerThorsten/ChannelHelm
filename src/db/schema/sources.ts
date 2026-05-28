@@ -15,6 +15,14 @@ export const sources = pgTable(
     kind: text('kind').notNull(),
     originUrl: text('origin_url'),
     localMediaPath: text('local_media_path'),
+    // Storage lifecycle (Option B): set when archive_package moves a
+    // source's media off MEDIA_ROOT. Lives alongside `local_media_path`
+    // because the archive directory layout mirrors the source layout
+    // exactly (original.mp4 + clips/ at the root). When archived,
+    // `local_media_path` still points at the original directory (now
+    // empty/missing) and clip_render falls back to `archive_path` for
+    // re-renders. Null = never archived.
+    archivePath: text('archive_path'),
     durationSeconds: integer('duration_seconds'),
     language: text('language'),
     title: text('title'),

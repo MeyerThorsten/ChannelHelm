@@ -1,19 +1,25 @@
 import { BrandForm } from '@/components/BrandForm';
+import { YoutubeConnectionCard } from '@/components/brands/YoutubeConnectionCard';
 import { AsyncActionButton } from '@/components/studio/buttons';
 import { db } from '@/db/client';
 import { brands, packages } from '@/db/schema';
 import { slugify } from '@/lib/url';
 import { renormalizeBrandSlug, updateBrandFromForm } from '@/server-actions/brands';
+import { youtubeConnectionStatus } from '@workers/integrations/youtube';
 import { count, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ yt_oauth?: string; channel?: string; msg?: string }>;
+};
 
-export default async function BrandDetailPage({ params }: Props) {
+export default async function BrandDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const sp = await searchParams;
   const [brand] = await db.select().from(brands).where(eq(brands.id, id)).limit(1);
   if (!brand) notFound();
   const [stats] = await db
@@ -24,6 +30,23 @@ export default async function BrandDetailPage({ params }: Props) {
   const action = updateBrandFromForm.bind(null, id);
   const renorm = renormalizeBrandSlug.bind(null, id);
   const slugIsOff = slugify(brand.slug) !== brand.slug;
+
+  // YouTube connection state for the new card. Tokens never leave the server.
+  const ytStatus = await youtubeConnectionStatus(id);
+  const oauthClientConfigured =
+    !!process.env.GOOGLE_OAUTH_CLIENT_ID && !!process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const ytTarget = (brand.youtubeDispatchTarget ?? 'manual') as
+    | 'manual'
+    | 'youtube_direct'
+    | 'zernio';
+  const ytFlash =
+    sp.yt_oauth === 'connected'
+      ? { kind: 'connected' as const, channel: sp.channel }
+      : sp.yt_oauth === 'cancelled'
+        ? { kind: 'cancelled' as const }
+        : sp.yt_oauth === 'error'
+          ? { kind: 'error' as const, msg: sp.msg }
+          : null;
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '32px 32px 80px' }}>
@@ -92,6 +115,19 @@ export default async function BrandDetailPage({ params }: Props) {
           </AsyncActionButton>
         </div>
       )}
+
+      <YoutubeConnectionCard
+        brandId={id}
+        oauthClientConfigured={oauthClientConfigured}
+        initialStatus={{
+          connected: ytStatus.connected,
+          channelTitle: ytStatus.channelTitle,
+          channelId: ytStatus.channelId,
+          connectedAt: ytStatus.connectedAt,
+        }}
+        initialTarget={ytTarget}
+        flash={ytFlash}
+      />
 
       <BrandForm brand={brand} action={action} submitLabel="Save changes" />
     </main>

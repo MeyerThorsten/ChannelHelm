@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Storage lifecycle — what's temporary, what's archivable, what's forever</title>
+<meta name="description" content="The per-artifact lifecycle of every file ChannelHelm creates. Inline Stage-1 cleanup and the post-publish archive worker have shipped; operator hard-delete is still on the roadmap." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --purple: #a78bfa;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+    --stage-1: #14b8a6;
+    --stage-2: #f59e0b;
+    --stage-3: #a78bfa;
+    --stage-4: #10b981;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:820px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(38px,5.6vw,60px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:740px;margin:0}
+
+  section{padding:48px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(26px,3.4vw,36px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.15;
+  }
+  h3{font-size:16px;margin:24px 0 8px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px;max-width:780px}
+
+  /* Stage cards */
+  .stages{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+  .stage{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;
+    border-top:4px solid;
+  }
+  .stage.s1{border-top-color:var(--stage-1)}
+  .stage.s2{border-top-color:var(--stage-2)}
+  .stage.s3{border-top-color:var(--stage-3)}
+  .stage.s4{border-top-color:var(--stage-4)}
+  .stage .num{
+    display:inline-block;font-family:var(--font-mono);font-size:11px;
+    padding:2px 8px;border-radius:4px;letter-spacing:.04em;margin-bottom:6px;
+  }
+  .stage.s1 .num{background:color-mix(in oklab,var(--stage-1) 18%,transparent);color:var(--stage-1)}
+  .stage.s2 .num{background:color-mix(in oklab,var(--stage-2) 18%,transparent);color:var(--stage-2)}
+  .stage.s3 .num{background:color-mix(in oklab,var(--stage-3) 18%,transparent);color:var(--stage-3)}
+  .stage.s4 .num{background:color-mix(in oklab,var(--stage-4) 18%,transparent);color:var(--stage-4)}
+  .stage h3{margin:0 0 4px;font-size:14px;font-weight:600}
+  .stage p{margin:0;font-size:12px;color:var(--text-muted);line-height:1.55}
+
+  /* artifact reference table */
+  table.ref{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:14px 0;
+  }
+  table.ref th, table.ref td{
+    padding:10px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);
+  }
+  table.ref th{
+    color:var(--faint);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2);
+  }
+  table.ref tr:last-child td{border-bottom:none}
+  table.ref td.num{font-family:var(--font-mono);text-align:right}
+  table.ref code{font-size:11.5px}
+  .badge{
+    display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;
+    font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;
+  }
+  .b-s1{background:color-mix(in oklab,var(--stage-1) 18%,transparent);color:var(--stage-1);border:1px solid color-mix(in oklab,var(--stage-1) 30%,transparent)}
+  .b-s2{background:color-mix(in oklab,var(--stage-2) 18%,transparent);color:var(--stage-2);border:1px solid color-mix(in oklab,var(--stage-2) 30%,transparent)}
+  .b-s3{background:color-mix(in oklab,var(--stage-3) 18%,transparent);color:var(--stage-3);border:1px solid color-mix(in oklab,var(--stage-3) 30%,transparent)}
+  .b-s4{background:color-mix(in oklab,var(--stage-4) 18%,transparent);color:var(--stage-4);border:1px solid color-mix(in oklab,var(--stage-4) 30%,transparent)}
+
+  /* Three-options compare */
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+  .opt{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;display:flex;flex-direction:column;
+  }
+  .opt.rec{border-color:color-mix(in oklab,var(--accent) 35%,var(--border));background:color-mix(in oklab,var(--accent) 4%,var(--panel))}
+  .opt .letter{
+    width:46px;height:46px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-serif);font-size:26px;
+    background:var(--panel-2);color:var(--muted);
+    border:1px solid var(--border-strong);margin-bottom:10px;
+  }
+  .opt.rec .letter{background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);border-color:color-mix(in oklab,var(--accent) 30%,transparent)}
+  .opt h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .opt .tag{
+    font-size:9px;font-family:var(--font-mono);padding:2px 7px;border-radius:4px;letter-spacing:.04em;
+    background:color-mix(in oklab,var(--accent) 18%,transparent);color:var(--accent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+  }
+  .opt .tag.tag-shipped{background:color-mix(in oklab,var(--green) 18%,transparent);color:var(--green);border:1px solid color-mix(in oklab,var(--green) 30%,transparent)}
+  .opt .tag.tag-planned{background:color-mix(in oklab,var(--faint) 22%,transparent);color:var(--muted);border:1px solid var(--border-strong)}
+  .opt.shipped{border-color:color-mix(in oklab,var(--green) 32%,var(--border));background:color-mix(in oklab,var(--green) 4%,var(--panel))}
+  .opt.shipped .letter{background:color-mix(in oklab,var(--green) 14%,transparent);color:var(--green);border-color:color-mix(in oklab,var(--green) 30%,transparent)}
+  .opt.future{opacity:.92}
+  .opt.future .letter{background:var(--panel-2);color:var(--faint);border-color:var(--border-strong)}
+  .opt p{margin:0 0 14px;font-size:13px;color:var(--text-muted);line-height:1.55}
+
+  /* status banner on detail cards */
+  .status-line{
+    display:inline-flex;align-items:center;gap:8px;margin:0 0 4px;
+    padding:5px 12px;border-radius:999px;font-size:11.5px;font-family:var(--font-mono);
+    letter-spacing:.02em;
+  }
+  .status-line .ico{width:7px;height:7px;border-radius:999px}
+  .status-line.shipped{background:color-mix(in oklab,var(--green) 12%,transparent);color:var(--green);border:1px solid color-mix(in oklab,var(--green) 30%,transparent)}
+  .status-line.shipped .ico{background:var(--green);box-shadow:0 0 0 3px color-mix(in oklab,var(--green) 22%,transparent)}
+  .status-line.future{background:color-mix(in oklab,var(--faint) 14%,transparent);color:var(--muted);border:1px solid var(--border-strong)}
+  .status-line.future .ico{background:var(--faint)}
+  .opt-detail.is-shipped{border-color:color-mix(in oklab,var(--green) 24%,var(--border))}
+  .opt-detail.is-future{border-style:dashed;border-color:var(--border-strong)}
+
+  /* archive flow diagram */
+  .diagram{
+    margin:18px 0;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;
+  }
+  .diagram svg{width:100%;height:auto;display:block}
+  .diagram .cap{margin:10px 2px 0;font-size:12px;color:var(--text-faint);line-height:1.55}
+  .opt .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+  .opt .metric{
+    text-align:center;padding:10px 8px;border-radius:8px;
+    background:var(--panel-2);border:1px solid var(--border);
+  }
+  .opt .metric .v{display:block;font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .opt .metric .l{font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em}
+  .opt .metric.good .v{color:var(--green)}
+  .opt .metric.med .v{color:var(--teal)}
+  .opt .metric.low .v{color:var(--text-faint)}
+
+  /* Options detail */
+  .opt-detail{
+    background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;margin:16px 0;
+  }
+  .opt-detail header{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+  .opt-detail header .letter{
+    width:44px;height:44px;border-radius:10px;
+    font-family:var(--font-serif);font-size:24px;
+    display:flex;align-items:center;justify-content:center;
+    background:color-mix(in oklab,var(--accent) 14%,transparent);
+    color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+  }
+  .opt-detail h3{margin:0;font-size:20px;font-weight:600;letter-spacing:-.2px}
+  .opt-detail .subtitle{font-size:13px;color:var(--text-muted);margin-top:2px}
+  .opt-detail h4{margin:18px 0 6px;font-size:13px;color:var(--text);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .pc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+  .pc-list{padding:12px 14px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border)}
+  .pc-list h5{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono)}
+  .pc-list.pros h5{color:var(--green)}
+  .pc-list.cons h5{color:var(--red)}
+  .pc-list ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--text-muted);line-height:1.65}
+
+  /* lifecycle bar */
+  .lifecycle-bar{
+    margin:20px 0;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;
+  }
+  .lifecycle-bar svg{width:100%;height:auto;display:block}
+
+  /* scale table */
+  table.scale{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:14px 0;
+  }
+  table.scale th, table.scale td{
+    padding:11px 14px;border-bottom:1px solid var(--border);
+  }
+  table.scale th{color:var(--faint);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2)}
+  table.scale td.num{font-family:var(--font-mono);text-align:right}
+  .good{color:var(--green)} .meh{color:var(--amber)} .bad{color:var(--red)}
+
+  pre.cmd{
+    margin:8px 0 14px;padding:12px 14px;
+    background:#0c0c0d;border:1px solid var(--border-strong);border-radius:8px;
+    font-family:var(--font-mono);font-size:12.5px;color:#dadce0;
+    line-height:1.65;overflow-x:auto;white-space:pre;
+  }
+  pre.cmd .c{color:#71717a} pre.cmd .k{color:#0ea5e9} pre.cmd .s{color:#86efac} pre.cmd .n{color:#fbbf24}
+
+  .callout{
+    margin:14px 0;padding:14px 18px;border-radius:10px;
+    background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55;
+  }
+  .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 30%,var(--border))}
+  .callout.warn{background:color-mix(in oklab,var(--amber) 6%,var(--panel));border-color:color-mix(in oklab,var(--amber) 30%,var(--border))}
+  .callout.win{background:color-mix(in oklab,var(--green) 6%,var(--panel));border-color:color-mix(in oklab,var(--green) 30%,var(--border))}
+  .callout strong{margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.win strong{color:var(--green)}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:40px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:820px){
+    .stages, .opts{grid-template-columns:1fr 1fr}
+    .pc{grid-template-columns:1fr}
+  }
+  @media (max-width:540px){
+    .stages, .opts{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#stages">Lifecycle stages</a>
+    <a href="#map">Artifact map</a>
+    <a href="#options">3 options</a>
+    <a href="#compare">Compare</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero narrow">
+  <div class="eyebrow">Storage lifecycle</div>
+  <h1>What's temporary, <em>what's forever.</em></h1>
+  <p class="lede">
+    Every file ChannelHelm creates has exactly one lifecycle — most are throwaway by the time
+    the pipeline finishes, some are review-only, some are archive-after-publish, a few are
+    permanent. Here's the complete map plus the cleanup work that's now live.
+  </p>
+  <div class="callout win" style="margin-top:20px">
+    <strong>Shipped</strong>
+    Two of the three options below are in production. <strong>Option A</strong> (inline Stage-1
+    cleanup) runs at the tail of every pipeline worker; <strong>Option B</strong> (the
+    <code>archive_package</code> worker + daily cron) moves published media to an external drive.
+    <strong>Option C</strong> (operator hard-delete) is still on the roadmap. The map and
+    diagrams below reflect what the code actually does today.
+  </div>
+</section>
+
+<!-- ─── STAGES ─────────────────────────────────────────────────────── -->
+<section class="narrow" id="stages">
+  <div class="eyebrow">The four lifecycle stages</div>
+  <h2>One artifact, one stage.</h2>
+  <p class="sub">Each artifact's stage is determined by its <em>last legitimate consumer</em>. After that read, it's either re-readable later (move to a later stage) or never touched again (delete).</p>
+
+  <div class="stages">
+    <div class="stage s1">
+      <span class="num">STAGE 1</span>
+      <h3>Pipeline-only</h3>
+      <p>Created during the pipeline, read once by the next step, never touched again. Pure throwaway.</p>
+    </div>
+    <div class="stage s2">
+      <span class="num">STAGE 2</span>
+      <h3>Review-only</h3>
+      <p>Needed while the operator reviews and edits in the Studio. Deletable after publish.</p>
+    </div>
+    <div class="stage s3">
+      <span class="num">STAGE 3</span>
+      <h3>Post-publish</h3>
+      <p>Useful for re-renders or audit but not for normal operation. Archive to external drive or delete after N days.</p>
+    </div>
+    <div class="stage s4">
+      <span class="num">STAGE 4</span>
+      <h3>Permanent</h3>
+      <p>Single source of truth. The audit trail. Never delete; back up regularly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ARTIFACT MAP ───────────────────────────────────────────────── -->
+<section class="narrow" id="map">
+  <div class="eyebrow">Every artifact, classified</div>
+  <h2>The complete map.</h2>
+  <p class="sub">Sizes are for a typical 8-minute 1080p YouTube video at <code>standard_audio_visual</code> profile. Stage badge says when each file becomes deletable.</p>
+
+  <table class="ref">
+    <thead>
+      <tr>
+        <th>Artifact</th>
+        <th>Last consumer</th>
+        <th>Size</th>
+        <th>Stage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>original.mp4</code></td>
+        <td>clip_render (any future re-render)</td>
+        <td class="num">40–60 MB</td>
+        <td><span class="badge b-s3">post-publish</span></td>
+      </tr>
+      <tr>
+        <td><code>audio.wav</code></td>
+        <td>transcribe_audio (one read)</td>
+        <td class="num">13–15 MB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>frames_ocr/</code></td>
+        <td>ocr.py (one read)</td>
+        <td class="num">25–50 MB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>frames_vlm/</code></td>
+        <td>describe_frames.py (one read)</td>
+        <td class="num">3–5 MB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>frame_manifest_ocr.json</code> · <code>frame_manifest_vlm.json</code></td>
+        <td>The two Python CLIs (one read each)</td>
+        <td class="num">~100 KB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>ocr.json</code></td>
+        <td>analyze_visual's merge step</td>
+        <td class="num">~420 KB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>frame_descriptions.json</code></td>
+        <td>analyze_visual's merge step</td>
+        <td class="num">30–180 KB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>frame_index.json</code></td>
+        <td>fuse (one read) · <strong>also mirrored in Postgres</strong></td>
+        <td class="num">~800 KB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>scene_log.json</code></td>
+        <td>analyze_intelligence (one read) · <strong>also mirrored in Postgres</strong></td>
+        <td class="num">~730 KB</td>
+        <td><span class="badge b-s1">pipeline</span></td>
+      </tr>
+      <tr>
+        <td><code>transcript.json</code></td>
+        <td>Shorts editor word-snap · <strong>also mirrored in Postgres</strong></td>
+        <td class="num">~150 KB</td>
+        <td><span class="badge b-s2">review</span></td>
+      </tr>
+      <tr>
+        <td><code>thumbs/concept_*.jpg</code></td>
+        <td>Studio thumbnail selection + dispatch upload</td>
+        <td class="num">~100 KB</td>
+        <td><span class="badge b-s2">review</span></td>
+      </tr>
+      <tr>
+        <td><code>clips/clip_NNN.mp4</code></td>
+        <td>dispatch + Studio preview</td>
+        <td class="num">5–15 MB each</td>
+        <td><span class="badge b-s3">post-publish</span></td>
+      </tr>
+      <tr>
+        <td><code>clips/clip_NNN.ass</code> / <code>.vtt</code></td>
+        <td>clip_render only (subtitles embedded into MP4)</td>
+        <td class="num">few KB</td>
+        <td><span class="badge b-s3">post-publish</span></td>
+      </tr>
+      <tr>
+        <td>Postgres rows<br/><code>sources · packages · assets · jobs · dispatches · signals · webhook_events · settings · llm_providers · voice_examples</code></td>
+        <td>Everything</td>
+        <td class="num">~500 KB / pkg</td>
+        <td><span class="badge b-s4">permanent</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout tip">
+    <strong>The duplication insight</strong> Three JSON files on disk (<code>frame_index.json</code>, <code>scene_log.json</code>, <code>transcript.json</code>) are also mirrored into Postgres via the existing <code>packages.intelligence</code> JSONB column. The disk copies are pure duplication — every downstream reader can use the Postgres version. So deleting them at the right pipeline step is genuinely safe.
+  </div>
+</section>
+
+<!-- ─── LIFECYCLE BAR ──────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">Visualised</div>
+  <h2>One video's storage over time.</h2>
+  <p class="sub">Each colour band shows when that artifact is live on disk. The pipeline runs in the first ~3 minutes; the operator reviews in the Studio; eventually the package gets published. The dimmed tails are now real: Stage-1 bands end where <strong>Option A</strong> deletes them, and the "archived off local" tail is the <strong>Option B</strong> <code>archive_package</code> worker doing its move.</p>
+
+  <div class="lifecycle-bar">
+    <svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="dim" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+          <rect width="6" height="6" fill="rgba(255,255,255,0.02)"/>
+          <line x1="0" y1="0" x2="6" y2="6" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <style>
+        .lbl{ fill:#a1a1aa; font:500 11px Inter, sans-serif }
+        .tk{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+        .head{ fill:#f4f4f5; font:600 11px Inter, sans-serif }
+      </style>
+
+      <!-- timeline header (x axis) -->
+      <text class="head" x="240" y="20">Ingest</text>
+      <text class="head" x="370" y="20">Transcribe</text>
+      <text class="head" x="490" y="20">Analyze visual</text>
+      <text class="head" x="610" y="20">Fuse + Intel.</text>
+      <text class="head" x="720" y="20">Review</text>
+      <text class="head" x="820" y="20">Publish</text>
+
+      <!-- vertical step grid -->
+      <g stroke="#232329" stroke-dasharray="2 3">
+        <line x1="240" y1="30" x2="240" y2="340"/>
+        <line x1="370" y1="30" x2="370" y2="340"/>
+        <line x1="490" y1="30" x2="490" y2="340"/>
+        <line x1="610" y1="30" x2="610" y2="340"/>
+        <line x1="720" y1="30" x2="720" y2="340"/>
+        <line x1="820" y1="30" x2="820" y2="340"/>
+      </g>
+
+      <!-- rows -->
+      <!-- original.mp4 — exists from ingest until publish (then archive) -->
+      <text class="lbl" x="10" y="55">original.mp4</text>
+      <rect x="240" y="42" width="580" height="14" fill="#a78bfa" opacity="0.85" rx="2"/>
+      <rect x="820" y="42" width="80" height="14" fill="url(#dim)" stroke="#a78bfa" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- audio.wav — created at ingest, consumed by transcribe -->
+      <text class="lbl" x="10" y="79">audio.wav</text>
+      <rect x="240" y="66" width="130" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- frames_ocr/ — created at analyze_visual start, consumed at end -->
+      <text class="lbl" x="10" y="103">frames_ocr/</text>
+      <rect x="370" y="90" width="120" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- frames_vlm/ — same -->
+      <text class="lbl" x="10" y="127">frames_vlm/</text>
+      <rect x="370" y="114" width="120" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- ocr.json + frame_descriptions.json — produced + consumed in same step -->
+      <text class="lbl" x="10" y="151">ocr.json + frame_descriptions</text>
+      <rect x="430" y="138" width="60" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- frame_index.json — created at analyze_visual end, consumed by fuse -->
+      <text class="lbl" x="10" y="175">frame_index.json</text>
+      <rect x="490" y="162" width="120" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- scene_log.json — created by fuse, consumed by analyze_intelligence -->
+      <text class="lbl" x="10" y="199">scene_log.json</text>
+      <rect x="610" y="186" width="60" height="14" fill="#14b8a6" opacity="0.85" rx="2"/>
+
+      <!-- transcript.json — created at transcribe, used in editor (Shorts word-snap) -->
+      <text class="lbl" x="10" y="223">transcript.json</text>
+      <rect x="370" y="210" width="350" height="14" fill="#f59e0b" opacity="0.85" rx="2"/>
+      <rect x="720" y="210" width="180" height="14" fill="url(#dim)" stroke="#f59e0b" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- thumbs/ — created during pipeline, used by Studio, deletable after publish -->
+      <text class="lbl" x="10" y="247">thumbs/concept_*.jpg</text>
+      <rect x="610" y="234" width="210" height="14" fill="#f59e0b" opacity="0.85" rx="2"/>
+      <rect x="820" y="234" width="80" height="14" fill="url(#dim)" stroke="#f59e0b" stroke-dasharray="2 2" rx="2"/>
+
+      <!-- clips/ — created on Render click (review time), used by dispatch -->
+      <text class="lbl" x="10" y="271">clips/clip_NNN.mp4</text>
+      <rect x="720" y="258" width="180" height="14" fill="#a78bfa" opacity="0.85" rx="2"/>
+
+      <!-- Postgres — forever -->
+      <text class="lbl" x="10" y="295">Postgres rows</text>
+      <rect x="240" y="282" width="660" height="14" fill="#10b981" opacity="0.85" rx="2"/>
+
+      <!-- legend -->
+      <g transform="translate(20,318)">
+        <rect width="14" height="14" fill="#14b8a6" rx="2"/>
+        <text class="tk" x="20" y="11">Stage 1 — pipeline only</text>
+        <rect x="180" width="14" height="14" fill="#f59e0b" rx="2"/>
+        <text class="tk" x="200" y="11">Stage 2 — review-only</text>
+        <rect x="360" width="14" height="14" fill="#a78bfa" rx="2"/>
+        <text class="tk" x="380" y="11">Stage 3 — archive after publish</text>
+        <rect x="560" width="14" height="14" fill="#10b981" rx="2"/>
+        <text class="tk" x="580" y="11">Stage 4 — permanent</text>
+        <rect x="720" width="14" height="14" fill="url(#dim)" stroke="#71717a" stroke-dasharray="2 2" rx="2"/>
+        <text class="tk" x="740" y="11">Archived (off local)</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── THREE OPTIONS COMPARE ──────────────────────────────────────── -->
+<section class="narrow" id="options">
+  <div class="eyebrow">Three cleanup options · two shipped</div>
+  <h2>Same goal, different scope.</h2>
+  <p class="sub">All three are independent — each can stand alone or stack. <strong>A and B shipped</strong> (A was the highest ROI for least effort, so it landed first; B followed). <strong>C is not built yet</strong> — it's the operator-triggered escape hatch we'll add when there's a concrete need to purge a specific package.</p>
+
+  <div class="opts">
+    <div class="opt shipped">
+      <div class="letter">A</div>
+      <h3>Stage 1 inline cleanup <span class="tag tag-shipped">✓ shipped</span></h3>
+      <p>
+        An <code>rm</code> at the success tail of each pipeline worker deletes its single-consumer
+        inputs. No policy, no settings, no DB changes. Future ingests average ~40 MB on disk
+        instead of ~85 MB. Escape hatch: <code>KEEP_PIPELINE_ARTIFACTS=1</code>.
+      </p>
+      <div class="metrics">
+        <div class="metric good">
+          <span class="v">−45 MB</span>
+          <span class="l">per video</span>
+        </div>
+        <div class="metric good">
+          <span class="v">live</span>
+          <span class="l">in production</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt shipped">
+      <div class="letter">B</div>
+      <h3>Post-publish archive job <span class="tag tag-shipped">✓ shipped</span></h3>
+      <p>
+        The <code>archive_package</code> worker (daily cron) moves <code>original.mp4</code> +
+        <code>clips/</code> to an external drive N days after the latest dispatch. Sources stay
+        restorable for re-renders via <code>sources.archive_path</code>. Settings:
+        <code>ARCHIVE_ROOT</code>, <code>ARCHIVE_AFTER_DAYS</code>, <code>ARCHIVE_DELETE_CLIPS</code>.
+      </p>
+      <div class="metrics">
+        <div class="metric good">
+          <span class="v">−45 MB+</span>
+          <span class="l">per archived pkg</span>
+        </div>
+        <div class="metric good">
+          <span class="v">live</span>
+          <span class="l">in production</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt future">
+      <div class="letter">C</div>
+      <h3>Hard delete source video <span class="tag tag-planned">roadmap</span></h3>
+      <p>
+        Not built yet. Operator-triggered: a <code>Delete source video</code> button on the brand
+        or package page. Would remove <code>original.mp4</code> from local + archive; null
+        <code>sources.local_media_path</code> so re-renders refuse with a clean error. Keeps
+        all Postgres history.
+      </p>
+      <div class="metrics">
+        <div class="metric med">
+          <span class="v">−40 MB+</span>
+          <span class="l">per deletion</span>
+        </div>
+        <div class="metric low">
+          <span class="v">~45 min</span>
+          <span class="l">to build</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── OPTION A DETAIL ────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="opt-detail is-shipped">
+    <header>
+      <div class="letter">A</div>
+      <div>
+        <span class="status-line shipped"><span class="ico"></span>SHIPPED · runs on every pipeline run</span>
+        <h3>Stage 1 inline cleanup</h3>
+        <div class="subtitle">Delete each pipeline artifact the moment its sole consumer is done with it.</div>
+      </div>
+    </header>
+
+    <h4>What it does</h4>
+    <p>An <code>rm</code> step on the success path of four workers. Every Stage-1 artifact gets removed seconds after the next pipeline step starts. No future code ever reads those files; Postgres holds whatever data downstream readers actually need. This is live in <code>transcribe_audio.ts</code>, <code>analyze_visual.ts</code>, <code>fuse.ts</code>, and <code>analyze_intelligence.ts</code>.</p>
+
+    <h4>What gets deleted, when</h4>
+    <table class="ref">
+      <thead><tr><th>At the end of…</th><th>Delete</th><th>Saves</th></tr></thead>
+      <tbody>
+        <tr><td><code>transcribe_audio</code></td><td><code>audio.wav</code>, <code>diarization.json</code></td><td class="num">~13 MB</td></tr>
+        <tr><td><code>analyze_visual</code></td><td><code>frames_ocr/</code>, <code>frames_vlm/</code>, <code>frame_manifest_ocr.json</code>, <code>frame_manifest_vlm.json</code>, <code>ocr.json</code>, <code>frame_descriptions.json</code></td><td class="num">~30–55 MB</td></tr>
+        <tr><td><code>fuse</code></td><td><code>frame_index.json</code> (Postgres mirror exists)</td><td class="num">~800 KB</td></tr>
+        <tr><td><code>analyze_intelligence</code></td><td><code>scene_log.json</code> (Postgres mirror exists)</td><td class="num">~730 KB</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Implementation</h4>
+    <pre class="cmd"><span class="c">// workers/kinds/transcribe_audio.ts (tail, after success)</span>
+<span class="k">if</span> (process.env.KEEP_PIPELINE_ARTIFACTS !== <span class="s">'1'</span>) {
+  <span class="k">await</span> rm(audioPath, { force: <span class="k">true</span> });
+  <span class="k">await</span> rm(diarizationPath, { force: <span class="k">true</span> });
+}
+
+<span class="c">// workers/kinds/analyze_visual.ts (tail)</span>
+<span class="k">if</span> (process.env.KEEP_PIPELINE_ARTIFACTS !== <span class="s">'1'</span>) {
+  <span class="k">await</span> Promise.all([
+    rm(framesOcrDir, { recursive: <span class="k">true</span>, force: <span class="k">true</span> }),
+    rm(framesVlmDir, { recursive: <span class="k">true</span>, force: <span class="k">true</span> }),
+    rm(ocrPath, { force: <span class="k">true</span> }),
+    rm(descriptionsPath, { force: <span class="k">true</span> }),
+    rm(ocrManifestPath, { force: <span class="k">true</span> }),
+    rm(vlmManifestPath, { force: <span class="k">true</span> }),
+  ]);
+}</pre>
+
+    <p>Same pattern in <code>fuse.ts</code> and <code>analyze_intelligence.ts</code>. <code>KEEP_PIPELINE_ARTIFACTS=1</code> is the debugging escape hatch — set it when you want to <code>ls frames_vlm/</code> to inspect what the VLM saw.</p>
+
+    <div class="pc">
+      <div class="pc-list pros">
+        <h5>Pros</h5>
+        <ul>
+          <li>Biggest disk saving per video (~50% reduction)</li>
+          <li>No DB changes, no settings, no migration, no policy decision</li>
+          <li>~20 lines of code total across 4 files</li>
+          <li>Easy debugging via env escape hatch</li>
+          <li>Functional impact is zero — every consumer is already done</li>
+        </ul>
+      </div>
+      <div class="pc-list cons">
+        <h5>Cons</h5>
+        <ul>
+          <li>Re-running <code>analyze_visual</code> on the same source has to re-sample frames (~5 s extra)</li>
+          <li>Lose the "ls into the frames folder to see what was sampled" debugging convenience (mitigated by the env flag)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── OPTION B DETAIL ────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="opt-detail is-shipped">
+    <header>
+      <div class="letter">B</div>
+      <div>
+        <span class="status-line shipped"><span class="ico"></span>SHIPPED · daily cron + archive_package worker</span>
+        <h3>Post-publish archive job</h3>
+        <div class="subtitle">Cron-driven worker moves published media to an external drive N days after the latest dispatch.</div>
+      </div>
+    </header>
+
+    <h4>What it does</h4>
+    <p>The worker kind <code>archive_package</code> (<code>workers/kinds/archive_package.ts</code>) runs on a schedule. For each package whose <strong>latest successful dispatch</strong> happened more than <code>ARCHIVE_AFTER_DAYS</code> ago AND that hasn't been archived yet, it sets <code>packages.archived_at</code>. The physical file move (<code>original.mp4</code> + <code>clips/</code> from <code>MEDIA_ROOT</code> to <code>ARCHIVE_ROOT</code>) only fires when this is the <strong>last unarchived package on its source</strong> — then it records the new location in <code>sources.archive_path</code> so any future re-render still resolves. The copy is cross-filesystem-safe: copy → verify size → delete, never a bare <code>rename</code>.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 900 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Archive eligibility and move flow">
+        <defs>
+          <marker id="ar-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker>
+          <marker id="ar-arrg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#10b981"/></marker>
+          <marker id="ar-arrr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a1a1aa"/></marker>
+        </defs>
+        <style>
+          .dx-box{ fill:#16161a; stroke:#2e2e36 }
+          .dx-acc{ fill:#16161a; stroke:#0ea5e9 }
+          .dx-grn{ fill:color-mix(in oklab,#10b981 10%,#16161a); stroke:color-mix(in oklab,#10b981 45%,#2e2e36) }
+          .dx-t{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+          .dx-s{ fill:#a1a1aa; font:11px Inter, sans-serif }
+          .dx-m{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+          .dx-grnt{ fill:#10b981; font:600 11px "JetBrains Mono", monospace }
+        </style>
+
+        <!-- dispatch -->
+        <rect class="dx-box" x="14" y="40" width="150" height="62" rx="8"/>
+        <text class="dx-t" x="89" y="66" text-anchor="middle">Dispatch succeeds</text>
+        <text class="dx-m" x="89" y="84" text-anchor="middle">dispatches.success</text>
+
+        <!-- wait -->
+        <line x1="166" y1="71" x2="208" y2="71" stroke="#0ea5e9" stroke-width="1.6" marker-end="url(#ar-arr)"/>
+        <rect class="dx-acc" x="212" y="36" width="180" height="70" rx="8"/>
+        <text class="dx-t" x="302" y="60" text-anchor="middle">Wait N days</text>
+        <text class="dx-m" x="302" y="78" text-anchor="middle">latest dispatch &lt;</text>
+        <text class="dx-m" x="302" y="92" text-anchor="middle">now() − ARCHIVE_AFTER_DAYS</text>
+
+        <!-- eligible? -->
+        <line x1="394" y1="71" x2="436" y2="71" stroke="#0ea5e9" stroke-width="1.6" marker-end="url(#ar-arr)"/>
+        <rect class="dx-box" x="440" y="40" width="170" height="62" rx="8"/>
+        <text class="dx-t" x="525" y="64" text-anchor="middle">Eligible package</text>
+        <text class="dx-m" x="525" y="82" text-anchor="middle">archived_at IS NULL</text>
+
+        <!-- enqueue / set flag -->
+        <line x1="612" y1="71" x2="654" y2="71" stroke="#10b981" stroke-width="1.6" marker-end="url(#ar-arrg)"/>
+        <rect class="dx-grn" x="658" y="40" width="228" height="62" rx="8"/>
+        <text class="dx-grnt" x="772" y="64" text-anchor="middle">set packages.archived_at</text>
+        <text class="dx-m" x="772" y="82" text-anchor="middle">always — per eligible package</text>
+
+        <!-- branch down to file move -->
+        <line x1="772" y1="102" x2="772" y2="150" stroke="#10b981" stroke-width="1.6" marker-end="url(#ar-arrg)"/>
+        <rect class="dx-grn" x="560" y="152" width="326" height="62" rx="8"/>
+        <text class="dx-grnt" x="723" y="176" text-anchor="middle">MOVE original.mp4 + clips/ → ARCHIVE_ROOT</text>
+        <text class="dx-m" x="723" y="194" text-anchor="middle">only if LAST unarchived package on source · copy→verify→delete</text>
+
+        <!-- sibling case -->
+        <line x1="660" y1="183" x2="540" y2="183" stroke="#a1a1aa" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar-arrr)"/>
+        <rect class="dx-box" x="14" y="152" width="520" height="62" rx="8"/>
+        <text class="dx-s" x="274" y="176" text-anchor="middle">Sibling package still unarchived → flip the flag, keep bytes local</text>
+        <text class="dx-m" x="274" y="194" text-anchor="middle">files stay pinned until the last package on the source is archived</text>
+      </svg>
+      <p class="cap">Eligibility is recomputed by the daily enqueuer; the file move is gated on <em>last-package-wins</em> so a source with several packages keeps its bytes until every package referencing it is archived.</p>
+    </div>
+
+    <h4>Trigger model</h4>
+    <ul style="font-size:13.5px;color:var(--text-muted);padding-left:22px;line-height:1.7">
+      <li><strong>Cadence</strong>: <code>scripts/enqueue-recurring.ts</code> runs daily (cron / launchd). It fans out one <code>archive_package</code> job per eligible package.</li>
+      <li><strong>Eligibility</strong> (the actual query): at least one dispatch with <code>success = true</code>, AND <code>MAX(dispatched_at) &lt; now() - interval '1 day' × ARCHIVE_AFTER_DAYS</code>, AND <code>packages.archived_at IS NULL</code>.</li>
+      <li><strong>Idempotency</strong>: each archive job is keyed <code>archive_package:{packageId}</code>; reruns are no-ops (and the worker itself early-returns when <code>archived_at</code> is already set).</li>
+      <li><strong>External drive offline?</strong> The worker <code>mkdir</code>s the destination first; if that fails it throws, the queue backs off, and the next cycle retries. The source files stay on local until the copy verifies — no data-loss path.</li>
+      <li><strong>ARCHIVE_ROOT unset?</strong> The enqueuer skips archive entirely (feature disabled), and the worker defends against manual enqueues by early-returning.</li>
+    </ul>
+
+    <h4>Settings (live on the /settings page)</h4>
+    <table class="ref">
+      <thead><tr><th>Key</th><th>Purpose</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr><td><code>ARCHIVE_ROOT</code> <span class="badge b-s4">boot-only</span></td><td>Filesystem path to external drive root. Boot-only — workers cache the absolute path at startup.</td><td class="num">unset (disables archiving)</td></tr>
+        <tr><td><code>ARCHIVE_AFTER_DAYS</code></td><td>Days since latest dispatch before a package is eligible</td><td class="num">14</td></tr>
+        <tr><td><code>ARCHIVE_DELETE_CLIPS</code></td><td>Delete rendered clip MP4s instead of moving them (original.mp4 still moves)</td><td class="num">false</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Two DB columns — migration <code>0007_archive_lifecycle.sql</code> (applied)</h4>
+    <pre class="cmd"><span class="k">ALTER TABLE</span> sources  <span class="k">ADD COLUMN</span> archive_path text;
+<span class="k">ALTER TABLE</span> packages <span class="k">ADD COLUMN</span> archived_at timestamptz;
+<span class="c">-- archive_path: clip_render's fallback for re-renders after the source moves</span>
+<span class="c">-- archived_at:  the audit timestamp + the eligibility gate (IS NULL)</span></pre>
+
+    <h4>Last-package-wins: which package triggers the move?</h4>
+    <div class="diagram">
+      <svg viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Last-package-wins decision">
+        <defs>
+          <marker id="lp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a1a1aa"/></marker>
+          <marker id="lp-arrg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#10b981"/></marker>
+        </defs>
+        <style>
+          .lp-src{ fill:color-mix(in oklab,#a78bfa 10%,#16161a); stroke:color-mix(in oklab,#a78bfa 45%,#2e2e36) }
+          .lp-pkg{ fill:#16161a; stroke:#2e2e36 }
+          .lp-pkgA{ fill:color-mix(in oklab,#10b981 12%,#16161a); stroke:color-mix(in oklab,#10b981 50%,#2e2e36) }
+          .lp-diamond{ fill:#16161a; stroke:#0ea5e9 }
+          .lp-grn{ fill:color-mix(in oklab,#10b981 12%,#16161a); stroke:color-mix(in oklab,#10b981 50%,#2e2e36) }
+          .lp-t{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+          .lp-s{ fill:#a1a1aa; font:11px Inter, sans-serif }
+          .lp-m{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+          .lp-grnt{ fill:#10b981; font:600 11px "JetBrains Mono", monospace }
+          .lp-pur{ fill:#a78bfa; font:600 11px "JetBrains Mono", monospace }
+        </style>
+
+        <!-- source with shared media -->
+        <rect class="lp-src" x="14" y="92" width="180" height="78" rx="10"/>
+        <text class="lp-pur" x="104" y="118" text-anchor="middle">src_… media on disk</text>
+        <text class="lp-m" x="104" y="136" text-anchor="middle">original.mp4 + clips/</text>
+        <text class="lp-m" x="104" y="152" text-anchor="middle">shared by N packages</text>
+
+        <!-- packages -->
+        <rect class="lp-pkgA" x="248" y="40" width="190" height="46" rx="8"/>
+        <text class="lp-grnt" x="343" y="61" text-anchor="middle">pkg_A archived ✓</text>
+        <text class="lp-m" x="343" y="76" text-anchor="middle">flag set · bytes kept</text>
+
+        <rect class="lp-pkgA" x="248" y="100" width="190" height="46" rx="8"/>
+        <text class="lp-grnt" x="343" y="121" text-anchor="middle">pkg_B archived ✓</text>
+        <text class="lp-m" x="343" y="136" text-anchor="middle">flag set · bytes kept</text>
+
+        <rect class="lp-pkg" x="248" y="160" width="190" height="46" rx="8"/>
+        <text class="lp-t" x="343" y="181" text-anchor="middle">pkg_C — last one</text>
+        <text class="lp-m" x="343" y="196" text-anchor="middle">now being archived</text>
+
+        <!-- connectors src->pkgs -->
+        <g stroke="#2e2e36" stroke-width="1.2" fill="none">
+          <path d="M194 120 H224 V63 H246" />
+          <path d="M194 124 H236 V123 H246" />
+          <path d="M194 128 H224 V183 H246" />
+        </g>
+
+        <!-- decision diamond -->
+        <line x1="438" y1="183" x2="476" y2="183" stroke="#a1a1aa" stroke-width="1.4" marker-end="url(#lp-arr)"/>
+        <polygon class="lp-diamond" points="560,148 632,183 560,218 488,183"/>
+        <text class="lp-t" x="560" y="180" text-anchor="middle">Any other</text>
+        <text class="lp-t" x="560" y="195" text-anchor="middle">unarchived?</text>
+
+        <!-- NO -> move -->
+        <line x1="632" y1="183" x2="676" y2="183" stroke="#10b981" stroke-width="1.6" marker-end="url(#lp-arrg)"/>
+        <text class="lp-grnt" x="654" y="174" text-anchor="middle">no</text>
+        <rect class="lp-grn" x="680" y="156" width="206" height="54" rx="8"/>
+        <text class="lp-grnt" x="783" y="178" text-anchor="middle">MOVE bytes → ARCHIVE_ROOT</text>
+        <text class="lp-m" x="783" y="194" text-anchor="middle">set sources.archive_path</text>
+
+        <!-- YES -> keep -->
+        <line x1="560" y1="148" x2="560" y2="110" stroke="#a1a1aa" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#lp-arr)"/>
+        <text class="lp-s" x="576" y="128" text-anchor="start">yes</text>
+        <rect class="lp-pkg" x="476" y="60" width="240" height="46" rx="8"/>
+        <text class="lp-s" x="596" y="81" text-anchor="middle">Flip archived_at only</text>
+        <text class="lp-m" x="596" y="96" text-anchor="middle">leave bytes on local disk</text>
+      </svg>
+      <p class="cap">A source can back several packages (re-ingests, multiple profiles). The bytes only leave local once the <em>last</em> package referencing them is archived — until then each archived sibling just flips its own <code>archived_at</code>.</p>
+    </div>
+
+    <div class="pc">
+      <div class="pc-list pros">
+        <h5>Pros</h5>
+        <ul>
+          <li>Real archive workflow with audit trail (<code>archived_at</code>)</li>
+          <li>External drive holds cold-storage backup of published work</li>
+          <li>Re-renders still work as long as the drive is mounted</li>
+          <li>Operator policy is configurable, not hardcoded</li>
+        </ul>
+      </div>
+      <div class="pc-list cons">
+        <h5>Cons</h5>
+        <ul>
+          <li>One DB migration (two new columns, additive — safe)</li>
+          <li>External drive must be mounted at the same path consistently for re-renders to find files</li>
+          <li>If the drive is unmounted, ALL re-renders for archived packages refuse cleanly (operator-visible error)</li>
+          <li>More moving parts to test (cron, eligibility, mount-detection)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── OPTION C DETAIL ────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="opt-detail is-future">
+    <header>
+      <div class="letter" style="background:var(--panel-2);color:var(--faint);border-color:var(--border-strong)">C</div>
+      <div>
+        <span class="status-line future"><span class="ico"></span>NOT BUILT · on the roadmap</span>
+        <h3>Hard delete source video</h3>
+        <div class="subtitle">Operator-triggered button. Would remove the file permanently. Postgres history stays.</div>
+      </div>
+    </header>
+
+    <h4>What it would do</h4>
+    <p>A "Delete source video" button on the package page (or brand-level bulk action). Would remove <code>original.mp4</code> from <code>MEDIA_ROOT</code> (and from <code>ARCHIVE_ROOT</code> now that Option B is live). Nulls <code>sources.local_media_path</code> so re-renders refuse with a friendly error message instead of an ENOENT crash.</p>
+
+    <p>It pairs naturally with the now-shipped Option B: archive after 14 days, then hard-delete operator-triggered when "I genuinely don't need this anymore." We'll build it when there's a concrete need to purge a specific package's source for storage or sensitivity reasons.</p>
+
+    <h4>What stays</h4>
+    <ul style="font-size:13.5px;color:var(--text-muted);padding-left:22px;line-height:1.7">
+      <li>Every Postgres row (audit trail intact)</li>
+      <li>Rendered clips (already published; live URL is the canonical artifact anyway)</li>
+      <li>Transcript + scene_log + analysis (mirrored in Postgres)</li>
+      <li>Thumbnails (already used at publish time)</li>
+    </ul>
+
+    <h4>What's lost forever</h4>
+    <ul style="font-size:13.5px;color:var(--text-muted);padding-left:22px;line-height:1.7">
+      <li>The ability to re-render a Short with different settings (timeline trim, subtitle styling, etc.)</li>
+      <li>The ability to re-run the visual pipeline (better VLM, different OCR settings)</li>
+      <li>The audio for any future re-transcription</li>
+    </ul>
+
+    <h4>UX guards</h4>
+    <p>Confirmation modal listing what stays + what's lost. Refuses if there's a clip currently in <code>pending_render</code> or <code>dispatching</code> state.</p>
+
+    <div class="pc">
+      <div class="pc-list pros">
+        <h5>Pros</h5>
+        <ul>
+          <li>Maximum recovery of disk + archive space</li>
+          <li>Operator-controlled, not automatic</li>
+          <li>Pairs cleanly with Option B (archive first, delete later)</li>
+          <li>Postgres audit trail untouched</li>
+        </ul>
+      </div>
+      <div class="pc-list cons">
+        <h5>Cons</h5>
+        <ul>
+          <li>Irreversible — once deleted, no re-renders ever</li>
+          <li>Needs careful confirmation UX</li>
+          <li>Re-render flow needs to detect + refuse gracefully (a regression test is essential)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── DIFFERENCE GRID ────────────────────────────────────────────── -->
+<section class="narrow" id="compare">
+  <div class="eyebrow">Side by side</div>
+  <h2>How they differ.</h2>
+
+  <table class="scale">
+    <thead>
+      <tr>
+        <th></th>
+        <th>A · Inline cleanup <span class="badge b-s4">shipped</span></th>
+        <th>B · Archive job <span class="badge b-s4">shipped</span></th>
+        <th>C · Hard delete <span class="badge b-s2">roadmap</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>When it runs</strong></td>
+        <td>Automatically, at the end of each pipeline step</td>
+        <td>Daily cron, N days after the latest dispatch</td>
+        <td>Manual, operator clicks the button <em>(future)</em></td>
+      </tr>
+      <tr>
+        <td><strong>What it touches</strong></td>
+        <td>Stage-1 artifacts only (audio.wav, diarization.json, frames, intermediate JSONs)</td>
+        <td>Stage-3 artifacts (original.mp4, clips/) — moved only when last package on the source archives</td>
+        <td>Stage-3 artifacts (original.mp4 + local clips); would pair with B</td>
+      </tr>
+      <tr>
+        <td><strong>Destination</strong></td>
+        <td>Trash — files deleted forever</td>
+        <td>External drive — files moved, restorable</td>
+        <td>Trash — files deleted forever</td>
+      </tr>
+      <tr>
+        <td><strong>Operator control</strong></td>
+        <td>Off via env <code>KEEP_PIPELINE_ARTIFACTS=1</code></td>
+        <td>Per-package via cadence config + ad-hoc trigger</td>
+        <td>Per-package, requires explicit click + confirm</td>
+      </tr>
+      <tr>
+        <td><strong>Database changes</strong></td>
+        <td>None</td>
+        <td>2 new columns (<code>archived_at</code>, <code>archive_path</code>) — migration 0007, applied</td>
+        <td>None (would use existing <code>local_media_path</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Settings keys</strong></td>
+        <td>1 env (<code>KEEP_PIPELINE_ARTIFACTS</code>)</td>
+        <td>3 (<code>ARCHIVE_ROOT</code>, <code>ARCHIVE_AFTER_DAYS</code>, <code>ARCHIVE_DELETE_CLIPS</code>)</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td><strong>Re-render impact</strong></td>
+        <td>Re-running visual pipeline re-samples frames (~5 s extra)</td>
+        <td>Re-render works as long as external drive is mounted</td>
+        <td>Re-render fails cleanly with "source video deleted"</td>
+      </tr>
+      <tr>
+        <td><strong>Disk saved per video</strong></td>
+        <td class="good">~45 MB</td>
+        <td class="good">~45 MB + clip size</td>
+        <td class="good">~40 MB + clip size</td>
+      </tr>
+      <tr>
+        <td><strong>Status</strong></td>
+        <td class="good">✓ shipped</td>
+        <td class="good">✓ shipped</td>
+        <td class="meh">roadmap (~45 min: server action + button + confirm modal)</td>
+      </tr>
+      <tr>
+        <td><strong>Reversibility</strong></td>
+        <td class="bad">Irreversible (but artifacts are derived — re-runnable)</td>
+        <td class="good">Fully reversible (files moved, not deleted)</td>
+        <td class="bad">Irreversible</td>
+      </tr>
+      <tr>
+        <td><strong>Best paired with</strong></td>
+        <td>Always — independent of B/C</td>
+        <td>A (already saved transient files; B handles published files)</td>
+        <td>A + B (post-archive cleanup of selected packages)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ─── SCALE TABLE ────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">What it costs at scale</div>
+  <h2>1, 100, 1,000, 10,000 videos.</h2>
+
+  <table class="scale">
+    <thead>
+      <tr>
+        <th>Videos published</th>
+        <th>Before cleanup</th>
+        <th>Option A <span class="badge b-s4">live</span></th>
+        <th>Option A + B <span class="badge b-s4">live</span> (archive after 14d)</th>
+        <th>+ C delete some <em>(future)</em></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>10</td><td class="num">~1.7 GB</td><td class="num good">~0.9 GB</td><td class="num good">~0.4 GB</td><td class="num good">~0.4 GB</td></tr>
+      <tr><td>100</td><td class="num">~17 GB</td><td class="num good">~9 GB</td><td class="num good">~4 GB local + 13 GB archive</td><td class="num good">~4 GB local + selective archive</td></tr>
+      <tr><td>1,000</td><td class="num">~170 GB</td><td class="num good">~90 GB</td><td class="num good">~40 GB local + 130 GB archive</td><td class="num good">~40 GB local + selective archive</td></tr>
+      <tr><td>10,000</td><td class="num">~1.7 TB</td><td class="num good">~900 GB</td><td class="num good">~400 GB local + 1.3 TB archive</td><td class="num good">~400 GB local + selective archive</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13px;color:var(--text-faint);margin-top:8px">
+    "+ A" rows assume Option A is active on every ingest going forward. "+ A + B" rows show
+    local disk split from the external drive. Postgres footprint stays tiny throughout (~500 KB
+    per package).
+  </p>
+</section>
+
+<!-- ─── RECOMMENDATION ─────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="callout win">
+    <strong>Where this landed</strong>
+    Option A shipped first — biggest win, smallest change, zero policy decisions — and now runs
+    at the tail of every pipeline worker. Option B followed: the <code>archive_package</code>
+    worker plus the daily recurring enqueuer move published media to <code>ARCHIVE_ROOT</code>
+    once a package's latest dispatch is older than <code>ARCHIVE_AFTER_DAYS</code> (default 14).
+    Option C — operator-triggered hard delete — is the remaining piece; we'll add it the moment
+    there's a real need to purge a specific package's source for storage or sensitivity reasons.
+  </div>
+
+  <p style="font-size:14px;color:var(--text-muted);margin-top:20px">
+    All three were designed to be independent. A is self-contained (no dependencies on B or C).
+    B adds the archive system that a future C can leverage. C would also work standalone — it
+    would just delete from MEDIA_ROOT directly when there's no ARCHIVE_ROOT configured.
+  </p>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · storage lifecycle · A + B shipped · 2026-05-28</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/handbook.html" style="color:var(--muted)">handbook</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/visual-optimization-analysis.html" style="color:var(--muted)">visual optimization</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

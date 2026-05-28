@@ -21,7 +21,7 @@ When the contract and this file disagree, the contract wins. Update this file ra
 - **ORM:** Drizzle ORM with `drizzle-kit` migrations. Schema lives at `src/db/schema.ts` and mirrors §4 of the contract exactly.
 - **DB driver:** `pg` (node-postgres) under Drizzle; also used directly by the queue layer.
 - **Job queue:** Custom thin queue (~150 lines) at `workers/queue.ts` using `SELECT FOR UPDATE SKIP LOCKED` from §6.1 verbatim. NOT Graphile Worker, NOT BullMQ, NOT Redis.
-- **Workers:** Node processes via `tsx workers/runner.ts --kinds X`, one process per kind set, managed by `launchd` per Mac.
+- **Workers:** Node processes via `tsx workers/runner.ts --kinds X --concurrency N`, one process per kind set, managed by `launchd` per Mac. Default concurrency is 3 — each slot is an independent claim→run→ack loop; SKIP LOCKED in the queue is the only mutex (no in-process locking). LLM-bound kinds (generate_asset, analyze_intelligence) benefit most. Tune via `WORKER_CONCURRENCY` env var or the `--concurrency` flag.
 - **UI components:** shadcn/ui + Tailwind.
 - **Validation:** Zod schemas, shared between API routes and workers.
 - **LLM client:** Pluggable provider abstraction in `workers/integrations/llm/` (modeled on DojoClaw's `src/lib/llm`). Providers are configured in the `llm_providers` table (managed at `/providers`) — `openai-compatible` (OpenAI, OpenRouter, Ollama, LM Studio, OpenClaw) and `anthropic` (Messages API). `complete()` in `workers/integrations/lm_studio.ts` resolves a provider via `getProvider(profile)` (purpose-match → default → env fallback) and calls it over `fetch`. When the table is empty it auto-seeds an LM Studio provider from `LM_STUDIO_*`/`OPENCLAW_BASE_URL` env, so the prior env-only behavior still works with zero config. (This supersedes the original "use the `openai` npm package" note — the operator asked for DojoClaw-style multi-provider support.)
@@ -68,20 +68,26 @@ channelhelm/
 ├── drizzle.config.ts
 ├── next.config.mjs
 ├── docs/
-│   └── channelhelm-technical-contract-v1.md
+│   ├── channelhelm-technical-contract-v1.md
+│   └── settings.md                     ← runtime settings architecture (DB→env + pg_notify)
 ├── src/
 │   ├── app/                            ← Next.js App Router
 │   │   ├── page.tsx                    ← dashboard root
+│   │   ├── settings/page.tsx           ← editable runtime settings (banners + per-row save)
 │   │   ├── packages/[id]/page.tsx
 │   │   └── api/
 │   │       ├── brands/route.ts
 │   │       ├── sources/route.ts
 │   │       ├── packages/route.ts
 │   │       ├── assets/[id]/route.ts
+│   │       ├── settings/route.ts       ← GET/PUT (DojoClaw mask-placeholder pattern)
 │   │       └── webhooks/
 │   │           ├── zernio/route.ts
 │   │           └── dojoclaw/route.ts
 │   ├── components/                     ← React Server + Client components
+│   │   ├── settings/SettingsEditor.tsx ← client editor (mask, toggles, per-row save)
+│   │   ├── ui/Modal.tsx                ← portal-based modal primitive (Escape + scroll lock)
+│   │   └── studio/shorts/              ← per-Short editor (ShortsList · ShortsEditor · Timeline · TranscriptPanel · SubtitleStylePanel · PreviewPlayer · ClipPublishOptions)
 │   ├── db/
 │   │   ├── schema.ts                   ← Drizzle schema, mirrors §4
 │   │   ├── client.ts                   ← Drizzle DB client
@@ -89,7 +95,11 @@ channelhelm/
 │   ├── lib/
 │   │   ├── schemas.ts                  ← shared Zod schemas
 │   │   ├── ids.ts                      ← ULID helpers
-│   │   └── auth.ts                     ← local bearer-token auth
+│   │   ├── auth.ts                     ← local bearer-token auth
+│   │   ├── secret-box.ts               ← AES-256-GCM for at-rest secrets
+│   │   ├── settings.ts                 ← runtime settings catalogue, hydration, LISTEN, writes
+│   │   ├── word-snap.ts                ← word-boundary snap helpers for Shorts editor
+│   │   └── ass-subtitles.ts            ← ASS subtitle file emitter (6 animation styles)
 │   └── server-actions/                 ← Next.js Server Actions
 ├── workers/
 │   ├── runner.ts                       ← claim → dispatch → ack loop entry point
@@ -103,7 +113,8 @@ channelhelm/
 │   │   ├── generate_asset.ts
 │   │   ├── clip_render.ts
 │   │   ├── dispatch.ts
-│   │   └── collect_signal.ts
+│   │   ├── collect_signal.ts
+│   │   └── archive_package.ts          ← Option B / storage lifecycle: post-publish move to ARCHIVE_ROOT
 │   └── integrations/
 │       ├── ml_subprocess.ts            ← spawn helper for ml/*.py
 │       ├── lm_studio.ts                ← openai client wrapper
@@ -141,6 +152,12 @@ Place new files according to this layout. Do not invent new top-level directorie
 - **Zod schemas:** authoritative for asset payload shapes. Drizzle JSONB columns are typed as Zod-inferred TS types via Drizzle's `$type<>()`.
 - **Worker structure:** one TS file per kind under `workers/kinds/`. Each exports a single `run(job: Job): Promise<void>` function. The runner dispatches by kind.
 - **Subprocess invocation:** always through `workers/integrations/ml_subprocess.ts` (for Python), `ffmpeg.ts`, `ytdlp.ts` (for system tools). Direct `child_process.spawn` elsewhere is forbidden.
+- **Runtime settings:** every consumer keeps reading `process.env.X` as before. The `settings` table (DB-backed) hydrates into `process.env` two different ways: workers call `loadSettingsIntoEnv()` + `subscribeSettingsChanges()` at boot in `workers/runner.ts` (full LISTEN-driven live propagation). The Next.js side uses **lazy** `ensureHydrated()` called from `/api/settings` GET and from `setSetting()` — Turbopack's instrumentation bundling won't tolerate the `pg` + `dotenv` import chain, so there's no `src/instrumentation.ts`. Cross-process propagation is via `pg_notify('chs_settings', key)`; the LISTENing worker side picks up changes from the Next.js side and vice-versa. Writes go ONLY through `setSetting(key, value)` in `src/lib/settings.ts` — never INSERT into `settings` directly. New runtime-editable env keys MUST be added to `SETTINGS_CATALOGUE` in `src/lib/settings.ts`; boot-only keys (`DATABASE_URL`, `MEDIA_ROOT`, `LOCAL_BEARER_TOKEN`, `PROVIDER_SECRET_KEY`) carry `bootOnly: true` and stay read-only in the UI. See `docs/settings.md`.
+- **LLM providers** are NOT settings — they live in the `llm_providers` table edited at `/providers` (DojoClaw-style provider editor with at-rest key encryption, per-purpose routing).
+- **Visual phase sampling:** the `analyze_visual` worker uses two independent sample passes. OCR samples densely (fps in `OCR_FPS_BY_PROFILE` — 0.5 for `standard_audio_visual`, 1 for `premium_multimodal`) at full source resolution. VLM samples sparsely at scene-cut timestamps via `pickVlmTimestamps()` + at most one frame per 30 s of static gap, downscaled to 768 px long-axis. Both subprocesses run in `Promise.all`. Per-frame VLM cost dominates; this combination is ~12–14× faster than the original dense-fps-1 approach on a typical 8-min video.
+- **Worker concurrency safety:** the queue's `SELECT FOR UPDATE SKIP LOCKED` is the only mutex. When parallelising more workers, keep handlers per-asset (or per-row) idempotent — e.g. `markReadyForReviewIfComplete` and `recomputePackageDispatchState` are safe to call from N concurrent generate_asset/dispatch slots because they're status-update-only and the final state is deterministic.
+- **Shorts editor:** the `short_clip_plan` asset is the EDITABLE source of truth for per-clip metadata (title/description/tags/trim/styling/publish_options). The `rendered_short_clip` asset is a build output — `clip_render` UPSERTs it keyed by `(plan_asset_id, clip_index)` and copies the plan's editorial fields into the rendered payload. Re-renders bump `render_rev` and re-use the same asset id (so dispatches/publish history stay bound). Word-snap (`src/lib/word-snap.ts`) runs both client-side (Timeline) and server-side (clip_render defensive snap) — never trim mid-word. ASS subtitle emission (`src/lib/ass-subtitles.ts`) replaces VTT when the operator picks a `styling` block; 6 animations supported (Word Highlight, Pop, Single Word, Typewriter, Motion, Banner). Operator edits the plan; the worker rebuilds the file. NEVER persist operator edits on `rendered_short_clip` — they'd be lost on re-render.
+- **Storage lifecycle (Options A + B):** Stage-1 pipeline artifacts (`audio.wav`, `frames_ocr/`, `frames_vlm/`, `ocr.json`, `frame_descriptions.json`, `frame_manifest_*.json`, `frame_index.json`, `scene_log.json`) are deleted at the tail of each producing worker. The escape hatch is `KEEP_PIPELINE_ARTIFACTS=1` (debugging only — keeps the WAV, frames, and intermediate JSONs on disk). Stage-3 (`original.mp4` + `clips/`) is moved to `ARCHIVE_ROOT` by the `archive_package` worker, fanned out by `scripts/enqueue-recurring.ts` once a package's latest successful dispatch is older than `ARCHIVE_AFTER_DAYS` (default 14) AND `packages.archived_at IS NULL`. Per source, the file move only happens when the LAST unarchived package on that source is being archived (sibling packages keep the bytes pinned). `clip_render` reads `original.mp4` from `source.archive_path` as a fallback when the local copy is gone, but always writes the rendered MP4 to the LOCAL `clipsDir` so dispatch's `mediaUrlFor` (MEDIA_ROOT-relative) keeps resolving. `ARCHIVE_ROOT` is bootOnly; `ARCHIVE_AFTER_DAYS` + `ARCHIVE_DELETE_CLIPS` are runtime-editable via /settings. Setting `ARCHIVE_ROOT` to empty disables the feature entirely (recurring enqueuer no-ops the archive block). See `public/storage-lifecycle.html` for the operator-facing rationale.
 
 ## Naming conventions
 

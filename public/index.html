@@ -177,6 +177,35 @@
   /* Score / status mini */
   .score { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border-radius: 4px; color: var(--accent); background: var(--accent-soft); }
 
+  /* Pipeline flow connector (overlaid on the strip) */
+  .pipeline { position: relative; }
+  .pipeline-flow {
+    position: absolute; left: 0; right: 0; top: 38px; height: 16px;
+    pointer-events: none; z-index: 1; opacity: .85;
+  }
+  @media (max-width: 560px) { .pipeline-flow { display: none; } }
+
+  /* Docs hub */
+  .docs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .doc-card {
+    display: block; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px; transition: border-color .14s, transform .14s, background .14s;
+  }
+  .doc-card:hover { border-color: var(--border-strong); transform: translateY(-2px); background: var(--bg-elev-2); }
+  .doc-card .doc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .doc-card .doc-ico {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+    color: var(--accent); background: var(--accent-soft);
+    border: 1px solid color-mix(in oklab, var(--accent) 28%, transparent);
+  }
+  .doc-card h3 { margin: 0; font-size: 14.5px; color: var(--text); }
+  .doc-card p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+  .doc-card .doc-go { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); margin-left: auto; }
+  .doc-card:hover .doc-go { color: var(--accent); }
+  @media (max-width: 820px) { .docs-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .docs-grid { grid-template-columns: 1fr; } }
+
   /* Steps */
   .steps { counter-reset: step; display: grid; gap: 14px; }
   .step-row { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
@@ -228,6 +257,7 @@
       <a href="#assets">What you get</a>
       <a href="#studio">The Studio</a>
       <a href="#features">Features</a>
+      <a href="#docs">Docs</a>
       <a class="btn btn-primary" href="#start">Get started</a>
     </nav>
   </div>
@@ -245,6 +275,18 @@
   <div class="hero-meta mono">no cloud SaaS · your media never leaves your machine</div>
 
   <div class="pipeline">
+    <svg class="pipeline-flow" viewBox="0 0 880 16" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <marker id="pf-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+      </defs>
+      <g stroke="#0ea5e9" stroke-width="1.5" fill="none" opacity="0.7">
+        <path d="M204 8 H214" marker-end="url(#pf-arr)"/>
+        <path d="M424 8 H434" marker-end="url(#pf-arr)"/>
+        <path d="M644 8 H654" marker-end="url(#pf-arr)"/>
+      </g>
+    </svg>
     <div class="layer"><span class="step">01</span><span class="glyph">♬</span><h4>Audio</h4><p>Transcription + speaker diarization with word-level timing.</p></div>
     <div class="layer"><span class="step">02</span><span class="glyph">▦</span><h4>Visual</h4><p>Scene cuts, frame descriptions, and on-screen text (OCR).</p></div>
     <div class="layer"><span class="step">03</span><span class="glyph">⌘</span><h4>Fusion</h4><p>Audio + visual aligned into one timestamped scene log.</p></div>
@@ -302,8 +344,9 @@
       <h4>✂ Clips &amp; Shorts</h4>
       <ul>
         <li>Short-clip plans cut from the highest-retention moments</li>
-        <li>Rendered vertical clips, ready to post</li>
-        <li>Long-form highlight cuts</li>
+        <li>A full Shorts editor: word-snap trim, captions, 6 animated subtitle styles</li>
+        <li>Live subtitle preview — style without re-rendering</li>
+        <li>Rendered vertical clips with auto-written descriptions, ready to post</li>
       </ul>
     </div>
     <div class="asset-group">
@@ -386,6 +429,53 @@
     <div class="card"><span class="ico">🔌</span><h3>Bring your own model</h3><p>Configurable LLM providers: OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, or the local Codex CLI — per task or as a default.</p></div>
     <div class="card"><span class="ico">⚡</span><h3>Pipeline you can see</h3><p>A four-layer progress indicator shows exactly what's done and what's still generating. Partially-ready is a first-class state.</p></div>
     <div class="card"><span class="ico">🧾</span><h3>Provenance on everything</h3><p>Every generated asset records the model, provider, prompt version, and inputs that produced it. Nothing is a black box.</p></div>
+  </div>
+</section>
+
+<!-- Docs / Learn -->
+<section id="docs" class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">Docs &amp; deep dives</span>
+    <h2>Read how it actually works.</h2>
+    <p>Every part of ChannelHelm is documented — the pipeline, the publishing options, and the engineering decisions behind them.</p>
+  </div>
+  <div class="docs-grid">
+    <a class="doc-card" href="/how-it-works.html">
+      <div class="doc-top"><span class="doc-ico">✦</span><h3>How it works</h3><span class="doc-go">→</span></div>
+      <p>The whole system in diagrams: the four-layer pipeline, video flow, and dispatch routing.</p>
+    </a>
+    <a class="doc-card" href="/handbook.html">
+      <div class="doc-top"><span class="doc-ico">📖</span><h3>Handbook</h3><span class="doc-go">→</span></div>
+      <p>The complete operator manual — every screen, asset type, and workflow end to end.</p>
+    </a>
+    <a class="doc-card" href="/setup-guide.html">
+      <div class="doc-top"><span class="doc-ico">⚙</span><h3>Setup guide</h3><span class="doc-go">→</span></div>
+      <p>Install on your Mac fleet: Postgres, workers, Python ML CLIs, and launchd.</p>
+    </a>
+    <a class="doc-card" href="/shorts-editor-guide.html">
+      <div class="doc-top"><span class="doc-ico">✂</span><h3>Shorts editor</h3><span class="doc-go">→</span></div>
+      <p>Word-snap trimming, six animated subtitle styles, live preview, and per-clip publishing.</p>
+    </a>
+    <a class="doc-card" href="/llm-routing.html">
+      <div class="doc-top"><span class="doc-ico">🔌</span><h3>LLM routing</h3><span class="doc-go">→</span></div>
+      <p>Bring your own model: per-purpose provider routing, presets, and at-rest key encryption.</p>
+    </a>
+    <a class="doc-card" href="/youtube-publish-options.html">
+      <div class="doc-top"><span class="doc-ico">▶</span><h3>YouTube publishing</h3><span class="doc-go">→</span></div>
+      <p>Direct upload with per-brand OAuth, privacy defaults, and metadata mapping.</p>
+    </a>
+    <a class="doc-card" href="/worker-concurrency.html">
+      <div class="doc-top"><span class="doc-ico">⌘</span><h3>Worker concurrency</h3><span class="doc-go">→</span></div>
+      <p>The SKIP LOCKED queue and why N concurrent slots finish a package ~3× faster.</p>
+    </a>
+    <a class="doc-card" href="/visual-optimization-analysis.html">
+      <div class="doc-top"><span class="doc-ico">▦</span><h3>Visual optimization</h3><span class="doc-go">→</span></div>
+      <p>Scene-cut VLM sampling and downscaling that made the visual phase ~10–14× faster.</p>
+    </a>
+    <a class="doc-card" href="/storage-lifecycle.html">
+      <div class="doc-top"><span class="doc-ico">🗄</span><h3>Storage lifecycle</h3><span class="doc-go">→</span></div>
+      <p>What's temporary, what's archivable, what's forever — plus the cleanup options.</p>
+    </a>
   </div>
 </section>
 

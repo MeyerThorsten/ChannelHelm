@@ -98,9 +98,14 @@ export async function sampleFrames(opts: {
   outputDir: string;
   fps?: number;
   jpegQuality?: number;
+  /** Optional long-axis cap in pixels. e.g. 768 to downsize 1080p frames for the VLM. */
+  maxDimension?: number;
 }): Promise<{ timestamp: number; path: string }[]> {
   const fps = opts.fps ?? 1;
   await mkdir(opts.outputDir, { recursive: true });
+  const scale = opts.maxDimension
+    ? `,scale='if(gt(iw,ih),${opts.maxDimension},-2)':'if(gt(ih,iw),${opts.maxDimension},-2)'`
+    : '';
   await runProc(
     'ffmpeg',
     [
@@ -108,7 +113,7 @@ export async function sampleFrames(opts: {
       '-i',
       opts.inputPath,
       '-vf',
-      `fps=${fps}`,
+      `fps=${fps}${scale}`,
       '-q:v',
       String(opts.jpegQuality ?? 3),
       join(opts.outputDir, 'frame_%06d.jpg'),
@@ -121,6 +126,60 @@ export async function sampleFrames(opts: {
     // ffmpeg's fps filter outputs frame N at t = N / fps (frame_000001 → t=0,
     // frame_000002 → t=1/fps, …).
     timestamp: i / fps,
+    path: join(opts.outputDir, file),
+  }));
+}
+
+/**
+ * Extract frames at a specific list of timestamps in a single ffmpeg pass.
+ *
+ * Uses the `select` filter with `between(t, ts-ε, ts+ε)` windows OR'd
+ * together — one ffmpeg invocation, one process startup, regardless of how
+ * many timestamps. Pairs with `sampleFrames` (dense, for OCR) when you
+ * want a sparse, scene-aligned second pass (for the VLM).
+ *
+ * Timestamps within ~0.1 s of each other will land on the same source
+ * frame; dedupe upstream if you don't want that.
+ */
+export async function sampleFramesAtTimestamps(opts: {
+  inputPath: string;
+  outputDir: string;
+  timestamps: number[];
+  maxDimension?: number;
+  jpegQuality?: number;
+}): Promise<{ timestamp: number; path: string }[]> {
+  await mkdir(opts.outputDir, { recursive: true });
+  if (opts.timestamps.length === 0) return [];
+  const window = 0.05; // ±50 ms — wide enough for 30 fps source, narrow enough to dedupe
+  const selectExpr = opts.timestamps
+    .map((t) => `between(t\\,${(t - window).toFixed(3)}\\,${(t + window).toFixed(3)})`)
+    .join('+');
+  const scale = opts.maxDimension
+    ? `,scale='if(gt(iw,ih),${opts.maxDimension},-2)':'if(gt(ih,iw),${opts.maxDimension},-2)'`
+    : '';
+  await runProc(
+    'ffmpeg',
+    [
+      '-y',
+      '-i',
+      opts.inputPath,
+      '-vf',
+      `select='${selectExpr}'${scale}`,
+      '-vsync',
+      'vfr',
+      '-q:v',
+      String(opts.jpegQuality ?? 3),
+      join(opts.outputDir, 'frame_%06d.jpg'),
+    ],
+    { logCommand: true },
+  );
+
+  const files = (await readdir(opts.outputDir)).filter((f) => /^frame_\d+\.jpg$/.test(f)).sort();
+  // ffmpeg writes one frame per matched timestamp in source order. The input
+  // timestamps array is sorted by `pickVlmTimestamps` upstream, so pairing
+  // by index is correct.
+  return files.map((file, i) => ({
+    timestamp: opts.timestamps[i] ?? 0,
     path: join(opts.outputDir, file),
   }));
 }
@@ -174,7 +233,15 @@ export async function renderVerticalClip(opts: {
   width?: number;
   height?: number;
   crop?: 'center-crop' | 'pillarbox';
+  /** Plain VTT burn-in (no styling). Pass exactly one of subtitleVttPath / subtitleAssPath. */
   subtitleVttPath?: string;
+  /**
+   * ASS (Advanced SubStation Alpha) subtitle file with full styling +
+   * inline animation tags. Use this when the operator has set a
+   * `styling` block on the clip (font / animation / colour / position).
+   * Emitted by `src/lib/ass-subtitles.ts`.
+   */
+  subtitleAssPath?: string;
 }): Promise<void> {
   const width = opts.width ?? 1080;
   const height = opts.height ?? 1920;
@@ -188,9 +255,11 @@ export async function renderVerticalClip(opts: {
       ? `scale=${width}:-2,pad=${width}:${height}:0:(oh-ih)/2:color=black`
       : `scale=-2:${height},crop=${width}:${height}`;
 
-  const vf = opts.subtitleVttPath
-    ? `${baseScale},subtitles=${escapeFilterPath(opts.subtitleVttPath)}`
-    : baseScale;
+  // Subtitle path — ASS takes precedence over VTT when both are set (so
+  // callers can fall back gracefully). ffmpeg's `subtitles=` filter
+  // accepts either; the file extension drives which parser libass uses.
+  const subPath = opts.subtitleAssPath ?? opts.subtitleVttPath;
+  const vf = subPath ? `${baseScale},subtitles=${escapeFilterPath(subPath)}` : baseScale;
 
   await runProc(
     'ffmpeg',

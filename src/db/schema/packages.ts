@@ -25,6 +25,12 @@ export const packages = pgTable(
     routing: jsonb('routing').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     approvedBy: text('approved_by'),
+    // Storage lifecycle (Option B): set by the archive_package worker once
+    // the source MP4 + rendered clips have been moved out of MEDIA_ROOT to
+    // ARCHIVE_ROOT. Null = still local. The recurring enqueuer uses
+    // `archived_at IS NULL AND last_dispatch < now() - ARCHIVE_AFTER_DAYS`
+    // as the eligibility predicate.
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

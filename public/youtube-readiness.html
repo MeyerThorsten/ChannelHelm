@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Can I post this to YouTube? — pkg_01KSHR025HW9EXD2VN094Y6TDP</title>
+<meta name="description" content="YouTube readiness check for the Quiet CPU Coolers package — which assets are present, where they sit in the status enum, and the one switch that ships it via the Direct Data API." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --yt: #ff0033;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --teal: #14b8a6;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .serif{font-family:var(--font-serif)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(38px,5.6vw,60px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:780px;margin:0}
+
+  section{padding:40px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(24px,3.2vw,32px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.15;
+  }
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px}
+  code{ background:var(--bg); padding:1px 6px; border-radius:3px; font-size:.92em; color:var(--text); font-family:var(--font-mono) }
+
+  /* Verdict block */
+  .verdict{
+    display:grid;grid-template-columns:130px 1fr;gap:24px;align-items:center;
+    padding:28px;border-radius:14px;
+    background:linear-gradient(180deg, color-mix(in oklab, var(--green) 12%, var(--panel)) 0%, var(--panel) 100%);
+    border:1px solid color-mix(in oklab, var(--green) 30%, var(--border));
+  }
+  .verdict .badge{
+    width:110px;height:110px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle, color-mix(in oklab,var(--green) 30%, transparent) 0%, transparent 70%);
+    border:2px solid color-mix(in oklab,var(--green) 60%, transparent);
+    color:var(--green);font-family:var(--font-serif);font-size:42px;font-weight:400;
+  }
+  .verdict h2{margin:0 0 6px}
+  .verdict p{margin:0;color:var(--muted)}
+  .verdict .yes{color:var(--green)}
+  .verdict .no{color:var(--amber)}
+
+  /* Gauge / bar diagram frame */
+  .gfx{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;
+    padding:18px;margin:16px 0;
+  }
+  .gfx svg{display:block;width:100%;height:auto}
+  .gfx .cap{margin:10px 2px 0;font-size:12px;color:var(--faint)}
+
+  /* Snapshot cards */
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;
+  }
+  .card h3{margin:0 0 6px;font-size:14px;font-weight:600}
+  .card .v{font-size:13px;color:var(--muted);font-family:var(--font-mono);word-break:break-all}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;
+    font-size:11px;font-weight:500;border:1px solid;font-family:var(--font-sans);
+  }
+  .pill .dot{width:6px;height:6px;border-radius:999px}
+  .p-ready{color:var(--amber);background:color-mix(in oklab,var(--amber) 14%,transparent);border-color:color-mix(in oklab,var(--amber) 30%,transparent)}
+  .p-ready .dot{background:var(--amber)}
+  .p-ok{color:var(--green);background:color-mix(in oklab,var(--green) 14%,transparent);border-color:color-mix(in oklab,var(--green) 30%,transparent)}
+  .p-ok .dot{background:var(--green)}
+  .p-no{color:var(--red);background:color-mix(in oklab,var(--red) 14%,transparent);border-color:color-mix(in oklab,var(--red) 30%,transparent)}
+  .p-no .dot{background:var(--red)}
+  .p-set{color:var(--purple);background:color-mix(in oklab,var(--purple) 14%,transparent);border-color:color-mix(in oklab,var(--purple) 30%,transparent)}
+  .p-set .dot{background:var(--purple)}
+
+  /* Paths comparison */
+  .paths{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .path{
+    padding:18px;border-radius:12px;background:var(--panel);border:1px solid var(--border);
+  }
+  .path.ok{border-color:color-mix(in oklab,var(--green) 35%,var(--border))}
+  .path.alt{border-color:color-mix(in oklab,var(--purple) 30%,var(--border))}
+  .path.fb{border-color:var(--border-strong)}
+  .path h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .path .tag{
+    font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.05em;
+    padding:2px 7px;border-radius:4px;
+  }
+  .path.ok .tag{background:color-mix(in oklab,var(--green) 18%,transparent);color:var(--green);border:1px solid color-mix(in oklab,var(--green) 30%,transparent)}
+  .path.alt .tag{background:color-mix(in oklab,var(--purple) 18%,transparent);color:var(--purple);border:1px solid color-mix(in oklab,var(--purple) 30%,transparent)}
+  .path.fb .tag{background:var(--panel-2);color:var(--muted);border:1px solid var(--border-strong)}
+  .path p{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+  .path ul{margin:8px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}
+  .path li{margin:2px 0}
+
+  /* YouTube Studio mockup */
+  .ytstudio{
+    background:#0b0b0c;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  }
+  .ytstudio .head{
+    padding:14px 18px;background:#161616;border-bottom:1px solid #2a2a2a;
+    display:flex;align-items:center;gap:10px;
+  }
+  .ytstudio .head .yt-mark{
+    width:26px;height:18px;background:var(--yt);border-radius:5px;
+    display:inline-flex;align-items:center;justify-content:center;
+    color:white;font-size:10px;font-weight:700;
+  }
+  .ytstudio .head .title{font-size:13px;color:#bbb}
+  .ytstudio .body{padding:18px;display:flex;flex-direction:column;gap:14px}
+  .yt-field{display:flex;flex-direction:column;gap:6px}
+  .yt-field label{
+    font-size:11px;color:#999;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;
+  }
+  .yt-input{
+    padding:10px 12px;background:#0f0f10;border:1px solid #2a2a2a;border-radius:6px;
+    font-size:14px;color:#f4f4f5;font-family:var(--font-sans);
+  }
+  .yt-input.area{min-height:120px;white-space:pre-wrap;font-size:13px;line-height:1.55}
+  .yt-tags{display:flex;flex-wrap:wrap;gap:5px;padding:8px;background:#0f0f10;border:1px solid #2a2a2a;border-radius:6px}
+  .yt-tag{
+    padding:2px 8px;background:#2a2a2a;color:#ddd;font-size:12px;border-radius:4px;
+  }
+  .yt-chap{
+    padding:8px 10px;background:#0f0f10;border:1px solid #2a2a2a;border-radius:6px;
+    font-family:var(--font-mono);font-size:12px;color:#ddd;line-height:1.7;
+  }
+  .copy-tag{
+    margin-left:8px;font-size:10px;font-family:var(--font-mono);color:var(--accent);
+    padding:2px 7px;border-radius:4px;border:1px solid color-mix(in oklab,var(--accent) 40%, transparent);
+    background:color-mix(in oklab,var(--accent) 10%, transparent);
+  }
+
+  /* Steps */
+  .steps{counter-reset:s;display:grid;gap:10px}
+  .step{
+    counter-increment:s;display:grid;grid-template-columns:32px 1fr;gap:12px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;
+  }
+  .step::before{
+    content:counter(s);
+    width:28px;height:28px;border-radius:8px;
+    background:var(--accent-soft);color:var(--accent);
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:600;font-size:13px;
+  }
+  .step h3{margin:0 0 4px;font-size:14px}
+  .step p{margin:0;font-size:13.5px;color:var(--muted)}
+  .step .mono{color:var(--faint);font-size:11.5px;font-family:var(--font-mono);word-break:break-all}
+
+  /* Issues */
+  .issue{
+    padding:14px 16px;background:color-mix(in oklab,var(--amber) 7%, var(--panel));
+    border:1px solid color-mix(in oklab,var(--amber) 28%, var(--border));
+    border-radius:10px;
+  }
+  .issue h3{margin:0 0 6px;font-size:14px;color:var(--amber);display:flex;align-items:center;gap:8px}
+  .issue p{margin:0 0 6px;font-size:13px;color:var(--muted)}
+  .issue code{background:var(--bg);padding:1px 5px;border-radius:3px;font-size:12px;color:var(--text)}
+
+  /* Title rank */
+  .title-row{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;
+    background:var(--bg);border:1px solid var(--border);border-radius:7px;
+    font-size:13px;
+  }
+  .title-row .score{
+    min-width:36px;padding:2px 7px;font-family:var(--font-mono);font-size:11px;font-weight:600;
+    border-radius:4px;text-align:center;
+    background:var(--panel-2);color:var(--muted);
+  }
+  .title-row.top .score{background:color-mix(in oklab,var(--green) 18%, transparent);color:var(--green)}
+
+  footer{border-top:1px solid var(--border);padding:28px 0;color:var(--faint);font-size:13px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width: 820px){
+    .g3,.g2{grid-template-columns:1fr 1fr}
+    .paths{grid-template-columns:1fr}
+    .verdict{grid-template-columns:1fr;text-align:center}
+    .verdict .badge{margin:0 auto}
+    .nav-links a:not(.btn){display:none}
+  }
+  @media (max-width: 540px){
+    .g3,.g2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#gauge">Readiness</a>
+    <a href="#completeness">Assets</a>
+    <a href="#paths">Ship it</a>
+    <a href="/youtube-publish-options.html">Publish options</a>
+    <a href="/packages/pkg_01KSHR025HW9EXD2VN094Y6TDP">Open in Studio</a>
+    <a href="/settings">Settings</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <div class="eyebrow">YouTube readiness · pkg_01KSHR025HW9EXD2VN094Y6TDP</div>
+  <h1>Can I post this to YouTube? <em>Yes — and it can upload itself.</em></h1>
+  <p class="lede">
+    Every YouTube field for the <strong>Quiet CPU Coolers</strong> package is drafted and sitting at
+    <code>ready_for_review</code>. Content readiness is complete. The only question left is the
+    <em>route</em>: ChannelHelm can now push the video for you via the <strong>Direct YouTube Data API</strong>
+    (once the brand is connected), hand Shorts to <strong>Zernio</strong>, or you can paste fields into
+    YouTube Studio by hand. This page maps each asset to its status and shows the one switch that ships it.
+  </p>
+</section>
+
+<!-- VERDICT -->
+<section class="wrap">
+  <div class="verdict">
+    <div class="badge">▶</div>
+    <div>
+      <h2>The verdict</h2>
+      <p>
+        <span class="yes">✓ All YouTube content is generated and approval-ready.</span><br/>
+        <span class="yes">✓ Direct upload is built</span> — connect the brand&apos;s YouTube OAuth and set <code>youtube_dispatch_target='youtube_direct'</code> to auto-publish.<br/>
+        <span class="no">→ Not yet connected on this brand:</span> until then, approving routes to <code>manual</code> (you paste into Studio).
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- READINESS GAUGE -->
+<section class="wrap" id="gauge">
+  <div class="eyebrow">Readiness at a glance</div>
+  <h2>Content: ready. Route: one switch away.</h2>
+  <p class="sub">The gauge scores two independent dimensions. <strong>Content readiness</strong> (are all the required assets present?) is at 100%. <strong>Dispatch readiness</strong> (is an automated route configured?) waits on the brand&apos;s OAuth connection.</p>
+
+  <div class="gfx">
+    <svg viewBox="0 0 1080 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="YouTube readiness gauge">
+      <defs>
+        <linearGradient id="g-arc" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#14b8a6"/>
+          <stop offset="0.6" stop-color="#10b981"/>
+          <stop offset="1" stop-color="#34d399"/>
+        </linearGradient>
+        <marker id="g-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a855f7"/></marker>
+      </defs>
+      <style>
+        .ga{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .gs{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .ge{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em }
+        .gnum{ fill:#f4f4f5; font:400 46px "Instrument Serif", serif }
+        .gnum2{ fill:#f59e0b; font:400 46px "Instrument Serif", serif }
+      </style>
+
+      <!-- LEFT GAUGE: content readiness 100% -->
+      <g transform="translate(60,40)">
+        <text class="ge" x="130" y="-4" text-anchor="middle">CONTENT READINESS</text>
+        <!-- track -->
+        <path d="M30,200 A130,130 0 0 1 290,200" fill="none" stroke="#232329" stroke-width="22" stroke-linecap="round"/>
+        <!-- value (full sweep = 100%) -->
+        <path d="M30,200 A130,130 0 0 1 290,200" fill="none" stroke="url(#g-arc)" stroke-width="22" stroke-linecap="round"/>
+        <text class="gnum" x="160" y="170" text-anchor="middle">100%</text>
+        <text class="gs" x="160" y="196" text-anchor="middle">6 / 6 required assets present</text>
+      </g>
+
+      <!-- RIGHT GAUGE: dispatch readiness partial -->
+      <g transform="translate(540,40)">
+        <text class="ge" x="160" y="-4" text-anchor="middle">DISPATCH READINESS (this brand)</text>
+        <path d="M30,200 A130,130 0 0 1 290,200" fill="none" stroke="#232329" stroke-width="22" stroke-linecap="round"/>
+        <!-- ~33% sweep: content done, route not connected -->
+        <path d="M30,200 A130,130 0 0 1 130,79" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>
+        <text class="gnum2" x="160" y="170" text-anchor="middle">manual</text>
+        <text class="gs" x="160" y="196" text-anchor="middle">no OAuth → falls back to paste</text>
+      </g>
+
+      <!-- the bridge note -->
+      <rect x="60" y="262" width="960" height="40" rx="10" fill="#0f0f10" stroke="#232329"/>
+      <text class="gs" x="80" y="280">Bridge:</text>
+      <text class="gs" x="138" y="280" fill="#c084fc">Connect YouTube</text>
+      <text class="gs" x="246" y="280">on /brands/[id]  +  set youtube_dispatch_target = youtube_direct</text>
+      <path d="M760,282 H840" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#g-arr)"/>
+      <text class="ga" x="852" y="286" fill="#34d399">→ auto-upload</text>
+    </svg>
+    <p class="cap">Content is fully ready; only the route is unconfigured on this brand. The Direct path requires <code>GOOGLE_OAUTH_CLIENT_ID/SECRET</code> in <code>/settings</code> and a per-brand connect.</p>
+  </div>
+</section>
+
+<!-- ASSET COMPLETENESS BAR -->
+<section class="wrap" id="completeness">
+  <div class="eyebrow">Asset completeness</div>
+  <h2>Every required field, mapped to its status.</h2>
+  <p class="sub">The Direct upload bundles <code>youtube_title_set</code> (the trigger) with <code>youtube_description</code>, <code>youtube_chapters</code>, <code>youtube_tags</code>, and the top <code>thumbnail_concept</code>. All sit at <code>ready_for_review</code> — one approve away from <code>approved</code>, then <code>dispatched</code>, then <code>published</code>.</p>
+
+  <div class="gfx">
+    <svg viewBox="0 0 1080 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Asset completeness by type and status">
+      <style>
+        .ba{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .bt{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .be{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em }
+        .bm{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- status-lane header (the enum, left → right) -->
+      <text class="be" x="300" y="22">draft</text>
+      <text class="be" x="470" y="22">ready_for_review</text>
+      <text class="be" x="660" y="22">approved</text>
+      <text class="be" x="800" y="22">dispatched</text>
+      <text class="be" x="940" y="22">published</text>
+      <g stroke="#232329" stroke-dasharray="2 3">
+        <line x1="300" y1="30" x2="300" y2="360"/>
+        <line x1="470" y1="30" x2="470" y2="360"/>
+        <line x1="660" y1="30" x2="660" y2="360"/>
+        <line x1="800" y1="30" x2="800" y2="360"/>
+        <line x1="940" y1="30" x2="940" y2="360"/>
+        <line x1="1060" y1="30" x2="1060" y2="360"/>
+      </g>
+
+      <!-- rows: each bar fills from draft up to its current status; dashed remainder = path left to publish -->
+      <!-- youtube_title_set (the upload trigger) -->
+      <text class="bt" x="20" y="56">youtube_title_set <tspan class="bm">trigger</tspan></text>
+      <rect x="300" y="44" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="44" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- youtube_description -->
+      <text class="bt" x="20" y="92">youtube_description <tspan class="bm">v2 prompt</tspan></text>
+      <rect x="300" y="80" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="80" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- youtube_chapters -->
+      <text class="bt" x="20" y="128">youtube_chapters</text>
+      <rect x="300" y="116" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="116" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- youtube_tags -->
+      <text class="bt" x="20" y="164">youtube_tags <tspan class="bm">15 scored</tspan></text>
+      <rect x="300" y="152" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="152" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- thumbnail_concept -->
+      <text class="bt" x="20" y="200">thumbnail_concept <tspan class="bm">2 candidates</tspan></text>
+      <rect x="300" y="188" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="188" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- clean transcript -->
+      <text class="bt" x="20" y="236">transcript <tspan class="bm">clean</tspan></text>
+      <rect x="300" y="224" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <rect x="540" y="224" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+
+      <!-- short_clip_plan (NOT yet rendered) -->
+      <text class="bt" x="20" y="272">short_clip_plan <tspan class="bm" fill="#a855f7">→ Zernio after render</tspan></text>
+      <rect x="300" y="260" width="240" height="16" rx="3" fill="#a855f7" opacity="0.55"/>
+      <rect x="540" y="260" width="520" height="16" rx="3" fill="none" stroke="#a855f7" stroke-dasharray="3 3" opacity="0.6"/>
+      <text class="bm" x="548" y="272" fill="#71717a">plan only — needs clip_render → rendered_short_clip</text>
+
+      <!-- summary band -->
+      <rect x="20" y="304" width="1040" height="56" rx="10" fill="#0f0f10" stroke="#232329"/>
+      <rect x="36" y="320" width="14" height="14" rx="3" fill="#f59e0b" opacity="0.9"/>
+      <text class="bt" x="58" y="332">ready_for_review</text>
+      <text class="bm" x="58" y="348">6 long-form assets — content complete</text>
+      <rect x="320" y="320" width="14" height="14" rx="3" fill="#a855f7" opacity="0.55"/>
+      <text class="bt" x="342" y="332">short_clip_plan</text>
+      <text class="bm" x="342" y="348">not rendered yet — Shorts route via Zernio</text>
+      <rect x="640" y="320" width="14" height="14" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
+      <text class="bt" x="662" y="332">remaining path</text>
+      <text class="bm" x="662" y="348">approve → dispatch → publish (one click on Direct)</text>
+    </svg>
+    <p class="cap">Solid amber = where each asset is now (<code>ready_for_review</code>). Dashed = the enum it still has to traverse. On the Direct path, approving <code>youtube_title_set</code> carries its siblings to <code>dispatched</code> automatically.</p>
+  </div>
+</section>
+
+<!-- PACKAGE SNAPSHOT -->
+<section class="wrap">
+  <div class="eyebrow">Package snapshot</div>
+  <h2>What&apos;s in the box.</h2>
+  <p class="sub">6 long-form YouTube assets + thumbnails + clean transcript, plus social drafts — all at <code>ready_for_review</code> from Codex CLI (gpt-5.5).</p>
+
+  <div class="grid g3" style="margin-bottom:14px">
+    <div class="card">
+      <h3>Source</h3>
+      <div class="v">Best Quiet CPU Coolers for Sustained AI Workloads<br/><span style="color:var(--faint)">~8 min · uploaded_video</span></div>
+    </div>
+    <div class="card">
+      <h3>Brand</h3>
+      <div class="v">Thorsten Meyer AI<br/><span style="color:var(--faint)">YT channel UCEqc9louhpbD4Ff0eOozFRQ ✓</span></div>
+    </div>
+    <div class="card">
+      <h3>Profile</h3>
+      <div class="v">standard_audio_visual<br/><span style="color:var(--faint)">all 4 layers ran</span></div>
+    </div>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><h3>YouTube fields</h3>
+      <span class="pill p-ready"><span class="dot"></span>4 ready_for_review</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">title_set · description · chapters · tags</p>
+    </div>
+    <div class="card"><h3>Thumbnails</h3>
+      <span class="pill p-ready"><span class="dot"></span>2 concepts</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">frame proposals at t=476s &amp; alt — both ranked</p>
+    </div>
+    <div class="card"><h3>YouTube Shorts</h3>
+      <span class="pill p-ready"><span class="dot"></span>plan only</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)"><code>short_clip_plan</code> not yet rendered · ships via Zernio</p>
+    </div>
+    <div class="card"><h3>Other platforms</h3>
+      <span class="pill p-ready"><span class="dot"></span>5 drafted</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">linkedin · x_post · x_thread · article_brief · newsletter</p>
+    </div>
+    <div class="card"><h3>YouTube Direct API</h3>
+      <span class="pill p-ok"><span class="dot"></span>built</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">worker uploads via Data API v3 once connected</p>
+    </div>
+    <div class="card"><h3>This brand&apos;s connection</h3>
+      <span class="pill p-no"><span class="dot"></span>not connected</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)"><code>youtube_oauth</code> empty · target = <code>manual</code></p>
+    </div>
+  </div>
+</section>
+
+<!-- THREE PATHS -->
+<section class="wrap" id="paths">
+  <div class="eyebrow">Three ways to ship</div>
+  <h2>One needs no setup. One uploads for you. One handles Shorts.</h2>
+  <p class="sub">The brand&apos;s <code>youtube_dispatch_target</code> decides. Full comparison on the <a href="/youtube-publish-options.html">publish options</a> page.</p>
+
+  <div class="paths">
+    <div class="path ok">
+      <h3>Direct API <span class="tag">recommended</span></h3>
+      <p>ChannelHelm uploads <code>original.mp4</code> straight to YouTube. Privacy defaults to <strong>private</strong>; the per-package picker also offers public / unlisted / schedule.</p>
+      <ul>
+        <li>Set <code>GOOGLE_OAUTH_CLIENT_ID/SECRET</code> in <code>/settings</code> (one client, all brands).</li>
+        <li><code class="mono">/brands/[id]</code> → <em>Connect YouTube</em> → consent → token saved encrypted.</li>
+        <li>Set target to <code>youtube_direct</code>, then approve — the worker does the rest.</li>
+      </ul>
+    </div>
+    <div class="path alt">
+      <h3>Zernio <span class="tag">for Shorts</span></h3>
+      <p>The only v1 path for Shorts. After <code>clip_render</code>, a <code>rendered_short_clip</code> goes to TikTok + Instagram + YouTube Shorts in one <code>createPost</code>.</p>
+      <ul>
+        <li>Set <code>ZERNIO_API_KEY</code>, connect networks, paste each <code>acc_…</code> on the brand.</li>
+        <li>Needs a signed-media surface (<code>CLOUDFLARE_TUNNEL_HOSTNAME</code> + <code>MEDIA_URL_SECRET</code>).</li>
+        <li><code>privacy='schedule'</code> + <code>publish_at</code> → Zernio <code>scheduledFor</code>.</li>
+      </ul>
+    </div>
+    <div class="path fb">
+      <h3>Manual <span class="tag">default</span></h3>
+      <p>Always available, zero setup. Copy each field, upload the MP4 yourself. The dispatch is recorded for audit but makes no API call.</p>
+      <ul>
+        <li>Approve the YouTube assets — each card has a <strong>Copy</strong> button.</li>
+        <li>Upload at <code>studio.youtube.com</code>; paste title / description / tags.</li>
+        <li>Pick a thumbnail concept; settles at <code>dispatched</code> (no <code>published</code> webhook).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- TITLE PICK -->
+<section class="wrap">
+  <div class="eyebrow">The five title candidates</div>
+  <h2>Top pick is the obvious winner.</h2>
+  <p class="sub">Scores are model-judged hook strength (0–100). The Direct upload uses the title at <code>selectedIndex</code> from the <code>youtube_title_set</code> payload — open the Studio to swap.</p>
+
+  <div class="grid" style="gap:6px;grid-template-columns:1fr">
+    <div class="title-row top">
+      <div class="score">93</div>
+      <div>Quiet CPU Coolers for AI Workstations in 2026</div>
+    </div>
+    <div class="title-row">
+      <div class="score">91</div>
+      <div>Why AI Workstations Need Marathon Cooling</div>
+    </div>
+    <div class="title-row">
+      <div class="score">88</div>
+      <div>Undervolt First: Quiet Cooling for AI Rigs</div>
+    </div>
+    <div class="title-row">
+      <div class="score">86</div>
+      <div>Stop Chasing Peak Benchmarks for AI Cooling</div>
+    </div>
+    <div class="title-row">
+      <div class="score">84</div>
+      <div>Air vs AIO: Cooling Trade-Offs for AI Rigs</div>
+    </div>
+  </div>
+</section>
+
+<!-- YOUTUBE STUDIO MOCKUP -->
+<section class="wrap" id="paste">
+  <div class="eyebrow">Paste-ready preview</div>
+  <h2>What the upload carries.</h2>
+  <p class="sub">On the Direct path these fields go to <code>videos.insert</code> automatically. On the manual path, this is exactly what you paste into YouTube Studio.</p>
+
+  <div class="ytstudio">
+    <div class="head">
+      <span class="yt-mark">YT</span>
+      <span class="title">Upload · Details (preview rendering)</span>
+    </div>
+    <div class="body">
+
+      <div class="yt-field">
+        <label>Title <span class="copy-tag">→ youtube_title_set · top pick (93/100)</span></label>
+        <div class="yt-input">Quiet CPU Coolers for AI Workstations in 2026</div>
+      </div>
+
+      <div class="yt-field">
+        <label>Description <span class="copy-tag">→ youtube_description</span></label>
+        <div class="yt-input area">Your AI workstation should not sound like a server room trying to take off. The real question is not just how much performance you can buy, but how much quiet sustained performance you can live with every day.
+
+In this explainer, we break down why AI workloads punish coolers differently than gaming, why undervolting and power caps come before new hardware, and how sustained heat changes the air vs AIO liquid cooling decision.
+
+We also walk through 2026 quiet CPU cooler picks, from value air coolers to high-headroom AIOs and fanless specialist builds, then tie it all together with a practical framework: heat output, noise tolerance, fit, airflow, and long-term reliability. 🛠️
+
+Chapters
+0:00 Build a quiet high-performance AI rig
+0:40 Gaming spikes vs AI marathon loads
+1:44 Undervolt before buying a cooler
+2:16 Sustained heat, big fans, low noise
+2:56 Air reliability vs AIO headroom
+3:28 2026 quiet cooler picks overview
+4:24 Value and near-silent air coolers
+5:20 AIO and fanless options for edge cases
+6:24 Fit, airflow, and the final build order
+
+Like the video and subscribe to {{brand.name}} for more practical AI workstation and hardware breakdowns. Would you trade peak benchmark numbers for an AI rig you can barely hear? 🔇
+
+#AI #AIWorkstation #CPUCooling #PCBuilding #QuietPC #AIOCooling #Undervolting #Hardware</div>
+      </div>
+
+      <div class="yt-field">
+        <label>Chapters (also generated standalone, in case you want a richer breakdown than the description has) <span class="copy-tag">→ youtube_chapters</span></label>
+        <div class="yt-chap">0:00 — Quiet cooling goals for AI rigs
+0:40 — Gaming spikes versus AI marathons
+1:44 — Undervolt and power cap first
+2:16 — Sustained heat and air versus AIO
+3:28 — Top quiet CPU coolers for 2026
+3:52 — Noctua NH-D55 premium air cooling
+4:24 — Peerless Assassin and Dark Rock picks
+5:20 — AIO and fanless options for edge cases
+6:24 — Choose by heat, noise, fit, airflow
+7:20 — Three-step cooling order of operations</div>
+      </div>
+
+      <div class="yt-field">
+        <label>Tags <span class="copy-tag">→ youtube_tags · 15 scored</span></label>
+        <div class="yt-tags">
+          <span class="yt-tag">quiet CPU cooler</span>
+          <span class="yt-tag">AI workstation cooling</span>
+          <span class="yt-tag">CPU cooling for AI</span>
+          <span class="yt-tag">silent AI PC build</span>
+          <span class="yt-tag">best CPU cooler 2026</span>
+          <span class="yt-tag">sustained CPU load</span>
+          <span class="yt-tag">undervolting CPU</span>
+          <span class="yt-tag">air vs AIO cooling</span>
+          <span class="yt-tag">AIO liquid cooling</span>
+          <span class="yt-tag">Thermalright Peerless Assassin</span>
+          <span class="yt-tag">Noctua NH-D55</span>
+          <span class="yt-tag">Arctic Liquid Freezer 3 Pro 360</span>
+          <span class="yt-tag">Be Quiet Dark Rock Pro 5</span>
+          <span class="yt-tag">Ryzen 9 cooling</span>
+          <span class="yt-tag">Core i9 cooling</span>
+        </div>
+      </div>
+
+      <div class="yt-field">
+        <label>Visibility <span class="copy-tag">→ packages.intelligence.publish_options.youtube</span></label>
+        <div class="yt-input" style="font-size:13px">
+          Default: <span class="mono" style="color:var(--amber)">private</span> — nothing goes public by accident.<br/>
+          <span style="color:var(--faint)">Per-package picker also offers public · unlisted · schedule (publish_at, auto-flips public).</span>
+        </div>
+      </div>
+
+      <div class="yt-field">
+        <label>Thumbnail <span class="copy-tag">→ thumbnail_concept · 2 frame candidates</span></label>
+        <div class="yt-input" style="font-size:13px">
+          Top concept (rank 1): frame at <span class="mono">t = 476s</span> (hook score 0.96). Auto-uploaded via <code>thumbnails.set</code> on the Direct path.<br/>
+          <span style="color:var(--faint)">media/Thorsten Meyer AI/src_01KSHR023MRZZ3AHZQ49YM29Y7/thumbs/concept_01.jpg</span>
+        </div>
+      </div>
+
+      <div class="yt-field">
+        <label>Video file</label>
+        <div class="yt-input mono" style="font-size:12px;color:var(--muted)">media/Thorsten Meyer AI/src_01KSHR023MRZZ3AHZQ49YM29Y7/original.mp4</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- STEPS -->
+<section class="wrap">
+  <div class="eyebrow">The Direct path, end to end</div>
+  <h2>Ship it in five steps.</h2>
+
+  <div class="steps">
+    <div class="step"><div>
+      <h3>Connect the brand (one-time)</h3>
+      <p>Paste <code>GOOGLE_OAUTH_CLIENT_ID/SECRET</code> in <a href="/settings">/settings</a>, then <code class="mono">/brands/[id]</code> → <em>Connect YouTube</em> → consent. The refresh token saves encrypted on <code>brands.youtube_oauth</code>. Set <code>youtube_dispatch_target='youtube_direct'</code>.</p>
+    </div></div>
+    <div class="step"><div>
+      <h3>Open the package in the Studio</h3>
+      <p><a href="/packages/pkg_01KSHR025HW9EXD2VN094Y6TDP">/packages/pkg_01KSHR025HW9EXD2VN094Y6TDP</a> — pick the top title (or override the <code>selectedIndex</code>), and choose visibility in the per-package picker.</p>
+    </div></div>
+    <div class="step"><div>
+      <h3>Approve <code>youtube_title_set</code></h3>
+      <p>That single approve enqueues a <code>dispatch</code> job. The worker bundles <code>youtube_description</code> / <code>youtube_chapters</code> / <code>youtube_tags</code> + the top thumbnail, then uploads — flipping all the siblings to <code>dispatched</code> in the same transaction.</p>
+    </div></div>
+    <div class="step"><div>
+      <h3>The worker uploads</h3>
+      <p>Refresh → access token → <code>videos.insert</code> (resumable, streamed from disk) → <code>thumbnails.set</code>. The YouTube URL is mirrored onto <code>packages.intelligence.published.youtube</code> and the red <code>▶ youtu.be/…</code> chip lights up.</p>
+    </div></div>
+    <div class="step"><div>
+      <h3>Shorts (separately, via Zernio)</h3>
+      <p>Approve the <code>short_clip_plan</code> → <code>clip_render</code> produces <code>rendered_short_clip</code> → approving that dispatches to TikTok + Instagram + YouTube Shorts in one Zernio call. Direct Shorts is deferred to v2.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- ISSUES -->
+<section class="wrap">
+  <div class="eyebrow">Two things worth fixing before you upload</div>
+  <h2>Small bugs I spotted.</h2>
+
+  <div class="grid g2">
+    <div class="issue">
+      <h3>⚠ Package status drift</h3>
+      <p>
+        DB says <code>packages.status = 'analyzed'</code> but every asset is <code>ready_for_review</code>. The
+        <code>markReadyForReviewIfComplete</code> lifecycle bumper didn&apos;t fire — probably because the worker got
+        killed during a <code>pnpm dev:all</code> restart cycle while the last <code>generate_asset</code> was completing.
+      </p>
+      <p style="color:var(--text)">
+        <strong>Effect:</strong> the dashboard filters may not list this package under &ldquo;ready&rdquo; yet. <strong>Fix:</strong> one-line SQL
+        or a 5-line lifecycle-resync. Say the word.
+      </p>
+    </div>
+
+    <div class="issue">
+      <h3>⚠ Unresolved template token in description</h3>
+      <p>
+        The description contains the literal string <code>{{brand.name}}</code> instead of &ldquo;Thorsten Meyer AI&rdquo;.
+        The prompt&apos;s mustache placeholder wasn&apos;t substituted at generate-time.
+      </p>
+      <p style="color:var(--text)">
+        <strong>Effect:</strong> the upload would carry &ldquo;subscribe to <span class="mono">{{brand.name}}</span>&rdquo;. <strong>Fix:</strong> patch
+        <code>workers/lib/generate.ts</code> (brand interpolation) + regenerate that one asset before dispatching.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="wrap">
+  <div class="card" style="text-align:center;padding:30px;border-color:color-mix(in oklab,var(--accent) 35%, var(--border));background:color-mix(in oklab,var(--accent) 6%, var(--panel))">
+    <h2 style="margin:0 0 8px">Open it.</h2>
+    <p style="margin:0 auto 18px;max-width:560px;color:var(--muted)">
+      The Studio is where you approve and pick visibility. Connect the brand once and the next approve uploads itself — or compare all three routes first.
+    </p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <a href="/packages/pkg_01KSHR025HW9EXD2VN094Y6TDP"
+         style="display:inline-block;padding:10px 18px;font-weight:600;border-radius:8px;background:var(--accent);color:#fff;border:1px solid color-mix(in oklab,var(--accent) 80%,white);box-shadow:0 0 0 1px var(--accent-glow);text-decoration:none">
+        ▶ Open package in Studio
+      </a>
+      <a href="/youtube-publish-options.html"
+         style="display:inline-block;padding:10px 18px;font-weight:600;border-radius:8px;background:var(--panel-2);color:var(--text);border:1px solid var(--border-strong);text-decoration:none">
+        compare publish options
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · YouTube readiness for pkg_01KSHR025HW9EXD2VN094Y6TDP · 2026-05-28</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/youtube-publish-options.html" style="color:var(--muted)">publish options</a> ·
+      <a href="/llm-routing.html" style="color:var(--muted)">LLM routing</a> ·
+      <a href="/privacy.html" style="color:var(--muted)">privacy</a> ·
+      <a href="/terms.html" style="color:var(--muted)">terms</a> ·
+      <a href="/contact.html" style="color:var(--muted)">contact</a> ·
+      <a href="/impressum.html" style="color:var(--muted)">impressum</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

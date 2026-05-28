@@ -10,3 +10,4 @@ export * from './schema/webhook_events';
 export * from './schema/signals';
 export * from './schema/voice_examples';
 export * from './schema/llm_providers';
+export * from './schema/settings';

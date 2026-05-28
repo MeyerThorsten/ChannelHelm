@@ -8,6 +8,7 @@ import {
   formatBriefAsSourceText,
   syndicateStory,
 } from '../integrations/dojoclaw';
+import { uploadVideo as uploadYoutubeVideo } from '../integrations/youtube';
 import {
   type ZernioPlatformTarget,
   createPost,
@@ -60,7 +61,10 @@ export async function run(job: JobRow): Promise<void> {
   const [brand] = await db.select().from(brands).where(eq(brands.id, asset.brandId)).limit(1);
   if (!brand) throw new Error(`dispatch: brand ${asset.brandId} not found`);
 
-  const target = pickTarget(asset.type);
+  const target = pickTarget(asset.type, {
+    youtubeDispatchTarget: brand.youtubeDispatchTarget ?? 'manual',
+    youtubeConnected: !!brand.youtubeOauth?.refresh_token,
+  });
   console.log(`[dispatch] asset=${assetId} type=${asset.type} → ${target}`);
 
   let externalId: string | null = null;
@@ -113,9 +117,111 @@ export async function run(job: JobRow): Promise<void> {
         site_count: res.count,
       };
       success = true;
+    } else if (target === 'youtube_direct') {
+      // Bundle title + description + tags from the sibling youtube_* assets
+      // on the same package. The source video is the package's original.mp4.
+      const bundle = await loadYoutubeBundle(asset.packageId);
+      if (!bundle.videoPath) {
+        throw new Error(
+          'youtube_direct: source video file path missing — cannot upload (intelligence.ingest.file_path is empty)',
+        );
+      }
+      const origin = process.env.CLOUDFLARE_TUNNEL_HOSTNAME ?? 'http://localhost:3000';
+      const yt = await uploadYoutubeVideo({
+        brandId: brand.id,
+        redirectUri: `${origin}/api/youtube/oauth/callback`,
+        filePath: bundle.videoPath,
+        title: bundle.title,
+        description: bundle.description,
+        tags: bundle.tags,
+        privacyStatus: bundle.privacyStatus, // honors per-package picker (default 'private')
+        ...(bundle.publishAt ? { publishAt: bundle.publishAt } : {}),
+        thumbnailPath: bundle.thumbnailPath ?? undefined,
+      });
+      externalId = yt.videoId;
+      response = yt as unknown as Record<string, unknown>;
+      requestPayload = {
+        type: asset.type,
+        target,
+        title: bundle.title,
+        tags: bundle.tags,
+        upload_bytes: yt.uploadBytes,
+      };
+      dispatchExtra.external_url = yt.url;
+      dispatchExtra.video_id = yt.videoId;
+      dispatchExtra.privacy = yt.privacy;
+      success = true;
+
+      // Side-effect: also mirror the YT URL onto the package so the header
+      // chip lights up immediately, and flip the other youtube_* assets on
+      // this package to dispatched (they're all "shipped" together).
+      //
+      // Read-then-write in JS (rather than jsonb_set) because PG's jsonb_set
+      // doesn't auto-create intermediate object keys — a path like
+      // {published,youtube} silently no-ops when `published` isn't already
+      // an object on the row, which was eating the URL update on first run.
+      const [latestPkg] = await db
+        .select({ intelligence: packages.intelligence })
+        .from(packages)
+        .where(eq(packages.id, asset.packageId))
+        .limit(1);
+      const intel = (latestPkg?.intelligence ?? {}) as Record<string, unknown>;
+      const pub = (intel.published ?? {}) as Record<string, unknown>;
+      const nextIntel = {
+        ...intel,
+        published: {
+          ...pub,
+          youtube: {
+            url: yt.url,
+            video_id: yt.videoId,
+            set_at: new Date().toISOString(),
+            privacy: yt.privacy,
+          },
+        },
+      };
+      await db
+        .update(packages)
+        .set({ intelligence: nextIntel })
+        .where(eq(packages.id, asset.packageId));
+      await db
+        .update(assets)
+        .set({
+          status: 'dispatched',
+          dispatch: { target: 'youtube_direct', external_url: yt.url, video_id: yt.videoId },
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(
+            eq(assets.packageId, asset.packageId),
+            inArray(assets.type, [
+              'youtube_description',
+              'youtube_chapters',
+              'youtube_tags',
+            ]),
+          ),
+        );
     } else if (target === 'zernio') {
       const accounts = (brand.zernioAccounts ?? {}) as Record<string, string>;
-      const platforms = resolveZernioPlatforms(asset.type, accounts);
+      let platforms = resolveZernioPlatforms(asset.type, accounts);
+
+      // Per-clip publish_options.platforms (Shorts editor): the operator
+      // may have toggled OFF some of the candidate networks for THIS
+      // specific clip. Apply that filter on top of brand-configured
+      // accounts. Empty selection = "all configured networks" (operator
+      // didn't override).
+      const clipPlatformToggles = (
+        (asset.payload as { publish_options?: { platforms?: Record<string, boolean> } } | undefined)
+          ?.publish_options?.platforms
+      ) as Record<string, boolean> | undefined;
+      if (clipPlatformToggles) {
+        const enabled = Object.entries(clipPlatformToggles)
+          .filter(([_, on]) => on)
+          .map(([net]) => net);
+        if (enabled.length > 0) {
+          platforms = platforms.filter((p) => enabled.includes(p.platform));
+        }
+      }
+
       if (platforms.length === 0) {
         throw new Error(
           `zernio: brand ${brand.id} has no account configured for ${asset.type} (set brands.zernio_accounts)`,
@@ -124,11 +230,26 @@ export async function run(job: JobRow): Promise<void> {
       await enforceDailyLimit(platforms);
 
       const { content, threadPosts, mediaUrls } = await buildZernioContent(asset);
+
+      // Per-clip scheduled publish (Shorts editor): privacy='schedule'
+      // with a publish_at ISO timestamp → pass through to Zernio's
+      // createPost.scheduledFor. Other privacy values are platform-
+      // controlled (Zernio's SDK doesn't expose per-platform privacy in
+      // the current surface — operator manages on the platform side).
+      const publishOptions = (asset.payload as {
+        publish_options?: { privacy?: string; publish_at?: string };
+      })?.publish_options;
+      const scheduledFor =
+        publishOptions?.privacy === 'schedule' && publishOptions.publish_at
+          ? publishOptions.publish_at
+          : undefined;
+
       const res = await createPost({
         content,
         platforms,
         mediaUrls,
         threadPosts,
+        ...(scheduledFor ? { scheduledFor } : {}),
         metadata: {
           channelhelmAssetId: assetId,
           channelhelmPackageId: pkg.id,
@@ -144,8 +265,10 @@ export async function run(job: JobRow): Promise<void> {
         accounts: platforms.map((p) => p.accountId),
         platforms,
         mediaUrls,
+        ...(scheduledFor ? { scheduledFor } : {}),
       };
       if (mediaUrls?.[0]) dispatchExtra.media_url = mediaUrls[0];
+      if (scheduledFor) dispatchExtra.scheduled_for = scheduledFor;
       success = true;
     } else {
       response = { note: 'Manual dispatch: operator copies content from asset.' };
@@ -282,7 +405,127 @@ async function resolveClipCaption(payload: {
   return payload.caption ?? '';
 }
 
-function pickTarget(type: string): 'dojoclaw' | 'zernio' | 'manual' {
+type DispatchTarget = 'dojoclaw' | 'zernio' | 'manual' | 'youtube_direct';
+
+/**
+ * Pull the title/description/tags from the sibling youtube_* assets and the
+ * source video path from the package's intelligence.ingest. Used by the
+ * youtube_direct dispatch branch.
+ */
+async function loadYoutubeBundle(packageId: string): Promise<{
+  title: string;
+  description: string;
+  tags: string[];
+  videoPath: string | null;
+  thumbnailPath: string | null;
+  privacyStatus: 'public' | 'unlisted' | 'private';
+  publishAt: string | null;
+}> {
+  const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
+  if (!pkg) throw new Error(`youtube_direct: package ${packageId} not found`);
+  const [src] = await db.select().from(sources).where(eq(sources.id, pkg.sourceId)).limit(1);
+  const siblings = await db
+    .select()
+    .from(assets)
+    .where(
+      and(
+        eq(assets.packageId, packageId),
+        inArray(assets.type, [
+          'youtube_title_set',
+          'youtube_description',
+          'youtube_tags',
+          'thumbnail_concept',
+        ]),
+      ),
+    );
+  const titleAsset = siblings.find((a) => a.type === 'youtube_title_set');
+  const descAsset = siblings.find((a) => a.type === 'youtube_description');
+  const tagsAsset = siblings.find((a) => a.type === 'youtube_tags');
+  const thumbAsset = siblings
+    .filter((a) => a.type === 'thumbnail_concept')
+    .sort((a, b) => {
+      const ar = (a.payload as { rank?: number } | undefined)?.rank ?? 99;
+      const br = (b.payload as { rank?: number } | undefined)?.rank ?? 99;
+      return ar - br;
+    })[0];
+
+  // Title: respect the operator-selected index from the title_set payload.
+  const titlePayload =
+    (titleAsset?.payload as
+      | { titles?: { text: string }[]; selectedIndex?: number }
+      | undefined) ?? {};
+  const titles = Array.isArray(titlePayload.titles) ? titlePayload.titles : [];
+  const idx = Math.min(Math.max(titlePayload.selectedIndex ?? 0, 0), Math.max(titles.length - 1, 0));
+  const title = titles[idx]?.text?.trim() || 'Untitled video';
+
+  const description =
+    ((descAsset?.payload as { text?: string } | undefined)?.text ?? '').trim() || '';
+  const tagsPayload =
+    (tagsAsset?.payload as { tags?: ({ text: string } | string)[] } | undefined) ?? {};
+  const tags = (tagsPayload.tags ?? [])
+    .map((t) => (typeof t === 'string' ? t : t?.text))
+    .filter((t): t is string => !!t && t.length > 0)
+    .slice(0, 30);
+
+  // Source video. Two paths to try, in order — the first that exists on disk
+  // wins. This guards against the well-known gotcha where a brand slug
+  // renormalize moves the media folder but doesn't rewrite the stored
+  // `intelligence.ingest.file_path` snapshot.
+  //
+  //   1. sources.local_media_path + 'original.<ext>'  (renorm updates this)
+  //   2. packages.intelligence.ingest.file_path        (captured at ingest)
+  const intel = (pkg.intelligence ?? {}) as { ingest?: { file_path?: string } };
+  const candidates: string[] = [];
+  if (src?.localMediaPath) {
+    // The upload route stores files as original.<ext>. Probe a few common ones.
+    for (const ext of ['mp4', 'mov', 'webm', 'm4v', 'mkv']) {
+      candidates.push(`${src.localMediaPath}/original.${ext}`);
+    }
+  }
+  if (intel.ingest?.file_path) candidates.push(intel.ingest.file_path);
+
+  let videoPath: string | null = null;
+  for (const p of candidates) {
+    try {
+      const { statSync } = await import('node:fs');
+      statSync(p);
+      videoPath = p;
+      break;
+    } catch {
+      // file doesn't exist here — try the next candidate
+    }
+  }
+
+  const thumbnailPath = (thumbAsset?.payload as { local_path?: string } | undefined)?.local_path
+    ?? null;
+
+  // Per-package YouTube publish options. YouTube's API requires
+  // privacyStatus='private' when publishAt is set — it auto-flips public at
+  // the scheduled time. Normalize 'schedule' → ('private', publishAt) here
+  // so the worker doesn't have to think about it.
+  const publishOpts =
+    ((pkg.intelligence ?? {}) as Record<string, unknown>).publish_options ?? {};
+  const ytOpts = ((publishOpts as Record<string, unknown>).youtube ?? {}) as {
+    privacy?: string;
+    publish_at?: string;
+  };
+  let privacyStatus: 'public' | 'unlisted' | 'private' = 'private';
+  let publishAt: string | null = null;
+  if (ytOpts.privacy === 'public' || ytOpts.privacy === 'unlisted') {
+    privacyStatus = ytOpts.privacy;
+  } else if (ytOpts.privacy === 'schedule' && ytOpts.publish_at) {
+    privacyStatus = 'private';
+    publishAt = ytOpts.publish_at;
+  }
+
+  return { title, description, tags, videoPath, thumbnailPath, privacyStatus, publishAt };
+}
+
+
+function pickTarget(
+  type: string,
+  ctx: { youtubeDispatchTarget: string; youtubeConnected: boolean },
+): DispatchTarget {
   if (type === 'article_brief') return 'dojoclaw';
   if (
     type === 'linkedin_post' ||
@@ -292,6 +535,19 @@ function pickTarget(type: string): 'dojoclaw' | 'zernio' | 'manual' {
     type === 'rendered_long_clip'
   ) {
     return 'zernio';
+  }
+  // YouTube long-form: only the title_set asset triggers the upload — it's
+  // the "publish package's video to YouTube" representative. The other
+  // youtube_* assets stay manual (they're already embedded in the upload via
+  // the description / tags). Only flip to youtube_direct if both the brand
+  // opted in AND the OAuth tokens are present (otherwise we fall back to
+  // manual rather than failing the dispatch silently).
+  if (
+    type === 'youtube_title_set' &&
+    ctx.youtubeDispatchTarget === 'youtube_direct' &&
+    ctx.youtubeConnected
+  ) {
+    return 'youtube_direct';
   }
   return 'manual';
 }

@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Set up ChannelHelm from zero — step-by-step guide</title>
+<meta name="description" content="The complete first-run setup for ChannelHelm: install, brand, LLM provider, ingest, review, and direct YouTube upload. With UI mockups for every screen." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --yt: #ff0033;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --google: #4285f4;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:780px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .serif{font-family:var(--font-serif)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+
+  /* sticky nav with section progress */
+  header.nav{
+    position:sticky;top:0;z-index:50;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{padding:6px 10px;font-size:12px;color:var(--muted);border-radius:6px;white-space:nowrap}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  /* TOC chips */
+  .toc{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:8px;padding:18px;background:var(--panel);
+    border:1px solid var(--border);border-radius:12px;margin:22px 0;
+  }
+  .toc a{
+    padding:10px 12px;background:var(--panel-2);
+    border:1px solid var(--border);border-radius:8px;
+    color:var(--text);text-decoration:none;font-size:13px;
+    display:flex;align-items:center;gap:10px;transition:border-color .14s;
+  }
+  .toc a:hover{border-color:var(--border-strong);background:var(--bg-elev-2,var(--panel))}
+  .toc .n{
+    width:24px;height:24px;border-radius:6px;
+    background:color-mix(in oklab, var(--accent) 14%, transparent);
+    color:var(--accent);font-family:var(--font-mono);font-weight:600;font-size:12px;
+    display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+    border:1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  .toc .lbl{flex:1;min-width:0}
+
+  .hero{padding:72px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(40px,5.5vw,60px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:740px;margin:0}
+
+  section{padding:48px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(28px,3.6vw,38px);letter-spacing:-.5px;margin:0 0 6px;line-height:1.1;
+  }
+  h2 .step-no{
+    display:inline-block;font-family:var(--font-mono);font-size:14px;
+    background:color-mix(in oklab,var(--accent) 14%, transparent);color:var(--accent);
+    padding:2px 9px;border-radius:6px;letter-spacing:.04em;margin-right:10px;
+    vertical-align:middle;border:1px solid color-mix(in oklab,var(--accent) 30%, transparent);
+  }
+  h3{font-size:18px;margin:24px 0 8px;font-weight:600}
+  h4{font-size:14px;margin:18px 0 6px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:15px;max-width:780px}
+  p{margin:0 0 12px}
+
+  /* checklist of substeps */
+  ol.steps, ul.bullets{padding-left:0;list-style:none;counter-reset:s;margin:0 0 18px}
+  ol.steps > li{
+    counter-increment:s;padding:14px 16px 14px 56px;position:relative;
+    border:1px solid var(--border);border-radius:10px;background:var(--panel);
+    margin-bottom:10px;font-size:14.5px;line-height:1.6;
+  }
+  ol.steps > li::before{
+    content:counter(s);position:absolute;left:14px;top:14px;
+    width:28px;height:28px;border-radius:7px;
+    background:color-mix(in oklab,var(--accent) 14%,transparent);
+    color:var(--accent);font-family:var(--font-mono);font-weight:600;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid color-mix(in oklab,var(--accent) 30%, transparent);
+  }
+  ul.bullets > li{
+    padding-left:22px;position:relative;margin:6px 0;font-size:14px;color:var(--muted);
+  }
+  ul.bullets > li::before{
+    content:'›';position:absolute;left:6px;color:var(--accent);font-weight:600;
+  }
+  ul.bullets > li code{color:var(--text)}
+
+  /* command boxes */
+  pre.cmd{
+    margin:8px 0 14px;padding:14px 16px;
+    background:#0c0c0d;border:1px solid var(--border-strong);border-radius:8px;
+    font-family:var(--font-mono);font-size:12.5px;color:#dadce0;
+    line-height:1.65;overflow-x:auto;white-space:pre;
+  }
+  pre.cmd .c{color:#71717a}
+  pre.cmd .k{color:#0ea5e9}
+  pre.cmd .s{color:#86efac}
+  pre.cmd .n{color:#fbbf24}
+
+  /* callouts */
+  .callout{
+    margin:14px 0;padding:12px 16px;border-radius:9px;
+    background:var(--panel);border:1px solid var(--border);font-size:13.5px;line-height:1.55;
+  }
+  .callout.tip{
+    background:color-mix(in oklab,var(--accent) 6%, var(--panel));
+    border-color:color-mix(in oklab,var(--accent) 30%, var(--border));
+  }
+  .callout.warn{
+    background:color-mix(in oklab,var(--amber) 6%, var(--panel));
+    border-color:color-mix(in oklab,var(--amber) 30%, var(--border));
+  }
+  .callout.danger{
+    background:color-mix(in oklab,var(--red) 6%, var(--panel));
+    border-color:color-mix(in oklab,var(--red) 30%, var(--border));
+  }
+  .callout strong{display:inline-block;margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.danger strong{color:var(--red)}
+
+  /* ─── ChannelHelm UI mockup ─── matches the real studio identity ─── */
+  .mock{
+    margin:18px 0 8px;border:1px solid var(--border-strong);border-radius:12px;
+    background:var(--bg);overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  .mock .browser{
+    height:30px;background:#1a1a1c;border-bottom:1px solid #2a2a2c;
+    display:flex;align-items:center;padding:0 12px;gap:8px;
+  }
+  .mock .browser .dot{width:10px;height:10px;border-radius:50%}
+  .mock .browser .url{
+    flex:1;background:#0c0c0d;border:1px solid #2a2a2c;border-radius:5px;
+    padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:#a1a1aa;
+    margin:0 8px;text-align:center;
+  }
+  .mock .topnav{
+    height:46px;background:var(--bg);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;padding:0 14px;gap:14px;
+  }
+  .mock .topnav .brand-logo{
+    width:22px;height:22px;border-radius:5px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    color:white;font-size:11px;font-weight:700;
+  }
+  .mock .topnav .brand-name{font-weight:600;font-size:13px}
+  .mock .topnav .nav-item{font-size:12px;color:var(--muted);padding:4px 10px;border-radius:5px}
+  .mock .topnav .nav-item.active{background:var(--panel);color:var(--text)}
+  .mock .topnav .spacer{flex:1}
+  .mock .topnav .search{
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    padding:4px 10px;font-size:11px;color:var(--faint);width:200px;
+  }
+  .mock .body{padding:24px}
+  .mock h-title{
+    display:block;font-family:var(--font-serif);font-size:22px;font-weight:400;
+    color:var(--text);margin-bottom:6px;letter-spacing:-.3px;
+  }
+  .mock .meta-row{
+    display:flex;align-items:center;gap:8px;color:var(--text-faint,var(--faint));
+    font-size:11px;font-family:var(--font-mono);margin-bottom:18px;
+  }
+  .mock .meta-row .sep{color:var(--dim)}
+  .mock .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;
+    font-size:11px;font-weight:500;border:1px solid;font-family:var(--font-sans);
+  }
+  .mock .pill .dot{width:6px;height:6px;border-radius:999px}
+  .mock .pill.amber{color:var(--amber);background:color-mix(in oklab,var(--amber) 14%,transparent);border-color:color-mix(in oklab,var(--amber) 30%,transparent)}
+  .mock .pill.amber .dot{background:var(--amber)}
+  .mock .pill.green{color:var(--green);background:color-mix(in oklab,var(--green) 14%,transparent);border-color:color-mix(in oklab,var(--green) 30%,transparent)}
+  .mock .pill.green .dot{background:var(--green)}
+  .mock .pill.yt{color:var(--yt);background:color-mix(in oklab,var(--yt) 12%,transparent);border-color:color-mix(in oklab,var(--yt) 28%,transparent);font-family:var(--font-mono)}
+  .mock .card-mock{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:16px;margin-bottom:12px;
+  }
+  .mock .input-mock{
+    background:var(--panel-2);border:1px solid var(--border-strong);border-radius:6px;
+    padding:8px 10px;font-size:13px;color:var(--text);font-family:var(--font-mono);
+    margin:6px 0 4px;
+  }
+  .mock .label-mock{
+    font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+    font-family:var(--font-sans);font-weight:500;
+  }
+  .mock .btn-mock{
+    display:inline-block;padding:7px 14px;font-size:12px;font-weight:600;
+    border-radius:6px;background:var(--accent);color:#fff;
+    border:1px solid color-mix(in oklab,var(--accent) 75%,white);
+  }
+  .mock .btn-mock.yt{background:var(--yt);border-color:color-mix(in oklab,var(--yt) 75%,white)}
+  .mock .btn-mock.ghost{background:transparent;color:var(--muted);border:1px solid var(--border-strong)}
+  .mock .checkbox-mock{
+    width:16px;height:16px;border-radius:3px;border:1.5px solid var(--border-strong);
+    display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;
+    font-size:10px;color:white;
+  }
+  .mock .checkbox-mock.checked{background:var(--accent);border-color:var(--accent)}
+  .mock .arrow-pointer{
+    position:absolute;display:inline-flex;align-items:center;gap:4px;
+    color:var(--accent);font-size:11px;font-weight:600;font-family:var(--font-mono);
+    text-transform:uppercase;letter-spacing:.06em;
+    background:var(--bg);padding:2px 8px;border-radius:5px;
+    border:1px solid color-mix(in oklab,var(--accent) 40%,transparent);
+    z-index:2;
+  }
+  .mock .annotation-area{position:relative}
+  .caption{
+    margin-top:6px;font-size:11.5px;color:var(--faint);font-family:var(--font-mono);
+    padding:0 4px;line-height:1.5;
+  }
+  .caption strong{color:var(--accent);font-family:var(--font-sans);text-transform:uppercase;font-size:10px;letter-spacing:.06em;margin-right:6px}
+
+  /* arrow line for "you click here" annotations */
+  .annotated{position:relative;display:inline-block}
+  .annot-tag{
+    position:absolute;top:-28px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-family:var(--font-mono);
+    background:var(--accent);color:white;padding:3px 8px;border-radius:5px;
+    white-space:nowrap;font-weight:600;
+  }
+  .annot-tag::after{
+    content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+    width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+    border-top:6px solid var(--accent);
+  }
+  .annot-tag.bottom{top:auto;bottom:-28px}
+  .annot-tag.bottom::after{top:-6px;bottom:auto;border-top:none;border-bottom:6px solid var(--accent)}
+
+  /* inline SVG diagram panel — matches storage-lifecycle.html quality bar */
+  .diagram{
+    margin:18px 0 8px;background:var(--panel);border:1px solid var(--border);
+    border-radius:12px;padding:18px;
+  }
+  .diagram svg{width:100%;height:auto;display:block}
+
+  /* two-col diagram */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  .two-col .col{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .two-col .col h4{margin-top:0}
+  .two-col .col p{font-size:13px;color:var(--muted);margin:0}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:40px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width: 720px){
+    .two-col{grid-template-columns:1fr}
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity:1 }
+    50% { opacity:.35 }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#prereq">Prereqs</a>
+    <a href="#install">Install</a>
+    <a href="#brand">Brand</a>
+    <a href="#llm">LLM</a>
+    <a href="#ingest">Ingest</a>
+    <a href="#studio">Studio</a>
+    <a href="#youtube">YouTube</a>
+    <a href="#dispatch">Dispatch</a>
+    <a href="#prod">Prod</a>
+  </nav>
+</header>
+
+<!-- ─── HERO ─────────────────────────────────────────────────────────── -->
+<section class="hero narrow" style="border-top:none">
+  <div class="eyebrow">Setup guide · new operator</div>
+  <h1>Set up ChannelHelm <em>from zero.</em></h1>
+  <p class="lede">
+    Nine steps from "fresh Mac" to "I just uploaded a video to YouTube directly from
+    ChannelHelm" — plus turning it into an always-on fleet. Each step shows you exactly what to
+    click, where to type, and what success looks like. The trickier steps come with mockups of the
+    relevant ChannelHelm screen so you know what you're looking for.
+  </p>
+</section>
+
+<!-- TOC -->
+<section class="narrow" style="padding:0 0 8px;border-top:none">
+  <div class="toc">
+    <a href="#prereq"><span class="n">0</span><span class="lbl">Prerequisites</span></a>
+    <a href="#install"><span class="n">1</span><span class="lbl">Install &amp; run dev</span></a>
+    <a href="#brand"><span class="n">2</span><span class="lbl">Create your first brand</span></a>
+    <a href="#llm"><span class="n">3</span><span class="lbl">Configure an LLM provider</span></a>
+    <a href="#ingest"><span class="n">4</span><span class="lbl">Add a video</span></a>
+    <a href="#studio"><span class="n">5</span><span class="lbl">Review in the Studio</span></a>
+    <a href="#youtube"><span class="n">6</span><span class="lbl">Connect YouTube</span></a>
+    <a href="#dispatch"><span class="n">7</span><span class="lbl">Approve &amp; publish</span></a>
+    <a href="#after"><span class="n">8</span><span class="lbl">Final review on YouTube</span></a>
+    <a href="#prod"><span class="n">9</span><span class="lbl">Run it for real (launchd)</span></a>
+  </div>
+</section>
+
+<!-- ─── STEP 0 · PREREQS ─────────────────────────────────────────────── -->
+<section class="narrow" id="prereq">
+  <h2><span class="step-no">step 0</span>Prerequisites</h2>
+  <p class="sub">ChannelHelm runs local-first on a Mac. You need the following before <code>pnpm install</code>.</p>
+
+  <h3>Required CLI tools</h3>
+  <pre class="cmd"><span class="c"># Install Homebrew if you don't have it</span>
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+<span class="c"># Core stack</span>
+brew install <span class="k">node@22</span> <span class="k">pnpm</span> <span class="k">postgresql@16</span> <span class="k">ffmpeg</span> <span class="k">yt-dlp</span> <span class="k">uv</span>
+
+<span class="c"># Start Postgres at boot + create a DB</span>
+brew services start postgresql@16
+createdb channelhelm
+
+<span class="c"># Python for the ML CLIs (uv manages a venv in ml/)</span>
+cd ml &amp;&amp; uv sync &amp;&amp; cd ..</pre>
+
+  <h3>What does what</h3>
+  <ul class="bullets">
+    <li><code>node@22</code> + <code>pnpm</code> — the runtime + package manager for the Next.js app and worker fleet</li>
+    <li><code>postgresql@16</code> — single Postgres instance holds everything (brands, packages, assets, jobs, settings, providers, OAuth tokens)</li>
+    <li><code>ffmpeg</code> — audio extraction, scene-cut detection, clip rendering</li>
+    <li><code>yt-dlp</code> — pulls YouTube videos into <code>MEDIA_ROOT</code></li>
+    <li><code>uv</code> — Python venv/runtime for the four ML CLIs (Whisper, mlx-vlm, OCR, diarization)</li>
+  </ul>
+
+  <div class="callout tip">
+    <strong>Tip</strong> A Mac with Apple Silicon (M1 or later) and ≥16 GB RAM runs the standard pipeline comfortably.
+    For <code>premium_multimodal</code> with mlx-vlm you'll want a Mac Studio class machine (M2 Ultra+).
+  </div>
+
+  <h3>How the pieces depend on each other</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dependency tree of ChannelHelm's runtime components and the system tools they call">
+      <style>
+        .d-lbl{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .d-sub{ fill:#a1a1aa; font:10px "JetBrains Mono", monospace }
+        .d-tag{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.04em }
+      </style>
+      <defs>
+        <marker id="dArrow" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#3a3a44"/>
+        </marker>
+      </defs>
+
+      <!-- Top: the two Node processes -->
+      <rect x="300" y="20" width="140" height="50" rx="10" fill="#111114" stroke="#0ea5e9" stroke-width="1.5"/>
+      <text class="d-lbl" x="316" y="42">Next.js app</text>
+      <text class="d-sub" x="316" y="58">node@22 · pnpm</text>
+
+      <rect x="460" y="20" width="140" height="50" rx="10" fill="#111114" stroke="#0ea5e9" stroke-width="1.5"/>
+      <text class="d-lbl" x="476" y="42">Worker fleet</text>
+      <text class="d-sub" x="476" y="58">tsx runner.ts</text>
+
+      <!-- Postgres (both depend on it) -->
+      <rect x="380" y="100" width="140" height="50" rx="10" fill="#111114" stroke="#10b981" stroke-width="1.5"/>
+      <text class="d-lbl" x="396" y="122">PostgreSQL 16</text>
+      <text class="d-sub" x="396" y="138">brews · the queue</text>
+
+      <line x1="370" y1="70" x2="430" y2="96" stroke="#3a3a44" stroke-width="1.8" marker-end="url(#dArrow)"/>
+      <line x1="530" y1="70" x2="470" y2="96" stroke="#3a3a44" stroke-width="1.8" marker-end="url(#dArrow)"/>
+
+      <!-- System tools the worker shells out to -->
+      <rect x="40" y="180" width="120" height="50" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="d-lbl" x="54" y="202">ffmpeg</text>
+      <text class="d-sub" x="54" y="218">audio · clips</text>
+
+      <rect x="180" y="180" width="120" height="50" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="d-lbl" x="194" y="202">yt-dlp</text>
+      <text class="d-sub" x="194" y="218">URL ingest</text>
+
+      <rect x="320" y="180" width="160" height="50" rx="10" fill="#111114" stroke="#a78bfa" stroke-width="1.4"/>
+      <text class="d-lbl" x="334" y="202">uv · Python 3.12</text>
+      <text class="d-sub" x="334" y="218">4 ml/*.py CLIs</text>
+
+      <rect x="500" y="180" width="160" height="50" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="d-lbl" x="514" y="202">LLM provider</text>
+      <text class="d-sub" x="514" y="218">/providers · HTTP</text>
+
+      <rect x="680" y="180" width="170" height="50" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="d-lbl" x="694" y="202">DojoClaw · Zernio</text>
+      <text class="d-sub" x="694" y="218">dispatch targets</text>
+
+      <!-- worker → tools -->
+      <line x1="500" y1="70" x2="120" y2="176" stroke="#3a3a44" stroke-width="1.5" marker-end="url(#dArrow)" opacity="0.7"/>
+      <line x1="510" y1="70" x2="250" y2="176" stroke="#3a3a44" stroke-width="1.5" marker-end="url(#dArrow)" opacity="0.7"/>
+      <line x1="520" y1="70" x2="400" y2="176" stroke="#3a3a44" stroke-width="1.5" marker-end="url(#dArrow)" opacity="0.7"/>
+      <line x1="540" y1="70" x2="570" y2="176" stroke="#3a3a44" stroke-width="1.5" marker-end="url(#dArrow)" opacity="0.7"/>
+      <line x1="560" y1="70" x2="740" y2="176" stroke="#3a3a44" stroke-width="1.5" marker-end="url(#dArrow)" opacity="0.7"/>
+
+      <text class="d-tag" x="40" y="246">brew installs the row of system tools · uv manages the Python venv in ml/ · LLM + DojoClaw/Zernio are configured in-app, not installed</text>
+    </svg>
+  </div>
+  <p class="caption"><strong>dependency tree</strong> Both Node processes need Postgres. The worker shells out to ffmpeg, yt-dlp and the uv-managed Python CLIs, and talks to your LLM provider + dispatch targets over HTTP.</p>
+</section>
+
+<!-- ─── STEP 1 · INSTALL ─────────────────────────────────────────────── -->
+<section class="narrow" id="install">
+  <h2><span class="step-no">step 1</span>Install &amp; run dev</h2>
+  <p class="sub">Clone, install, migrate, start. The dev script runs the Next.js server AND the worker fleet together so generation auto-starts when you add a video.</p>
+
+  <pre class="cmd"><span class="c"># Clone</span>
+git clone &lt;your channelhelm repo URL&gt; channelhelm
+cd channelhelm
+
+<span class="c"># Install deps</span>
+pnpm install
+
+<span class="c"># Configure env (copy + edit)</span>
+cp .env.example .env
+<span class="c"># at minimum set the 5 BOOT-ONLY keys (these can ONLY change via .env + restart):</span>
+<span class="c">#   DATABASE_URL=postgresql://&lt;you&gt;@localhost:5432/channelhelm  (or @m4max.local for the fleet)</span>
+<span class="c">#   MEDIA_ROOT=/Users/&lt;you&gt;/Dev/channelhelm/media              (any absolute path)</span>
+<span class="c">#   PROVIDER_SECRET_KEY=&lt;32-byte hex&gt;  →  openssl rand -hex 32  (wraps provider API keys)</span>
+<span class="c">#   LOCAL_BEARER_TOKEN=&lt;random&gt;        →  openssl rand -hex 32  (single-operator API auth)</span>
+<span class="c">#   ARCHIVE_ROOT=                       leave blank unless you run the archive worker</span>
+<span class="c"># Everything else (Zernio, DojoClaw, Google OAuth, HF_TOKEN, MAX_UPLOAD_BYTES…)</span>
+<span class="c"># is editable later at /settings — no restart. Leave it blank for now.</span>
+
+<span class="c"># Apply migrations (drizzle-kit migrate — runs 0000…0007 in order)</span>
+pnpm db:migrate
+
+<span class="c"># Run web + workers together (web + a single worker holding all kinds)</span>
+pnpm dev:all
+
+<span class="c"># Optional: dial worker concurrency (default 3; LLM-bound kinds benefit most)</span>
+<span class="c">#   WORKER_CONCURRENCY=6 pnpm dev:all</span></pre>
+
+  <p style="font-size:14px">
+    Open <a href="http://localhost:3000"><code>http://localhost:3000</code></a> in your browser.
+    You'll see the empty dashboard. Both processes need to be running for the pipeline to work
+    end-to-end.
+  </p>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000</span>
+    </div>
+    <div class="topnav">
+      <span class="brand-logo">M</span><span class="brand-name">ChannelHelm</span>
+      <span class="nav-item">+ New</span>
+      <span class="nav-item">Brands</span>
+      <span class="nav-item">Jobs</span>
+      <span class="nav-item">Providers</span>
+      <span class="nav-item">Settings</span>
+      <span class="spacer"></span>
+      <span class="search">⌕ Jump to package, brand, or job…</span>
+    </div>
+    <div class="body" style="text-align:center;padding:60px 24px;color:var(--muted)">
+      <mock h-title style="font-size:24px;margin-bottom:14px">No packages yet</mock>
+      <p style="margin:0;font-size:13px">Add a brand to get started → <span class="btn-mock" style="margin-left:6px">+ New brand</span></p>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> Empty dashboard. The top nav shows the five main destinations.</p>
+
+  <div class="callout warn">
+    <strong>Important</strong> If you see <em>"Settings table not migrated yet"</em> on the settings page, you missed
+    <code>pnpm db:migrate</code>. Run it and reload.
+  </div>
+
+  <h3>What boots, in what order</h3>
+  <p style="font-size:14px;color:var(--muted)">
+    <code>pnpm dev:all</code> just runs Next.js and one worker process side by side. In production each box is a separate
+    <code>launchd</code> service (see <a href="#prod">Run it for real</a>). Either way the dependency order is the same:
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Boot order: Postgres, then migrate, then Next.js and workers, then recurring enqueuer">
+      <style>
+        .b-lbl{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .b-sub{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .b-tag{ fill:#71717a; font:500 10px Inter, sans-serif; text-transform:uppercase; letter-spacing:.06em }
+      </style>
+      <defs>
+        <marker id="bArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 Z" fill="#3a3a44"/>
+        </marker>
+      </defs>
+
+      <!-- 1. Postgres -->
+      <rect x="20" y="92" width="150" height="66" rx="11" fill="#111114" stroke="#10b981" stroke-width="1.5"/>
+      <text class="b-tag" x="34" y="112" fill="#10b981">prerequisite</text>
+      <text class="b-lbl" x="34" y="132">PostgreSQL 16</text>
+      <text class="b-sub" x="34" y="149">brew services start</text>
+
+      <line x1="170" y1="125" x2="210" y2="125" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
+
+      <!-- 2. migrate -->
+      <rect x="212" y="92" width="150" height="66" rx="11" fill="#111114" stroke="#0ea5e9" stroke-width="1.5"/>
+      <text class="b-tag" x="226" y="112" fill="#0ea5e9">once / on schema change</text>
+      <text class="b-lbl" x="226" y="132">pnpm db:migrate</text>
+      <text class="b-sub" x="226" y="149">0000 → 0007</text>
+
+      <line x1="362" y1="125" x2="402" y2="125" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
+
+      <!-- 3a. Next.js + 3b. workers (stacked, both depend on migrate) -->
+      <rect x="404" y="44" width="190" height="66" rx="11" fill="#111114" stroke="#2e2e36" stroke-width="1.5"/>
+      <text class="b-tag" x="418" y="64">app · port 3000</text>
+      <text class="b-lbl" x="418" y="84">Next.js (pnpm dev)</text>
+      <text class="b-sub" x="418" y="101">lazy-hydrates /settings</text>
+
+      <rect x="404" y="138" width="190" height="66" rx="11" fill="#111114" stroke="#2e2e36" stroke-width="1.5"/>
+      <text class="b-tag" x="418" y="158">worker fleet</text>
+      <text class="b-lbl" x="418" y="178">tsx runner.ts</text>
+      <text class="b-sub" x="418" y="195">--kinds … --concurrency 3</text>
+
+      <path d="M402 125 Q420 125 420 100 L420 78" fill="none" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
+      <path d="M402 125 Q420 125 420 150 L420 172" fill="none" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
+
+      <line x1="594" y1="171" x2="634" y2="171" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
+
+      <!-- 4. recurring enqueuer -->
+      <rect x="636" y="138" width="244" height="66" rx="11" fill="#111114" stroke="#a78bfa" stroke-width="1.5"/>
+      <text class="b-tag" x="650" y="158" fill="#a78bfa">launchd · every 15 min</text>
+      <text class="b-lbl" x="650" y="178">enqueue-recurring.ts</text>
+      <text class="b-sub" x="650" y="195">collect_signal · voice · archive</text>
+
+      <!-- dev:all bracket -->
+      <rect x="398" y="36" width="202" height="176" rx="14" fill="none" stroke="#0ea5e9" stroke-dasharray="3 4" stroke-width="1" opacity="0.55"/>
+      <text class="b-tag" x="404" y="28" fill="#0ea5e9">pnpm dev:all runs these two</text>
+    </svg>
+  </div>
+  <p class="caption"><strong>boot order</strong> Postgres must be up before migrate; migrate must succeed before the app and workers start; the recurring enqueuer is optional and only matters once you have published packages.</p>
+</section>
+
+<!-- ─── STEP 2 · BRAND ───────────────────────────────────────────────── -->
+<section class="narrow" id="brand">
+  <h2><span class="step-no">step 2</span>Create your first brand</h2>
+  <p class="sub">Every entity in ChannelHelm is brand-scoped. A brand maps 1-to-1 to a YouTube channel and is where you connect your accounts.</p>
+
+  <ol class="steps">
+    <li>Top nav → <strong>+ New</strong> → <strong>Brand</strong> (or open <code>/brands/new</code> directly).</li>
+    <li>Fill in <strong>Display name</strong> (the slug auto-derives in kebab-case — pick a clean name, it's hard to change cleanly later).</li>
+    <li>(Optional) <strong>YouTube channel ID</strong> if you know it (looks like <code>UCxxxxxx…</code>). This auto-fills if you ever drop a YouTube URL into the ingest later. Leave blank for now.</li>
+    <li>Pick the <strong>Default processing profile</strong> — <code>standard_audio_visual</code> is the right choice for almost everyone.</li>
+    <li>Hit <strong>Create brand</strong>. You land on the brand page.</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/brands/new</span>
+    </div>
+    <div class="body" style="max-width:520px;margin:0 auto">
+      <mock h-title>New brand</mock>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 18px">One brand = one publishing identity. Multi-brand is root in ChannelHelm.</p>
+      <div class="label-mock">Display name</div>
+      <div class="input-mock">Your Brand Name</div>
+      <div class="label-mock" style="margin-top:14px">Slug</div>
+      <div class="input-mock" style="color:var(--muted)">your-brand-name <span style="font-size:10px;color:var(--faint)">· auto-derived</span></div>
+      <div class="label-mock" style="margin-top:14px">Default processing profile</div>
+      <div class="input-mock">standard_audio_visual ▾</div>
+      <div class="label-mock" style="margin-top:14px">YouTube channel ID (optional)</div>
+      <div class="input-mock" style="color:var(--faint)">UCxxxxxxxxxxxxxxxxxxxxxx</div>
+      <div style="margin-top:18px"><span class="btn-mock">Create brand</span></div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The new-brand form. Slug auto-derives from the display name; you can leave the channel ID blank.</p>
+</section>
+
+<!-- ─── STEP 3 · LLM PROVIDER ────────────────────────────────────────── -->
+<section class="narrow" id="llm">
+  <h2><span class="step-no">step 3</span>Configure an LLM provider</h2>
+  <p class="sub">ChannelHelm uses LLMs for one thing: drafting the asset content (titles, descriptions, scripts, posts). It pluggable — OpenAI, Anthropic, OpenRouter, LM Studio, Ollama, the Codex CLI, etc. Pick one to start.</p>
+
+  <ol class="steps">
+    <li>Top nav → <strong>Providers</strong> (or <code>/providers</code>).</li>
+    <li>Click <strong>+ Add provider</strong>.</li>
+    <li>Choose a <strong>Quick preset</strong> (recommended first time):
+      <ul class="bullets" style="margin-top:6px">
+        <li><strong>Claude (Anthropic)</strong> — best general-purpose default. Needs an API key from <code>console.anthropic.com</code>.</li>
+        <li><strong>OpenAI</strong> — same idea, key from <code>platform.openai.com</code>.</li>
+        <li><strong>LM Studio (Local)</strong> — free but slower; needs LM Studio app running with a model loaded.</li>
+      </ul>
+    </li>
+    <li>Paste the API key. Set <strong>Purpose</strong> to <code>all</code> and check <strong>Default</strong> — this provider then serves every LLM call.</li>
+    <li><strong>Add provider</strong>.</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/providers</span>
+    </div>
+    <div class="body">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <mock h-title>LLM Providers</mock>
+        <span class="btn-mock ghost">+ Add provider</span>
+      </div>
+      <div class="card-mock" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-weight:600">Claude (Anthropic)</span>
+            <span style="font-size:10px;font-family:var(--font-mono);background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);padding:1px 6px;border-radius:999px;margin-left:6px;border:1px solid color-mix(in oklab,var(--accent) 28%,transparent)">default</span>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--faint);margin-top:4px">anthropic · claude-sonnet-4-6 · all</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span style="font-size:11px;color:var(--muted)">Test</span>
+            <span style="font-size:11px;color:var(--muted)">Edit</span>
+            <span style="font-size:11px;color:var(--red)">Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> A configured Anthropic provider with the "default" badge. API keys are stored encrypted at rest (AES-256-GCM) and never sent back to the browser.</p>
+
+  <div class="callout tip">
+    <strong>Tip</strong> Want to learn the routing logic in depth? See the
+    <a href="/llm-routing.html">LLM routing field guide</a> for a per-task matrix and three preset configurations.
+  </div>
+</section>
+
+<!-- ─── STEP 4 · INGEST ──────────────────────────────────────────────── -->
+<section class="narrow" id="ingest">
+  <h2><span class="step-no">step 4</span>Add a video</h2>
+  <p class="sub">Two ways: drop a local file, or paste a YouTube URL. Both create a Source + Package and enqueue the ingest pipeline.</p>
+
+  <h3>Option A · Drop a local file</h3>
+  <ol class="steps">
+    <li>Top nav → <strong>+ New</strong> → <strong>Source</strong> (or <code>/sources/new</code>).</li>
+    <li>Pick your <strong>Brand</strong> from the dropdown.</li>
+    <li>Drag your <code>.mp4</code> (or .mov, .webm, .m4v, .mkv) onto the upload zone, or click to pick a file.</li>
+    <li>Make sure <strong>Create package</strong> is checked — this kicks off the pipeline immediately.</li>
+    <li>Click <strong>Upload</strong>. The file streams to <code>MEDIA_ROOT</code>, the package is created, you land on the package page.</li>
+  </ol>
+
+  <h3>Option B · Paste a YouTube URL</h3>
+  <ol class="steps">
+    <li>Top nav → <strong>+ New</strong> → <strong>YouTube URL</strong>.</li>
+    <li>Paste the URL (any shape — <code>youtube.com/watch?v=…</code>, <code>youtu.be/…</code>).</li>
+    <li>ChannelHelm <strong>auto-discovers the brand</strong> from the channel ID. If a brand with that channel doesn't exist, it offers to create one.</li>
+    <li>Click <strong>Ingest</strong>. yt-dlp downloads the video, the pipeline starts.</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/sources/new</span>
+    </div>
+    <div class="body" style="max-width:520px;margin:0 auto">
+      <mock h-title>Add a source</mock>
+      <div class="label-mock" style="margin-top:14px">Brand</div>
+      <div class="input-mock">Your Brand Name ▾</div>
+      <div class="label-mock" style="margin-top:14px">Source type</div>
+      <div class="input-mock">Uploaded video ▾</div>
+      <div style="border:1.5px dashed var(--border-strong);border-radius:10px;padding:30px;text-align:center;color:var(--muted);font-size:13px;margin-top:14px;background:var(--panel)">
+        ⬆ Drop your .mp4 here<br/>
+        <span style="font-size:11px;color:var(--faint)">or click to browse · max 2 GB</span>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px">
+        <span class="checkbox-mock checked">✓</span> Create package and start pipeline
+      </label>
+      <div style="margin-top:16px"><span class="btn-mock">Upload</span></div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The upload form. Streams the file to <code>MEDIA_ROOT/&lt;brand-slug&gt;/&lt;source-id&gt;/original.&lt;ext&gt;</code>, hard-capped by <code>MAX_UPLOAD_BYTES</code>.</p>
+
+  <div class="callout">
+    <strong>Behind the scenes</strong> Once the package is created, the worker fleet picks it up:
+    <code>ingest</code> → audio extraction + scene-cut detection →
+    <code>transcribe_audio</code> (MLX Whisper) <em>and</em>
+    <code>analyze_visual</code> (mlx-vlm + Apple Vision OCR) in parallel →
+    <code>fuse</code> → <code>analyze_intelligence</code> (LLM) →
+    fan-out: <code>generate_asset</code> ×N + <code>thumbnail_concepts</code>.
+    For an ~8 min video this takes a few minutes total on M-series hardware.
+  </div>
+</section>
+
+<!-- ─── STEP 5 · STUDIO ──────────────────────────────────────────────── -->
+<section class="narrow" id="studio">
+  <h2><span class="step-no">step 5</span>Review in the Studio</h2>
+  <p class="sub">When the package reaches <code>ready_for_review</code>, the package page (the "Studio") is your single command center for the upload.</p>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/packages/pkg_…</span>
+    </div>
+    <div class="body" style="display:grid;grid-template-columns:1fr 280px;gap:18px">
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px">← All packages · pkg_…</div>
+        <mock h-title>Your video's top-scored title</mock>
+        <div class="meta-row">
+          <span>Your Brand Name</span><span class="sep">·</span>
+          <span>standard_audio_visual</span><span class="sep">·</span>
+          <span>8:19</span><span class="sep">·</span>
+          <span class="pill amber"><span class="dot"></span>Ready</span>
+        </div>
+        <div style="background:#0c0c0d;border:1px solid var(--border);border-radius:8px;height:160px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--font-mono);font-size:12px;margin-bottom:14px">
+          ▶ video player
+        </div>
+        <div class="card-mock">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-weight:600;font-size:14px">Titles · 5</span>
+            <span style="font-size:11px;color:var(--muted)">Regenerate · Copy selected</span>
+          </div>
+          <div style="font-size:13px;color:var(--text)">○ Title variant 1 — score 93/100</div>
+          <div style="font-size:13px;color:var(--muted)">○ Title variant 2 — score 91/100</div>
+          <div style="font-size:13px;color:var(--muted)">○ Title variant 3 — score 88/100</div>
+        </div>
+        <div class="card-mock">
+          <div style="font-weight:600;font-size:14px;margin-bottom:6px">YouTube Description</div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Hook + body + chapters block + CTA + hashtags …</div>
+        </div>
+        <div class="card-mock">
+          <div style="font-weight:600;font-size:14px;margin-bottom:6px">YouTube Tags · 15</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <span style="background:var(--panel-2);color:#ddd;font-size:11px;padding:2px 7px;border-radius:4px">tag one</span>
+            <span style="background:var(--panel-2);color:#ddd;font-size:11px;padding:2px 7px;border-radius:4px">tag two</span>
+            <span style="background:var(--panel-2);color:#ddd;font-size:11px;padding:2px 7px;border-radius:4px">tag three</span>
+            <span style="background:var(--panel-2);color:#ddd;font-size:11px;padding:2px 7px;border-radius:4px">…</span>
+          </div>
+        </div>
+      </div>
+      <aside style="border-left:1px solid var(--border);padding-left:14px">
+        <div class="eyebrow" style="margin-bottom:4px">Approve &amp; Publish</div>
+        <div style="font-family:var(--font-mono);font-size:24px;font-weight:500;margin-bottom:14px">0<span style="color:var(--faint);font-size:14px"> / 12</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:6px"><span class="checkbox-mock"></span>YouTube Title Set</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:6px"><span class="checkbox-mock"></span>YouTube Description</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:6px"><span class="checkbox-mock"></span>YouTube Chapters</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:6px"><span class="checkbox-mock"></span>YouTube Tags</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:14px;color:var(--faint)"><span class="checkbox-mock" style="border-color:var(--border)">⊘</span>Article Brief <span style="font-size:9px;font-family:var(--font-mono);margin-left:auto">locked</span></div>
+        <span class="btn-mock" style="width:100%;text-align:center;display:block">↗ Approve &amp; dispatch · 0</span>
+      </aside>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The Studio. Left: assets (cards per type, each with Copy/Regenerate). Right: the approval panel — every asset checkbox you tick will be dispatched when you click the button.</p>
+
+  <h3>What's on this page</h3>
+  <ul class="bullets">
+    <li><strong>4-layer pipeline indicator</strong> — green check per layer (audio, visual, fusion, intelligence) once it's done</li>
+    <li><strong>Title cards</strong> — 5 scored variants, click the radio to pick the lead one</li>
+    <li><strong>Description</strong> — hook + body + chapters block + CTA + hashtags. Edit inline if needed.</li>
+    <li><strong>Tags</strong> — 15 scored, click to drop ones you don't want</li>
+    <li><strong>Thumbnails</strong> — 2 frame proposals with hook scores</li>
+    <li><strong>Per-platform assets</strong> — LinkedIn post, X thread, article brief, short clip plan, etc. (use what you want, skip the rest)</li>
+  </ul>
+</section>
+
+<!-- ─── STEP 6 · YOUTUBE CONNECT ─────────────────────────────────────── -->
+<section class="narrow" id="youtube">
+  <h2><span class="step-no">step 6</span>Connect YouTube (one-time per brand)</h2>
+  <p class="sub">This is the longest step but only done once per brand. Two halves: (a) create a Google OAuth app once for all your brands, (b) authorize the brand to upload to your specific channel.</p>
+
+  <h3>6a · Create the Google OAuth app (one-time)</h3>
+
+  <ol class="steps">
+    <li>Open <a href="https://console.cloud.google.com/">console.cloud.google.com</a> — sign in as <strong>the Google account that owns your YouTube channel</strong>. (If different from your main account, use an incognito window signed in as the channel-owning account, or switch profiles.)</li>
+    <li>Top dropdown → <strong>New Project</strong> → name it "ChannelHelm" → Create. Select it once provisioned.</li>
+    <li><strong>APIs &amp; Services → Library</strong> → search "YouTube Data API v3" → <strong>Enable</strong>.</li>
+    <li><strong>APIs &amp; Services → OAuth consent screen</strong>:
+      <ul class="bullets" style="margin-top:6px">
+        <li>User type: <strong>External</strong> → Create</li>
+        <li>App name: <code>ChannelHelm</code>, support email + dev contact: your email</li>
+        <li>Scopes → Add or Remove → check <code>youtube.upload</code> AND <code>youtube</code></li>
+        <li>Test users → add the Google email that owns your YouTube channel</li>
+        <li>Save through to the dashboard</li>
+      </ul>
+    </li>
+    <li><strong>APIs &amp; Services → Credentials → + Create credentials → OAuth client ID</strong>:
+      <ul class="bullets" style="margin-top:6px">
+        <li>Application type: <strong>Web application</strong></li>
+        <li>Name: <code>ChannelHelm local</code></li>
+        <li>Authorized redirect URI: <code>http://localhost:3000/api/youtube/oauth/callback</code> <em>(exact, no trailing slash)</em></li>
+        <li>Create</li>
+      </ul>
+    </li>
+    <li>Modal pops up with <strong>Client ID</strong> + <strong>Client secret</strong>. Copy both, or click Download JSON.</li>
+  </ol>
+
+  <h4>Where to find the Test users section if you missed it</h4>
+  <p style="font-size:13.5px;color:var(--muted)">
+    Google rebranded the OAuth UI recently — what used to be on the "OAuth consent screen" page is now split.
+    <strong>Test users</strong> lives under <strong>APIs &amp; Services → Google Auth Platform → Audience</strong>
+    (scroll to the "Test users" section near the bottom). Add the channel-owning email there.
+  </p>
+
+  <h3>6b · Paste the credentials into ChannelHelm</h3>
+
+  <p style="font-size:14px;color:var(--muted)">
+    The two OAuth keys are <strong>runtime-editable settings</strong> — you paste them on the <code>/settings</code> page and
+    they propagate to every running process with no restart. That's a different mechanism from the five boot-only keys you
+    put in <code>.env</code>. Here's the decision rule and how a save propagates:
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Decision: env vs DB settings, and how a /settings save propagates via pg_notify">
+      <style>
+        .s-lbl{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .s-mono{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .s-tag{ fill:#71717a; font:500 10px Inter, sans-serif }
+        .s-q{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+      </style>
+      <defs>
+        <marker id="sArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 Z" fill="#3a3a44"/>
+        </marker>
+        <marker id="sArrowB" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 Z" fill="#0ea5e9"/>
+        </marker>
+      </defs>
+
+      <!-- ── Left: decision ── -->
+      <text class="s-tag" x="20" y="22" fill="#0ea5e9" style="text-transform:uppercase;letter-spacing:.06em">Which knob do I turn?</text>
+
+      <!-- diamond -->
+      <polygon points="120,52 210,98 120,144 30,98" fill="#111114" stroke="#2e2e36" stroke-width="1.5"/>
+      <text class="s-q" x="120" y="92" text-anchor="middle">Does a</text>
+      <text class="s-q" x="120" y="108" text-anchor="middle">restart break it?</text>
+
+      <!-- yes → .env (boot-only) -->
+      <line x1="120" y1="144" x2="120" y2="184" stroke="#3a3a44" stroke-width="2" marker-end="url(#sArrow)"/>
+      <text class="s-tag" x="128" y="170" fill="#f59e0b">yes — boot-only</text>
+      <rect x="20" y="186" width="200" height="62" rx="10" fill="#111114" stroke="#f59e0b" stroke-width="1.4"/>
+      <text class="s-lbl" x="34" y="208">Edit <tspan font-family="JetBrains Mono">.env</tspan> + restart</text>
+      <text class="s-mono" x="34" y="226">DATABASE_URL · MEDIA_ROOT</text>
+      <text class="s-mono" x="34" y="240">ARCHIVE_ROOT · *_SECRET_KEY · TOKEN</text>
+
+      <!-- no → /settings -->
+      <line x1="210" y1="98" x2="250" y2="98" stroke="#3a3a44" stroke-width="2" marker-end="url(#sArrow)"/>
+      <text class="s-tag" x="216" y="90" fill="#10b981">no</text>
+      <rect x="252" y="62" width="170" height="72" rx="10" fill="#111114" stroke="#10b981" stroke-width="1.4"/>
+      <text class="s-lbl" x="266" y="86">Type it at</text>
+      <text class="s-lbl" x="266" y="104" font-family="JetBrains Mono" fill="#10b981">/settings</text>
+      <text class="s-mono" x="266" y="122">live · no restart</text>
+
+      <!-- divider -->
+      <line x1="455" y1="20" x2="455" y2="300" stroke="#232329" stroke-dasharray="2 4"/>
+
+      <!-- ── Right: propagation ── -->
+      <text class="s-tag" x="485" y="22" fill="#0ea5e9" style="text-transform:uppercase;letter-spacing:.06em">How a /settings save propagates</text>
+
+      <rect x="485" y="44" width="170" height="56" rx="10" fill="#111114" stroke="#0ea5e9" stroke-width="1.5"/>
+      <text class="s-lbl" x="499" y="66">You click Save</text>
+      <text class="s-mono" x="499" y="84">setSetting(key, value)</text>
+
+      <line x1="570" y1="100" x2="570" y2="132" stroke="#0ea5e9" stroke-width="2" marker-end="url(#sArrowB)"/>
+
+      <rect x="485" y="134" width="380" height="56" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.5"/>
+      <text class="s-lbl" x="499" y="156">Postgres · <tspan font-family="JetBrains Mono">settings</tspan> table</text>
+      <text class="s-mono" x="499" y="174">UPSERT (AES-256-GCM for secrets) → pg_notify('chs_settings', key)</text>
+
+      <!-- fan-out to two listeners -->
+      <path d="M560 190 Q560 210 540 210 L520 210" fill="none" stroke="#0ea5e9" stroke-width="2" marker-end="url(#sArrowB)"/>
+      <path d="M780 190 Q780 210 800 210 L820 210" fill="none" stroke="#0ea5e9" stroke-width="2" marker-end="url(#sArrowB)"/>
+
+      <rect x="485" y="222" width="170" height="62" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="s-lbl" x="499" y="244">Next.js process</text>
+      <text class="s-mono" x="499" y="262">refresh into</text>
+      <text class="s-mono" x="499" y="276">process.env[key]</text>
+
+      <rect x="695" y="222" width="170" height="62" rx="10" fill="#111114" stroke="#2e2e36" stroke-width="1.4"/>
+      <text class="s-lbl" x="709" y="244">Worker (LISTEN)</text>
+      <text class="s-mono" x="709" y="262">refresh into</text>
+      <text class="s-mono" x="709" y="276">process.env[key]</text>
+
+      <text class="s-tag" x="600" y="304" fill="#10b981">every consumer keeps reading process.env.X — unchanged</text>
+    </svg>
+  </div>
+  <p class="caption"><strong>env vs DB</strong> Boot-only keys live in <code>.env</code> and need a restart. Everything else is DB-backed and propagates live via <code>pg_notify</code> on the <code>chs_settings</code> channel. Both land in <code>process.env</code>, so every reader is unchanged. (Full architecture: <code>docs/settings.md</code>.)</p>
+
+  <ol class="steps">
+    <li>Open <code>/settings</code> in your browser.</li>
+    <li>Find <strong>GOOGLE_OAUTH_CLIENT_ID</strong> → paste the long <code>…apps.googleusercontent.com</code> string → Save.</li>
+    <li>Find <strong>GOOGLE_OAUTH_CLIENT_SECRET</strong> → paste the <code>GOCSPX-…</code> string → Save. (Encrypted at rest immediately; subsequent reloads show the masked placeholder.)</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/settings</span>
+    </div>
+    <div class="body">
+      <mock h-title>Settings</mock>
+      <div class="eyebrow" style="margin:18px 0 6px">Runtime settings</div>
+      <div class="card-mock">
+        <code style="font-family:var(--font-mono);font-size:12px">GOOGLE_OAUTH_CLIENT_ID</code>
+        <span style="font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:999px;color:var(--green);background:color-mix(in oklab,var(--green) 14%,transparent);border:1px solid color-mix(in oklab,var(--green) 28%,transparent);margin-left:6px">set</span>
+        <div style="font-size:11px;color:var(--faint);margin:4px 0 8px">OAuth 2.0 Client ID from Google Cloud Console. One client supports all brands.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="input-mock" style="flex:1;margin:0">123456789-abc….apps.googleusercontent.com</div>
+          <span class="btn-mock" style="padding:5px 12px">Save</span>
+        </div>
+      </div>
+      <div class="card-mock">
+        <code style="font-family:var(--font-mono);font-size:12px">GOOGLE_OAUTH_CLIENT_SECRET</code>
+        <span style="font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:999px;color:var(--amber);background:color-mix(in oklab,var(--amber) 14%,transparent);border:1px solid color-mix(in oklab,var(--amber) 28%,transparent);margin-left:6px">secret</span>
+        <span style="font-size:9px;font-family:var(--font-mono);padding:1px 6px;border-radius:999px;color:var(--green);background:color-mix(in oklab,var(--green) 14%,transparent);border:1px solid color-mix(in oklab,var(--green) 28%,transparent);margin-left:6px">set</span>
+        <div style="font-size:11px;color:var(--faint);margin:4px 0 8px">OAuth 2.0 Client secret. Encrypted at rest; never sent back to the browser.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="input-mock" style="flex:1;margin:0;color:var(--muted)">•••••••• saved</div>
+          <span class="btn-mock" style="padding:5px 12px">Save</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The two new GOOGLE_OAUTH_* keys on /settings, both with the green <em>set</em> badge after saving.</p>
+
+  <h3>6c · Connect the brand to your YouTube channel</h3>
+
+  <ol class="steps">
+    <li>Open <code>/brands/&lt;your-brand-id&gt;</code> in <strong>the same browser context that's signed in as the YouTube-channel-owning Google account</strong> (use incognito if your main browser is signed in differently).</li>
+    <li>Scroll to the <strong>YouTube connection</strong> card.</li>
+    <li>(Optional but recommended) Type your channel-owning Google email in the "Pick the right Google account" input — this pre-fills Google's account chooser.</li>
+    <li>Click <strong>▶ Connect YouTube as &lt;your-email&gt;</strong>.</li>
+    <li>You'll be redirected to Google. Sequence:
+      <ul class="bullets" style="margin-top:6px">
+        <li>Account chooser → pick the channel-owning Google account</li>
+        <li>"This app isn't verified" warning → <strong>Advanced → Go to ChannelHelm (unsafe)</strong>. (Your personal OAuth app, your project — "unsafe" here means "Google hasn't verified you to yourself" — fine.)</li>
+        <li>Consent screen lists 2 scopes — <strong>Allow</strong></li>
+      </ul>
+    </li>
+    <li>You land back on the brand page with a green <em>"✓ Connected to &lt;your channel name&gt;"</em> banner. The card shows the channel info + a dispatch-target picker.</li>
+    <li>Click the <strong>Direct (this connection)</strong> radio. Commits immediately.</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/brands/&lt;brand-id&gt;</span>
+    </div>
+    <div class="body">
+      <mock h-title>Your Brand Name</mock>
+      <div class="card-mock" style="border-color:color-mix(in oklab,var(--yt) 25%, var(--border))">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="width:24px;height:18px;background:var(--yt);border-radius:4px;color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">YT</span>
+          <div style="flex:1">
+            <div style="font-weight:600">YouTube connection</div>
+            <div style="font-size:11px;color:var(--muted)">Direct upload via YouTube Data API v3 — bypasses Zernio.</div>
+          </div>
+          <span class="pill green"><span class="dot"></span>connected</span>
+        </div>
+        <div style="background:color-mix(in oklab,var(--green) 10%, transparent);border:1px solid color-mix(in oklab,var(--green) 28%,transparent);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--green);margin:8px 0">
+          ✓ Connected to <strong>Your Channel Name</strong> — tokens encrypted at rest.
+        </div>
+        <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-top:6px">
+          <div style="font-size:13px;font-weight:500">Your Channel Name</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--faint);margin-top:3px">UCxxxxx… · connected just now</div>
+        </div>
+        <div class="label-mock" style="margin-top:14px">Dispatch target for this brand's YouTube videos</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          <label style="display:flex;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px"><input type="radio" disabled /> Manual</label>
+          <label style="display:flex;gap:8px;padding:6px 10px;border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);background:color-mix(in oklab,var(--accent) 8%,transparent);border-radius:5px;font-size:12px"><input type="radio" checked disabled /> <strong>Direct (this connection)</strong></label>
+          <label style="display:flex;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px"><input type="radio" disabled /> Zernio (LATE)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The brand page with YouTube connected. Direct is selected → approving the package will upload directly via the YouTube Data API.</p>
+
+  <div class="callout tip">
+    <strong>Tip</strong> The refresh token Google issues is encrypted with your <code>PROVIDER_SECRET_KEY</code> and stored on the brand row. Disconnect at any time clears it (and resets the dispatch target to Manual). To revoke from Google's side, visit <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+  </div>
+
+  <div class="callout warn">
+    <strong>Gotcha</strong> If you see <em>"Google did not return a refresh_token"</em> after the consent screen, you've granted ChannelHelm access before — Google only issues a refresh_token on the first grant. Revoke the existing grant at myaccount.google.com/permissions, then click Connect again.
+  </div>
+</section>
+
+<!-- ─── STEP 7 · APPROVE ─────────────────────────────────────────────── -->
+<section class="narrow" id="dispatch">
+  <h2><span class="step-no">step 7</span>Approve &amp; dispatch</h2>
+  <p class="sub">Back to the package page. Now that the brand is connected and set to Direct, the four YouTube assets will trigger an actual upload to your channel.</p>
+
+  <ol class="steps">
+    <li>Open the package: <code>/packages/&lt;package-id&gt;</code>.</li>
+    <li>In the <strong>Approve &amp; Publish</strong> panel on the right, make sure the four YouTube rows are checked:
+      <ul class="bullets" style="margin-top:6px">
+        <li>☑ YouTube Title Set <em>(the dispatch trigger — bundles the others into the upload)</em></li>
+        <li>☑ YouTube Description</li>
+        <li>☑ YouTube Chapters</li>
+        <li>☑ YouTube Tags</li>
+      </ul>
+    </li>
+    <li>Uncheck anything you don't want this round. Locked rows (greyed out with <code>⊘</code>) can't be selected — they need other config (Zernio account, DojoClaw key, etc.).</li>
+    <li>Click <strong>Approve &amp; dispatch · N</strong>.</li>
+    <li>A teal <em>"dispatching N · auto-refresh every 2s"</em> indicator appears below the button. The panel polls the API every 2 seconds; row statuses update live as the worker progresses.</li>
+  </ol>
+
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/packages/pkg_…</span>
+    </div>
+    <div class="body" style="max-width:300px;margin-left:auto">
+      <div class="eyebrow" style="margin-bottom:4px">Approve &amp; Publish</div>
+      <div style="font-family:var(--font-mono);font-size:24px;font-weight:500;margin-bottom:14px">4<span style="color:var(--faint);font-size:14px"> / 12</span></div>
+      <div style="height:3px;background:var(--panel-2);border-radius:999px;overflow:hidden;margin-bottom:14px"><div style="width:33%;height:100%;background:var(--accent)"></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px"><span class="checkbox-mock checked">✓</span>YouTube Title Set</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px"><span class="checkbox-mock checked">✓</span>YouTube Description</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px"><span class="checkbox-mock checked">✓</span>YouTube Chapters</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;margin-bottom:14px"><span class="checkbox-mock checked">✓</span>YouTube Tags</div>
+      <span class="btn-mock" style="width:100%;text-align:center;display:block">↗ Approve &amp; dispatch · 4</span>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;padding:6px 10px;background:color-mix(in oklab,var(--teal) 10%,transparent);border:1px solid color-mix(in oklab,var(--teal) 28%,transparent);border-radius:5px;font-size:11px;color:var(--teal);font-family:var(--font-mono)">
+        <span style="width:8px;height:8px;border-radius:999px;background:var(--teal);animation:pulse 1.4s ease-in-out infinite"></span>
+        dispatching 4 · auto-refresh every 2s
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> Right after clicking. The teal pulsing pill confirms the worker has picked the jobs up and the panel is auto-refreshing.</p>
+
+  <h3>What happens behind the scenes</h3>
+  <p>The dispatch worker picks up the <code>youtube_title_set</code> job, sees the brand is configured for <code>youtube_direct</code> with valid OAuth tokens, then:</p>
+  <ol class="steps">
+    <li>Refreshes the OAuth access token (Google API auto-refresh).</li>
+    <li>Bundles the title + description + tags from the sibling assets on the same package.</li>
+    <li>Resolves the source video path (<code>MEDIA_ROOT/&lt;brand-slug&gt;/&lt;source-id&gt;/original.&lt;ext&gt;</code>).</li>
+    <li>Streams the file to YouTube's resumable upload endpoint (~1–3 min for an 8 min video).</li>
+    <li>(Optional) Uploads the top-ranked thumbnail concept as a separate API call.</li>
+    <li>Writes the returned YouTube URL onto <code>package.intelligence.published.youtube</code> AND flips the other three <code>youtube_*</code> assets to <code>dispatched</code>.</li>
+  </ol>
+
+  <h3>When it completes</h3>
+  <ul class="bullets">
+    <li>The teal "dispatching" pill disappears.</li>
+    <li>A red <strong>▶ youtu.be/&lt;videoId&gt;</strong> pill appears in the package header next to the status — populated automatically, no paste needed.</li>
+    <li>All four <code>youtube_*</code> asset rows flip to <code>dispatched</code>.</li>
+    <li>Click the red pill → opens the live video on YouTube in a new tab.</li>
+  </ul>
+
+  <div class="mock annotation-area">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/packages/pkg_…</span>
+    </div>
+    <div class="body">
+      <div class="eyebrow" style="margin-bottom:4px">← All packages · pkg_…</div>
+      <mock h-title>Your video's top-scored title</mock>
+      <div class="meta-row">
+        <span>Your Brand Name</span><span class="sep">·</span>
+        <span>standard_audio_visual</span><span class="sep">·</span>
+        <span>8:19</span><span class="sep">·</span>
+        <span class="pill green"><span class="dot"></span>Dispatched</span>
+        <span class="pill yt">▶ youtu.be/&lt;id&gt;</span>
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What success looks like</strong> Package status flipped to "Dispatched" (green) and the red youtu.be pill is live. Click it.</p>
+
+  <div class="callout danger">
+    <strong>If it fails</strong> The row shows <code>failed</code> with the exact worker error inline (red box under the row). Common causes:
+    <ul class="bullets" style="margin-top:6px">
+      <li><code>ENOENT: no such file</code> — slug renormalize moved the media folder; reset the asset and retry, the worker probes multiple paths now.</li>
+      <li><code>quotaExceeded</code> — YouTube Data API daily limit (10k units = ~6 uploads/day). Wait until tomorrow UTC.</li>
+      <li><code>youtube: brand has no YouTube connection</code> — OAuth tokens missing; reconnect on the brand page.</li>
+      <li><code>videoCategoryId</code> errors — rare; ping me with the exact message.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ─── STEP 8 · AFTER ───────────────────────────────────────────────── -->
+<section class="narrow" id="after">
+  <h2><span class="step-no">step 8</span>Final review on YouTube</h2>
+  <p class="sub">ChannelHelm uploads videos as <strong>private</strong> by default. One more click on YouTube's side and you're live.</p>
+
+  <ol class="steps">
+    <li>Click the red <strong>▶ youtu.be/&lt;id&gt;</strong> pill on the package header → opens the video on YouTube in a new tab.</li>
+    <li>Click <strong>Edit video</strong> in YouTube Studio (or the pencil icon).</li>
+    <li>Review:
+      <ul class="bullets" style="margin-top:6px">
+        <li>Title — should match the one you picked in ChannelHelm</li>
+        <li>Description — full hook + body + chapters + CTA + hashtags (YouTube auto-renders the chapter timestamps as a chapter bar on the player)</li>
+        <li>Tags — all of them present</li>
+        <li>Thumbnail — pick from ChannelHelm's two concepts or upload your own design</li>
+      </ul>
+    </li>
+    <li>When happy → <strong>Visibility → Public → Save</strong>. Video goes live to your subscribers.</li>
+  </ol>
+
+  <div class="callout tip">
+    <strong>Why private by default?</strong> Safer first cut — you get to review what was uploaded before it hits your subscribers' feeds. If you want to skip the manual gate, you can change the default in <code>workers/integrations/youtube.ts::uploadVideo</code> (look for <code>privacyStatus: 'private'</code>).
+  </div>
+
+  <h3>You're done.</h3>
+  <p>Subsequent videos are now a 5-minute loop: drop the file → wait for the pipeline (a few minutes) → review in the Studio → Approve &amp; dispatch → 1-click flip-to-public in YouTube Studio.</p>
+</section>
+
+<!-- ─── PROD · LAUNCHD ───────────────────────────────────────────────── -->
+<section class="narrow" id="prod">
+  <h2><span class="step-no">step 9</span>Run it for real (launchd)</h2>
+  <p class="sub">
+    <code>pnpm dev:all</code> is perfect for a single Mac you're sitting at. For a fleet — or just an always-on master — you
+    split the web server, the worker(s) and the recurring enqueuer into <code>launchd</code> services. Templates live in
+    <code>infra/launchd/</code>.
+  </p>
+
+  <h3>Worker roles &amp; the <code>--concurrency</code> flag</h3>
+  <p style="font-size:14px;color:var(--muted)">
+    A worker is just <code>tsx workers/runner.ts --kinds &lt;csv&gt; --concurrency &lt;N&gt;</code>. You assign job <em>kinds</em> to
+    Macs by their strengths. Concurrency defaults to <strong>3</strong>; each slot is an independent claim→run→ack loop and the
+    queue's <code>SELECT FOR UPDATE SKIP LOCKED</code> is the only mutex, so it's always safe to add slots. LLM-bound kinds
+    (<code>generate_asset</code>, <code>analyze_intelligence</code>) benefit most.
+  </p>
+
+  <pre class="cmd"><span class="c"># Master Mac (M4 Max): orchestration + media-heavy kinds</span>
+tsx workers/runner.ts <span class="k">--kinds</span> ingest,fuse,clip_render,thumbnail_concepts,dispatch <span class="k">--concurrency</span> <span class="n">3</span>
+
+<span class="c"># LLM box (M3 Ultra): transcription, vision, intelligence, drafting</span>
+tsx workers/runner.ts <span class="k">--kinds</span> transcribe_audio,analyze_visual,analyze_intelligence,generate_asset <span class="k">--concurrency</span> <span class="n">6</span>
+
+<span class="c"># Mac Mini: spare drafting + dispatch + analytics + voice promotion</span>
+tsx workers/runner.ts <span class="k">--kinds</span> generate_asset,dispatch,collect_signal,promote_voice_examples <span class="k">--concurrency</span> <span class="n">4</span>
+
+<span class="c"># Or set it once via env (picked up by the runner default):</span>
+<span class="k">WORKER_CONCURRENCY</span>=<span class="n">6</span> tsx workers/runner.ts <span class="k">--kinds</span> generate_asset</pre>
+
+  <div class="callout tip">
+    <strong>Tip</strong> The shipped plists in <code>infra/launchd/</code> don't pass <code>--concurrency</code>, so they run at the
+    default of 3. Add <code>&lt;string&gt;--concurrency&lt;/string&gt;&lt;string&gt;6&lt;/string&gt;</code> to the <code>ProgramArguments</code>
+    array (or set <code>WORKER_CONCURRENCY</code> in the plist's <code>EnvironmentVariables</code>) to raise it.
+  </div>
+
+  <h3>The recurring enqueuer (analytics, voice, archive)</h3>
+  <p style="font-size:14px;color:var(--muted)">
+    Some work isn't triggered by a click — it's periodic. <code>scripts/enqueue-recurring.ts</code> enqueues three job kinds on
+    a timer:
+  </p>
+  <ul class="bullets">
+    <li><code>collect_signal</code> — re-pulls analytics for published assets older than <code>--stale-hours</code> (default 6)</li>
+    <li><code>promote_voice_examples</code> — promotes your edits into few-shot voice memory, once per brand+type per day</li>
+    <li><code>archive_package</code> — moves published media off local disk once it's older than <code>ARCHIVE_AFTER_DAYS</code> (only when <code>ARCHIVE_ROOT</code> is set)</li>
+  </ul>
+  <p style="font-size:14px;color:var(--muted)">
+    Wire it into <code>launchd</code> via <code>infra/launchd/com.channelhelm.recurring.plist</code> — it carries
+    <code>StartInterval=900</code> so it fires every 15 minutes. The script uses time-windowed idempotency keys, so an
+    over-trigger is harmless. Run it by hand any time:
+  </p>
+  <pre class="cmd"><span class="c"># Install the recurring service (copy → edit WorkingDirectory + env → load)</span>
+cp infra/launchd/com.channelhelm.recurring.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.channelhelm.recurring.plist
+
+<span class="c"># Or just run it manually whenever you want</span>
+tsx scripts/enqueue-recurring.ts <span class="k">--stale-hours</span> <span class="n">6</span> <span class="k">--archive-after-days</span> <span class="n">14</span></pre>
+
+  <h3>Backfill Shorts renders</h3>
+  <p style="font-size:14px;color:var(--muted)">
+    New short-clip plans auto-render via the pipeline's auto-render hook. But if you import old packages, change render
+    settings, or a render slipped through, <code>scripts/render-shorts.ts</code> enqueues <code>clip_render</code> jobs for any
+    plan with missing clips. It's idempotent — re-running is a no-op once everything's queued.
+  </p>
+  <pre class="cmd"><span class="c"># All packages, missing clips only</span>
+tsx scripts/render-shorts.ts
+
+<span class="c"># Scope to one package or brand; preview without enqueuing; force every clip</span>
+tsx scripts/render-shorts.ts <span class="k">--package-id</span> pkg_xxx
+tsx scripts/render-shorts.ts <span class="k">--brand-id</span> brd_xxx <span class="k">--dry-run</span>
+tsx scripts/render-shorts.ts <span class="k">--force</span></pre>
+
+  <div class="callout danger">
+    <strong>Heavy work is worker-only</strong> Transcription, VLM, OCR and ffmpeg never run inside Next.js routes or Server
+    Actions — they're always enqueued and picked up by a worker. If a worker process isn't running, jobs just sit
+    <code>queued</code> in the dashboard. <code>pnpm dev:all</code> starts one for you; in prod that's a <code>launchd</code> service.
+  </div>
+</section>
+
+<!-- ─── WHAT NEXT ───────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">What's next</div>
+  <h2>Beyond YouTube.</h2>
+  <p class="sub">Each of these adds a destination to your dispatch flow. None are required — set them up only if you'll use them.</p>
+
+  <div class="two-col">
+    <div class="col">
+      <h4>📝 Connect DojoClaw (article briefs)</h4>
+      <p>Set <code>DOJOCLAW_API_URL</code> + <code>DOJOCLAW_API_KEY</code> in <code>/settings</code>. The <code>article_brief</code> asset on every package will then dispatch to DojoClaw on approval.</p>
+    </div>
+    <div class="col">
+      <h4>📱 Connect Zernio (LATE — socials)</h4>
+      <p>Set <code>ZERNIO_API_KEY</code> in <code>/settings</code>, connect accounts in the Zernio dashboard, paste the <code>acc_…</code> ids in <code>brand.zernio_accounts</code> per platform. Enables LinkedIn / X / TikTok / Instagram dispatch.</p>
+    </div>
+    <div class="col">
+      <h4>🔊 Public webhooks (Cloudflare Tunnel)</h4>
+      <p>For Zernio to notify ChannelHelm when posts go live: stand up cloudflared, paste the hostname in <code>CLOUDFLARE_TUNNEL_HOSTNAME</code>, set <code>ZERNIO_WEBHOOK_SECRET</code> on both sides. See <code>docs/cloudflare-tunnel.md</code>.</p>
+    </div>
+    <div class="col">
+      <h4>🎬 Voice examples (style memory)</h4>
+      <p>The Studio's per-asset Approve action automatically captures your edits as "voice examples" — next package's LLM calls use them as few-shot context. Nothing to configure; just keep editing.</p>
+    </div>
+    <div class="col">
+      <h4>🗄 Storage lifecycle (archive old media)</h4>
+      <p>Set <code>ARCHIVE_ROOT</code> (boot-only, in <code>.env</code>) to an external drive to enable the <code>archive_package</code> worker. Tune <code>ARCHIVE_AFTER_DAYS</code> (default 14) and <code>ARCHIVE_DELETE_CLIPS</code> at <code>/settings</code>. Set <code>KEEP_PIPELINE_ARTIFACTS=1</code> to keep intermediate frames/JSON for debugging. Full map: <a href="/storage-lifecycle.html">storage lifecycle</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="narrow">
+  <div class="card-mock" style="text-align:center;padding:30px;border-color:color-mix(in oklab,var(--accent) 35%,var(--border));background:color-mix(in oklab,var(--accent) 5%,var(--panel))">
+    <h2 style="margin:0 0 8px">Ship.</h2>
+    <p class="sub" style="margin:0 auto 18px;max-width:520px;color:var(--muted)">
+      The whole first-run flow lives behind the same dashboard you started with.
+      Add a video and run through it end-to-end — the second one is faster.
+    </p>
+    <a href="/" style="padding:10px 18px;font-weight:600;border-radius:8px;background:var(--accent);color:#fff;border:1px solid color-mix(in oklab,var(--accent) 80%,white);box-shadow:0 0 0 1px var(--accent-glow);text-decoration:none;font-size:13px">
+      ← back to dashboard
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · new-operator setup guide</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/llm-routing.html" style="color:var(--muted)">LLM routing</a> ·
+      <a href="/storage-lifecycle.html" style="color:var(--muted)">storage</a> ·
+      <a href="/youtube-publish-options.html" style="color:var(--muted)">YouTube paths</a>
+    </span>
+  </div>
+  <div class="wrap foot-inner" style="margin-top:12px">
+    <span></span>
+    <span>
+      <a href="/privacy.html" style="color:var(--muted)">Privacy</a> ·
+      <a href="/terms.html" style="color:var(--muted)">Terms</a> ·
+      <a href="/contact.html" style="color:var(--muted)">Contact</a> ·
+      <a href="/impressum.html" style="color:var(--muted)">Impressum</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

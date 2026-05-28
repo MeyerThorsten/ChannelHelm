@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
@@ -69,6 +69,16 @@ export async function run(job: JobRow): Promise<void> {
   await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
   await patchPackageIntelligence(packageId, { scene_log: sceneLog });
   await advancePackageStatus(packageId, 'fused');
+
+  // Storage lifecycle (Option A): frame_index.json is fully consumed
+  // (we just folded it into scene_log) and the Postgres mirror at
+  // packages.intelligence.frame_index is the canonical copy. The disk
+  // JSON has no remaining reader. Set KEEP_PIPELINE_ARTIFACTS=1 to
+  // retain the file for debugging.
+  if (process.env.KEEP_PIPELINE_ARTIFACTS !== '1') {
+    const frameIndexPath = join(source.localMediaPath, 'frame_index.json');
+    await rm(frameIndexPath, { force: true });
+  }
 
   await enqueue({
     kind: 'analyze_intelligence',

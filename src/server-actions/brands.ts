@@ -178,6 +178,50 @@ export async function renormalizeBrandSlug(brandId: string): Promise<void> {
       .where(eq(sources.id, s.id));
   }
 
+  // Also rewrite the JSONB path snapshots: packages.intelligence.ingest.*
+  // (file_path, audio_path) and assets.payload.local_path (thumbnails,
+  // rendered clips, etc.). Without this, the next read of /api/media or the
+  // dispatch worker's loadYoutubeBundle would hit ENOENT on the old folder.
+  //
+  // We do a generic string replace: any segment between `/media/` and the
+  // next `/` that doesn't already match the target slug gets rewritten.
+  // Safe across all current path shapes.
+  const segRe = /\/media\/([^/]+)\//g;
+  const rewriteSeg = (json: string): string =>
+    json.replace(segRe, (m, seg) => (seg === target ? m : `/media/${target}/`));
+
+  if (pkgRows.length > 0) {
+    const fullPackages = await db
+      .select()
+      .from(packages)
+      .where(eq(packages.brandId, brandId));
+    for (const p of fullPackages) {
+      const intel = (p.intelligence ?? {}) as Record<string, unknown>;
+      const ingest = (intel.ingest ?? {}) as Record<string, unknown>;
+      const before = JSON.stringify(ingest);
+      const after = rewriteSeg(before);
+      if (after !== before) {
+        await db
+          .update(packages)
+          .set({ intelligence: { ...intel, ingest: JSON.parse(after) } })
+          .where(eq(packages.id, p.id));
+      }
+    }
+  }
+  if (assetRows.length > 0) {
+    const fullAssets = await db.select().from(assets).where(eq(assets.brandId, brandId));
+    for (const a of fullAssets) {
+      const before = JSON.stringify(a.payload ?? {});
+      const after = rewriteSeg(before);
+      if (after !== before) {
+        await db
+          .update(assets)
+          .set({ payload: JSON.parse(after), updatedAt: sql`now()` })
+          .where(eq(assets.id, a.id));
+      }
+    }
+  }
+
   await db
     .update(brands)
     .set({ slug: target, updatedAt: sql`now()` })

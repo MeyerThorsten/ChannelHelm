@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Which LLM for which task — ChannelHelm</title>
+<meta name="description" content="A field guide to picking the right LLM provider for each ChannelHelm task: pipeline analysis, asset generation, interactive regen, and thumbnail concepts." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --c-openai: #10a37f;
+    --c-anthropic: #d97757;
+    --c-codex: #a78bfa;
+    --c-local: #14b8a6;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .serif{font-family:var(--font-serif)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+
+  /* nav */
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:72px 0 32px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(40px,6vw,64px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:760px;margin:0}
+
+  section{padding:48px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(26px,3.4vw,36px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.1;
+  }
+  h3{font-size:14px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 28px;font-size:15px}
+
+  /* provider cards */
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;
+    transition:border-color .14s;
+  }
+  .card:hover{border-color:var(--border-strong)}
+  .card h3{margin:0 0 6px;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px}
+  .card p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .card .badge{
+    display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;
+    font-family:var(--font-mono);letter-spacing:.02em;
+  }
+  .b-openai{background:color-mix(in oklab,var(--c-openai) 14%,transparent);color:var(--c-openai);border:1px solid color-mix(in oklab,var(--c-openai) 30%,transparent)}
+  .b-anthropic{background:color-mix(in oklab,var(--c-anthropic) 14%,transparent);color:var(--c-anthropic);border:1px solid color-mix(in oklab,var(--c-anthropic) 30%,transparent)}
+  .b-codex{background:color-mix(in oklab,var(--c-codex) 14%,transparent);color:var(--c-codex);border:1px solid color-mix(in oklab,var(--c-codex) 30%,transparent)}
+  .b-local{background:color-mix(in oklab,var(--c-local) 14%,transparent);color:var(--c-local);border:1px solid color-mix(in oklab,var(--c-local) 30%,transparent)}
+  .card ul{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
+  .card li{margin:2px 0}
+
+  .figure{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;margin:8px 0 22px;
+  }
+  .figure svg{display:block;width:100%;height:auto}
+  .caption{margin-top:10px;font-size:12px;color:var(--faint);font-family:var(--font-mono)}
+
+  /* matrix table */
+  table.matrix{
+    width:100%;border-collapse:separate;border-spacing:0;
+    font-size:13px;
+  }
+  table.matrix th, table.matrix td{
+    padding:11px 12px;text-align:left;vertical-align:top;
+    border-bottom:1px solid var(--border);
+  }
+  table.matrix th{
+    color:var(--faint);font-weight:500;text-transform:uppercase;letter-spacing:.06em;font-size:11px;
+    border-bottom:1px solid var(--border-strong);
+  }
+  table.matrix td strong{color:var(--text);display:block;margin-bottom:2px;font-weight:600}
+  table.matrix td .mono{font-size:11.5px;color:var(--faint)}
+  table.matrix tr:last-child td{border-bottom:none}
+  .check{color:var(--c-local)}
+  .meh{color:#f59e0b}
+  .bad{color:var(--faint)}
+
+  /* profile recommendations */
+  .profile{
+    display:grid;grid-template-columns:160px 1fr;gap:14px;padding:14px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .profile:last-child{border-bottom:none}
+  .profile .tag{
+    display:inline-block;padding:4px 10px;border-radius:6px;font-family:var(--font-mono);font-size:11.5px;
+    background:var(--panel-2);border:1px solid var(--border-strong);color:var(--muted);
+    white-space:nowrap;
+  }
+  .profile h3{margin:0 0 4px;font-size:15px;color:var(--text);font-weight:600}
+  .profile p{margin:0 0 8px;color:var(--muted);font-size:14px}
+  .picks{display:flex;flex-wrap:wrap;gap:6px}
+  .pick{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+    font-size:11.5px;border:1px solid var(--border-strong);background:var(--panel-2);color:var(--muted);
+    font-family:var(--font-mono);
+  }
+  .pick .dot{width:7px;height:7px;border-radius:999px;display:inline-block}
+
+  .callout{
+    padding:14px 16px;border-radius:10px;background:var(--accent-soft);
+    border:1px solid color-mix(in oklab,var(--accent) 28%,transparent);color:var(--text);
+    font-size:14px;line-height:1.55;
+  }
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width: 820px){
+    .g3,.g2{grid-template-columns:1fr 1fr}
+    .nav-links a:not(.btn){display:none}
+    .profile{grid-template-columns:1fr}
+    table.matrix th:nth-child(n+4), table.matrix td:nth-child(n+4){display:none}
+  }
+  @media (max-width: 540px){
+    .g3,.g2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#providers">Providers</a>
+    <a href="#routing">Routing</a>
+    <a href="#tasks">Task matrix</a>
+    <a href="#profiles">Profiles</a>
+    <a href="/worker-concurrency.html">Concurrency</a>
+    <a href="/how-it-works.html">How it works</a>
+    <a href="/providers">Open settings</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <div class="eyebrow">LLM routing</div>
+  <h1>Which LLM <em>for which task.</em></h1>
+  <p class="lede">
+    Every ChannelHelm LLM call — the background pipeline <em>and</em> the four synchronous Studio call sites — funnels through one resolver and routes by <span class="mono">processing_profile</span>. One decision per tier picks the model for everything below it. This is the field guide.
+  </p>
+</section>
+
+<!-- PROVIDERS -->
+<section class="wrap" id="providers">
+  <div class="eyebrow">Three provider classes</div>
+  <h2>Everything plugs in the same way.</h2>
+  <p class="sub">Each row in the <code>llm_providers</code> table is one of these three types. The provider abstraction (a single <code>chat()</code> method) is identical across all of them — DojoClaw-style.</p>
+
+  <div class="grid g3">
+    <div class="card">
+      <h3><span class="badge b-openai">openai-compatible</span></h3>
+      <p>The HTTP shape <code>POST /v1/chat/completions</code> spoken by OpenAI, OpenRouter, Ollama, LM Studio, OpenClaw, vLLM, and most local stacks. Set a base URL + (optional) key + model name — done.</p>
+      <ul>
+        <li><strong>Cloud:</strong> OpenAI · OpenRouter</li>
+        <li><strong>Local:</strong> LM Studio · Ollama · vLLM · OpenClaw</li>
+        <li><strong>Best for:</strong> the bulk of the pipeline — fast iteration, cheap local runs, easy model swaps.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge b-anthropic">anthropic</span></h3>
+      <p>Native Claude Messages API. Used directly (not via the OpenAI shape) so you get full feature parity with Sonnet/Opus — long context, thinking budgets where applicable, top-tier instruction following.</p>
+      <ul>
+        <li><strong>Models:</strong> Opus 4.7 · Sonnet 4.6 · Haiku 4.5</li>
+        <li><strong>Best for:</strong> headline copy, article briefs, anything where prose quality matters most.</li>
+        <li><strong>Premium tier:</strong> the obvious pick for <code>premium_multimodal</code>.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge b-codex">codex-cli</span></h3>
+      <p>Spawns the local <code>codex</code> CLI as a subprocess (no HTTP, no API key). Useful as a free local fallback or when you want offline operation. Slower than HTTP — best for non-interactive jobs.</p>
+      <ul>
+        <li><strong>Model:</strong> whatever Codex CLI is configured for</li>
+        <li><strong>Best for:</strong> background pipeline runs on a Mac with no cloud quota.</li>
+        <li><strong>Avoid for:</strong> Studio Regenerate (the operator is waiting on it).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ROUTING -->
+<section class="wrap" id="routing">
+  <div class="eyebrow">How the pick happens</div>
+  <h2>One resolver, every call site.</h2>
+  <p class="sub">Every LLM call — wherever it originates — goes through <code>complete({ profile, … })</code> in <code>workers/integrations/lm_studio.ts</code>, which calls <code>getProvider(profile)</code> in <code>workers/integrations/llm/get_provider.ts</code>. The selection rule (#17, locked) is below — eligibility is strict, scoring is deterministic.</p>
+
+  <h3 style="font-size:14px;margin:0 0 6px;color:var(--text)">Where the calls come from</h3>
+  <p class="sub" style="margin-bottom:14px">Six call sites, two execution contexts, one resolver. The background pipeline enqueues jobs; the Studio runs the LLM <em>synchronously inside a Server Action</em> (the documented carve-out in CLAUDE.md) so the operator isn't waiting on a worker to be alive.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 300" xmlns="http://www.w3.org/2000/svg" aria-labelledby="callsite-title">
+      <title id="callsite-title">LLM call sites converging on one resolver</title>
+      <defs>
+        <marker id="cs-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+        <marker id="cs-arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+      </defs>
+      <style>
+        .cb{ fill:#111114; stroke:#232329 }
+        .cw{ fill:rgba(20,184,166,0.08); stroke:rgba(20,184,166,0.40) }
+        .cs{ fill:rgba(167,139,250,0.08); stroke:rgba(167,139,250,0.40) }
+        .ct{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .cm{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .ce{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.07em; text-transform:uppercase }
+        .cl{ stroke:#52525b; stroke-width:1.3; fill:none }
+        .clA{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+      </style>
+
+      <!-- worker / pipeline column -->
+      <text class="ce" x="20" y="24">Background pipeline · worker</text>
+      <rect class="cw" x="20" y="34" width="300" height="40" rx="8"/>
+      <text class="ct" x="34" y="52">analyze_intelligence</text>
+      <text class="cm" x="34" y="67">scene log → topics · hooks · retention</text>
+
+      <rect class="cw" x="20" y="80" width="300" height="40" rx="8"/>
+      <text class="ct" x="34" y="98">generate_asset × 10</text>
+      <text class="cm" x="34" y="113">titles · desc · tags · social · clip plans</text>
+
+      <rect class="cw" x="20" y="126" width="300" height="40" rx="8"/>
+      <text class="ct" x="34" y="144">thumbnail_concepts</text>
+      <text class="cm" x="34" y="159">concept + image-gen prompt</text>
+
+      <!-- studio / server-action column -->
+      <text class="ce" x="20" y="196">Studio · synchronous Server Action</text>
+      <rect class="cs" x="20" y="206" width="300" height="32" rx="8"/>
+      <text class="ct" x="34" y="226">regenerateAsset()</text>
+
+      <rect class="cs" x="20" y="244" width="142" height="32" rx="8"/>
+      <text class="ct" x="34" y="264" style="font-size:11px">generateSection()</text>
+
+      <rect class="cs" x="178" y="244" width="142" height="32" rx="8"/>
+      <text class="ct" x="192" y="264" style="font-size:10.5px">generateClipDescription()</text>
+
+      <!-- resolver -->
+      <rect class="cb" x="560" y="96" width="220" height="108" rx="12" style="fill:rgba(14,165,233,0.08);stroke:rgba(14,165,233,0.45)"/>
+      <text class="ce" x="574" y="120" style="fill:#0ea5e9">the one resolver</text>
+      <text class="ct" x="574" y="142">complete({ profile })</text>
+      <text class="cm" x="574" y="160">→ getProvider(profile)</text>
+      <text class="cm" x="574" y="178">→ selectProvider(rows, …)</text>
+      <text class="cm" x="574" y="196">→ provider.chat() + provenance</text>
+
+      <!-- providers fan -->
+      <rect class="cb" x="850" y="60" width="170" height="34" rx="8"/>
+      <text class="ct" x="864" y="81" style="fill:#10a37f">openai-compatible</text>
+      <rect class="cb" x="850" y="104" width="170" height="34" rx="8"/>
+      <text class="ct" x="864" y="125" style="fill:#d97757">anthropic</text>
+      <rect class="cb" x="850" y="148" width="170" height="34" rx="8"/>
+      <text class="ct" x="864" y="169" style="fill:#a78bfa">codex-cli</text>
+
+      <!-- arrows: call sites → resolver -->
+      <path class="clA" d="M320,54 C 440,54 460,140 560,140" marker-end="url(#cs-arA)"/>
+      <path class="clA" d="M320,100 C 440,100 480,145 560,145" marker-end="url(#cs-arA)"/>
+      <path class="clA" d="M320,146 C 440,146 490,150 560,150" marker-end="url(#cs-arA)"/>
+      <path class="clA" d="M320,222 C 440,222 470,160 560,160" marker-end="url(#cs-arA)"/>
+      <path class="clA" d="M320,260 C 450,260 480,168 560,165" marker-end="url(#cs-arA)"/>
+      <path class="clA" d="M320,260 C 460,266 500,172 560,170" marker-end="url(#cs-arA)"/>
+
+      <!-- arrows: resolver → providers -->
+      <path class="cl" d="M780,140 C 810,140 820,77 850,77" marker-end="url(#cs-ar)"/>
+      <path class="cl" d="M780,150 h70" marker-end="url(#cs-ar)"/>
+      <path class="cl" d="M780,160 C 810,160 820,165 850,165" marker-end="url(#cs-ar)"/>
+    </svg>
+    <div class="caption">Six call sites · one <code>complete()</code> · one <code>getProvider()</code> · three provider classes. The Studio's three sync Server Actions are the documented "LLM in a Server Action" carve-out — bounded, text-only, operator-waiting.</div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 470" xmlns="http://www.w3.org/2000/svg" aria-labelledby="route-title">
+      <title id="route-title">Provider resolution decision flow</title>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+        <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#10b981"/>
+        </marker>
+      </defs>
+      <style>
+        .b{ fill:#111114; stroke:#232329 }
+        .ba{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.45) }
+        .by{ fill:rgba(245,158,11,0.10); stroke:rgba(245,158,11,0.45) }
+        .bg{ fill:rgba(16,185,129,0.10); stroke:rgba(16,185,129,0.45) }
+        .br{ fill:rgba(239,68,68,0.08); stroke:rgba(239,68,68,0.35) }
+        .t{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .ts{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .te{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .tn{ fill:#10b981; font:600 11px Inter, sans-serif }
+        .ty{ fill:#f59e0b; font:600 11px Inter, sans-serif }
+        .line{ stroke:#52525b; stroke-width:1.5; fill:none }
+        .lineA{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .lineG{ stroke:#10b981; stroke-width:1.6; fill:none }
+        .diamond{ fill:#16161a; stroke:#2e2e36 }
+      </style>
+
+      <!-- entry -->
+      <rect class="ba" x="20" y="20" width="240" height="60" rx="10"/>
+      <text class="te" x="34" y="42">entry</text>
+      <text class="t" x="34" y="60">getProvider(profile)</text>
+      <text class="ts" x="34" y="75">loads enabled rows, ordered</text>
+      <path class="lineA" d="M140,80 v22" marker-end="url(#arA)"/>
+
+      <!-- gate: table empty? -->
+      <path class="diamond" d="M140,104 l90,40 l-90,40 l-90,-40 z"/>
+      <text class="t" x="140" y="140" text-anchor="middle">rows exist?</text>
+      <!-- empty branch -->
+      <text class="ty" x="60" y="180" text-anchor="end">no</text>
+      <path class="line" d="M50,144 C 0,144 0,300 20,300" marker-end="url(#ar)"/>
+      <!-- yes branch -->
+      <text class="tn" x="148" y="200">yes</text>
+      <path class="lineG" d="M140,184 v26" marker-end="url(#arG)"/>
+
+      <!-- the three eligibility tiers (scoring) -->
+      <g transform="translate(310,20)">
+        <text class="te" x="0" y="12">selectProvider(rows, purpose) — score, then pick the highest</text>
+
+        <rect class="bg" x="0" y="24" width="420" height="46" rx="8"/>
+        <text class="t" x="14" y="44">① exact purpose match</text>
+        <text class="ts" x="14" y="61">r.purpose === profile · score 3</text>
+        <text class="tn" x="392" y="52" text-anchor="end" style="font:600 18px var(--font-serif,serif)">3</text>
+
+        <rect class="ba" x="0" y="78" width="420" height="46" rx="8"/>
+        <text class="t" x="14" y="98">② purpose = "all"</text>
+        <text class="ts" x="14" y="115">a universal provider for every profile · score 2</text>
+        <text class="t" x="392" y="106" text-anchor="end" style="fill:#0ea5e9;font:600 18px var(--font-serif,serif)">2</text>
+
+        <rect class="by" x="0" y="132" width="420" height="46" rx="8"/>
+        <text class="t" x="14" y="152">③ is_default flag</text>
+        <text class="ts" x="14" y="169">last-resort cross-profile fallback · score 1</text>
+        <text class="ty" x="392" y="160" text-anchor="end" style="font:600 18px var(--font-serif,serif)">1</text>
+
+        <rect class="br" x="0" y="186" width="420" height="40" rx="8"/>
+        <text class="t" x="14" y="205">✗ unrelated profile — never eligible</text>
+        <text class="ts" x="14" y="221">premium_multimodal won't serve standard_audio_visual</text>
+
+        <rect class="b" x="0" y="234" width="420" height="40" rx="8"/>
+        <text class="t" x="14" y="253">tiebreak — is_default DESC, then id ASC</text>
+        <text class="ts" x="14" y="269">deterministic; no flaky test runs</text>
+      </g>
+      <path class="lineG" d="M210,224 C 270,224 270,67 310,67" marker-end="url(#arG)"/>
+
+      <!-- gate: any eligible? -->
+      <path class="diamond" d="M520,300 l90,36 l-90,36 l-90,-36 z"/>
+      <text class="t" x="520" y="332" text-anchor="middle">any eligible?</text>
+      <path class="lineG" d="M730,170 C 730,250 600,260 540,288" marker-end="url(#arG)"/>
+
+      <!-- env fallback box (shared by empty + none-eligible) -->
+      <rect class="by" x="20" y="278" width="230" height="68" rx="10"/>
+      <text class="te" x="34" y="300" style="fill:#f59e0b">fallback</text>
+      <text class="t" x="34" y="318">envDefaultConfig</text>
+      <text class="ts" x="34" y="334">OPENCLAW / LM_STUDIO_* env</text>
+      <!-- none-eligible → env -->
+      <text class="ty" x="420" y="324">no</text>
+      <path class="line" d="M430,336 h-180" marker-end="url(#ar)"/>
+
+      <!-- outcome: chat + provenance -->
+      <rect class="bg" x="760" y="290" width="260" height="84" rx="12"/>
+      <text class="te" x="774" y="312" style="fill:#10b981">resolved</text>
+      <text class="t" x="774" y="332">provider.chat(messages)</text>
+      <text class="ts" x="774" y="350">+ provenance{ provider, type,</text>
+      <text class="ts" x="774" y="366">  model, host, prompt_version }</text>
+      <text class="tn" x="612" y="324">yes</text>
+      <path class="lineG" d="M610,336 h150" marker-end="url(#arG)"/>
+      <!-- env fallback also flows to chat -->
+      <path class="line" d="M250,330 C 380,400 640,410 880,378" marker-end="url(#ar)"/>
+
+      <!-- empty-table seed note -->
+      <rect class="b" x="20" y="406" width="500" height="46" rx="8"/>
+      <text class="t" x="34" y="426">first run · table empty</text>
+      <text class="ts" x="34" y="442">→ seedDefaultProviderIfEmpty() inserts an LM Studio row + uses envDefault</text>
+    </svg>
+    <div class="caption">selectProvider is a pure, exported, unit-tested function. The env fallback (and one-time seed) is what made the "zero-config first run" work before you added any providers.</div>
+  </div>
+
+  <div class="callout">
+    <strong>Practical implication:</strong> if you want a single model to handle <em>everything</em>, set its purpose to <span class="mono">all</span>. If you want a different model per tier, create three rows with purposes <span class="mono">fast_audio_only</span> / <span class="mono">standard_audio_visual</span> / <span class="mono">premium_multimodal</span>. A row tagged with one specific profile will <em>only</em> serve that profile — it won't quietly bleed into others.
+  </div>
+</section>
+
+<!-- TASK MATRIX -->
+<section class="wrap" id="tasks">
+  <div class="eyebrow">Task × provider matrix</div>
+  <h2>What each task actually needs.</h2>
+  <p class="sub">All LLM calls go through <code>complete()</code> from one of a handful of entry points: <code>analyze_intelligence</code> (the pipeline brief), <code>generate.ts::generateAssetContent</code> (every asset + the Studio Regenerate / per-section Generate buttons), and <code>generateClipDescription</code> (the Shorts editor's per-clip description generator). The right column is what works <em>well enough</em>; the stars are what's worth paying for.</p>
+
+  <div class="figure" style="padding:0;overflow:hidden">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Where it runs</th>
+          <th>Profile in</th>
+          <th>OpenAI-compatible (local)</th>
+          <th>OpenAI-compatible (cloud)</th>
+          <th>Anthropic</th>
+          <th>Codex CLI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>analyze_intelligence</strong><span class="mono">topics · hooks · retention from scene log</span></td>
+          <td class="mono">worker</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ Qwen3-32B / Llama-3.3-70B</td>
+          <td class="check">★★ gpt-4o-mini · Sonnet-4.6 via OR</td>
+          <td class="check">★★★ Claude Sonnet 4.6</td>
+          <td class="meh">◯ slow but works</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: youtube_title_set</strong><span class="mono">5 hook variants, scored 0–100</span></td>
+          <td class="mono">worker + Studio</td>
+          <td class="mono">package.profile</td>
+          <td class="meh">○ Qwen3-32B usable</td>
+          <td class="check">★★★ gpt-4o · Sonnet</td>
+          <td class="check">★★★ Claude Sonnet/Opus</td>
+          <td class="bad">— too slow for taste-driven copy</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: youtube_description</strong><span class="mono">hook → body → chapters → CTA → hashtags</span></td>
+          <td class="mono">worker + Studio</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ Qwen3-32B</td>
+          <td class="check">★★ gpt-4o-mini</td>
+          <td class="check">★★★ Sonnet (best chapter timing)</td>
+          <td class="meh">◯ ok for batch backfill</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: youtube_tags</strong><span class="mono">scored pills</span></td>
+          <td class="mono">worker + Studio</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ any local 7B+ works</td>
+          <td class="check">★★ gpt-4o-mini</td>
+          <td class="check">★★ Haiku 4.5 (fast + cheap)</td>
+          <td class="meh">◯ fine</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: linkedin_post · x_thread</strong><span class="mono">platform-shaped copy</span></td>
+          <td class="mono">worker</td>
+          <td class="mono">package.profile</td>
+          <td class="meh">○ local can sound generic</td>
+          <td class="check">★★ gpt-4o</td>
+          <td class="check">★★★ Sonnet 4.6</td>
+          <td class="bad">— skip</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: article_brief</strong><span class="mono">→ DojoClaw</span></td>
+          <td class="mono">worker</td>
+          <td class="mono">package.profile</td>
+          <td class="meh">○ depends on local model</td>
+          <td class="check">★★ gpt-4o · OR/Sonnet</td>
+          <td class="check">★★★ Opus 4.7 if budget allows</td>
+          <td class="meh">◯ workable</td>
+        </tr>
+        <tr>
+          <td><strong>generate_asset: short_clip_plan / long_clip_plan</strong><span class="mono">structured JSON — captions + cuts</span></td>
+          <td class="mono">worker</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ Qwen3-32B (great at JSON)</td>
+          <td class="check">★★ gpt-4o-mini</td>
+          <td class="check">★★ Haiku 4.5 (fast)</td>
+          <td class="meh">◯ ok</td>
+        </tr>
+        <tr>
+          <td><strong>thumbnail_concepts</strong><span class="mono">concept + image-gen prompt</span></td>
+          <td class="mono">worker</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ Qwen3-32B</td>
+          <td class="check">★★ gpt-4o-mini</td>
+          <td class="check">★★★ Sonnet (best at visual ideation)</td>
+          <td class="meh">◯</td>
+        </tr>
+        <tr>
+          <td><strong>Studio · Regenerate</strong><span class="mono">single asset, ~10–30s, operator waiting</span></td>
+          <td class="mono">server action</td>
+          <td class="mono">package.profile</td>
+          <td class="meh">○ only if local model is loaded + warm</td>
+          <td class="check">★★★ gpt-4o (low latency)</td>
+          <td class="check">★★★ Haiku 4.5 or Sonnet 4.6</td>
+          <td class="bad">— too slow, kills the UX</td>
+        </tr>
+        <tr>
+          <td><strong>Studio · Generate (per-section)</strong><span class="mono">title / description / tags from transcript</span></td>
+          <td class="mono">server action</td>
+          <td class="mono">package.profile</td>
+          <td class="meh">○ same as Regenerate</td>
+          <td class="check">★★★ gpt-4o-mini · Haiku</td>
+          <td class="check">★★★ Haiku 4.5 (best latency/price)</td>
+          <td class="bad">— skip</td>
+        </tr>
+        <tr>
+          <td><strong>Shorts · generateClipDescription</strong><span class="mono">per-clip post body, ≤280 chars, auto-fired</span></td>
+          <td class="mono">server action</td>
+          <td class="mono">package.profile</td>
+          <td class="check">★★ short + bounded — local is fine</td>
+          <td class="check">★★★ gpt-4o-mini (cheap, snappy)</td>
+          <td class="check">★★★ Haiku 4.5 (best latency/price)</td>
+          <td class="bad">— too slow for an editor auto-fire</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="caption">★★★ = the obvious pick · ★★ = solid · ○ = workable but not first choice · — = don't.</div>
+</section>
+
+<!-- PROFILES -->
+<section class="wrap" id="profiles">
+  <div class="eyebrow">Pick one model per profile</div>
+  <h2>Three tiers, three opinions.</h2>
+  <p class="sub">Profiles are how you trade quality for cost and latency. Set the profile on the brand (default) or per package — every LLM call in that package then follows it.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 280" xmlns="http://www.w3.org/2000/svg" aria-labelledby="profroute-title">
+      <title id="profroute-title">Per-profile routing — packages to provider rows</title>
+      <defs>
+        <marker id="pr-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+      </defs>
+      <style>
+        .pb{ fill:#111114; stroke:#232329 }
+        .pt{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .pm{ fill:#a1a1aa; font:11px "JetBrains Mono", monospace }
+        .pe{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.07em; text-transform:uppercase }
+        .pl{ stroke:#52525b; stroke-width:1.5; fill:none }
+      </style>
+
+      <!-- column headers -->
+      <text class="pe" x="20" y="20">package.processing_profile</text>
+      <text class="pe" x="430" y="20">matched llm_providers row (by purpose)</text>
+      <text class="pe" x="860" y="20">provider class</text>
+
+      <!-- fast_audio_only -->
+      <rect class="pb" x="20" y="34" width="280" height="48" rx="9" style="stroke:#14b8a6;stroke-width:1.5"/>
+      <text class="pt" x="36" y="55" style="fill:#14b8a6">fast_audio_only</text>
+      <text class="pm" x="36" y="72">audio-only · batch · cheap</text>
+      <rect class="pb" x="430" y="34" width="360" height="48" rx="9"/>
+      <text class="pt" x="446" y="55">purpose = "fast_audio_only"</text>
+      <text class="pm" x="446" y="72">Haiku 4.5 · gpt-4o-mini · Qwen3-8B/14B</text>
+      <path class="pl" d="M300,58 h130" marker-end="url(#pr-ar)"/>
+
+      <!-- standard_audio_visual -->
+      <rect class="pb" x="20" y="94" width="280" height="48" rx="9" style="stroke:#0ea5e9;stroke-width:1.5"/>
+      <text class="pt" x="36" y="115" style="fill:#0ea5e9">standard_audio_visual</text>
+      <text class="pm" x="36" y="132">default · full pipeline</text>
+      <rect class="pb" x="430" y="94" width="360" height="48" rx="9"/>
+      <text class="pt" x="446" y="115">purpose = "standard_audio_visual"</text>
+      <text class="pm" x="446" y="132">Sonnet 4.6 · gpt-4o · Qwen3-32B @16k</text>
+      <path class="pl" d="M300,118 h130" marker-end="url(#pr-ar)"/>
+
+      <!-- premium_multimodal -->
+      <rect class="pb" x="20" y="154" width="280" height="48" rx="9" style="stroke:#d97757;stroke-width:1.5"/>
+      <text class="pt" x="36" y="175" style="fill:#d97757">premium_multimodal</text>
+      <text class="pm" x="36" y="192">marquee · max reasoning</text>
+      <rect class="pb" x="430" y="154" width="360" height="48" rx="9"/>
+      <text class="pt" x="446" y="175">purpose = "premium_multimodal"</text>
+      <text class="pm" x="446" y="192">Opus 4.7 · gpt-4o long-ctx · Qwen3-32B</text>
+      <path class="pl" d="M300,178 h130" marker-end="url(#pr-ar)"/>
+
+      <!-- the "all" catch-all -->
+      <rect class="pb" x="430" y="214" width="360" height="48" rx="9" style="fill:rgba(14,165,233,0.06);stroke:rgba(14,165,233,0.40)"/>
+      <text class="pt" x="446" y="235">purpose = "all"  ·  is_default</text>
+      <text class="pm" x="446" y="252">serves ANY profile with no exact match</text>
+      <!-- dashed fallbacks from each profile to "all" -->
+      <path class="pl" style="stroke-dasharray:4 4;stroke:#52525b;opacity:.55" d="M300,70 C 360,70 380,238 430,238" marker-end="url(#pr-ar)"/>
+      <path class="pl" style="stroke-dasharray:4 4;stroke:#52525b;opacity:.55" d="M300,130 C 370,130 390,238 430,238"/>
+      <path class="pl" style="stroke-dasharray:4 4;stroke:#52525b;opacity:.55" d="M300,190 C 380,190 400,238 430,238"/>
+
+      <!-- provider class column -->
+      <rect class="pb" x="860" y="44" width="170" height="30" rx="7"/>
+      <text class="pt" x="876" y="64" style="fill:#10a37f">openai-compatible</text>
+      <rect class="pb" x="860" y="104" width="170" height="30" rx="7"/>
+      <text class="pt" x="876" y="124" style="fill:#d97757">anthropic</text>
+      <rect class="pb" x="860" y="164" width="170" height="30" rx="7"/>
+      <text class="pt" x="876" y="184" style="fill:#a78bfa">codex-cli</text>
+      <path class="pl" d="M790,58 h70" marker-end="url(#pr-ar)"/>
+      <path class="pl" d="M790,118 h70" marker-end="url(#pr-ar)"/>
+      <path class="pl" d="M790,178 h70" marker-end="url(#pr-ar)"/>
+    </svg>
+    <div class="caption">Solid arrows: exact purpose match (score 3). Dashed: fallthrough to a <code>purpose="all"</code> / <code>is_default</code> row when no exact row exists. A row tagged with one profile never bleeds into another.</div>
+  </div>
+
+  <div class="figure">
+    <div class="profile">
+      <div><span class="tag">fast_audio_only</span></div>
+      <div>
+        <h3>Audio-only, batch volume, cost-sensitive</h3>
+        <p>Podcasts, webinars, daily uploads where you just need decent titles + description + tags. No visual pipeline. Aim for cheap + fast over polish.</p>
+        <div class="picks">
+          <span class="pick"><span class="dot" style="background:var(--c-anthropic)"></span>Anthropic · Haiku 4.5</span>
+          <span class="pick"><span class="dot" style="background:var(--c-openai)"></span>OpenAI · gpt-4o-mini</span>
+          <span class="pick"><span class="dot" style="background:var(--c-local)"></span>LM Studio · Qwen3-8B/14B</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile">
+      <div><span class="tag">standard_audio_visual</span></div>
+      <div>
+        <h3>The default for YouTube long-form</h3>
+        <p>Full pipeline — audio + visual + fusion + intelligence + clip plans + thumbnails. You want this to feel like a thoughtful human draft. Latency: minutes per package is fine, seconds for Studio actions matters.</p>
+        <div class="picks">
+          <span class="pick"><span class="dot" style="background:var(--c-anthropic)"></span>Anthropic · Sonnet 4.6 (recommended)</span>
+          <span class="pick"><span class="dot" style="background:var(--c-openai)"></span>OpenAI · gpt-4o</span>
+          <span class="pick"><span class="dot" style="background:var(--c-local)"></span>LM Studio · Qwen3-32B at 16k+ ctx</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile">
+      <div><span class="tag">premium_multimodal</span></div>
+      <div>
+        <h3>Marquee episodes, deep multi-platform plans</h3>
+        <p>Big interviews, paid sponsorships, the videos you want featured in every channel. Maximum reasoning + nuance per call; budget is not the constraint.</p>
+        <div class="picks">
+          <span class="pick"><span class="dot" style="background:var(--c-anthropic)"></span>Anthropic · Opus 4.7 (recommended)</span>
+          <span class="pick"><span class="dot" style="background:var(--c-openai)"></span>OpenAI · gpt-4o (long ctx)</span>
+          <span class="pick"><span class="dot" style="background:var(--c-local)"></span>LM Studio · Qwen3-32B (if offline-required)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile">
+      <div><span class="tag">all</span></div>
+      <div>
+        <h3>One model for everything (simplest setup)</h3>
+        <p>Skip the tiering. A single <code>purpose="all"</code> provider handles every pipeline run + every Studio action. Best while you're still finding what you like.</p>
+        <div class="picks">
+          <span class="pick"><span class="dot" style="background:var(--c-anthropic)"></span>Anthropic · Sonnet 4.6 (best all-rounder)</span>
+          <span class="pick"><span class="dot" style="background:var(--c-openai)"></span>OpenAI · gpt-4o</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:18px">
+    <strong>Mixed setup pattern:</strong> a lot of operators run <em>local for the pipeline, cloud for the Studio</em>. Tag the local LM Studio row with <span class="mono">standard_audio_visual</span> (cheap batch drafts), and add a Haiku/Sonnet row tagged <span class="mono">all</span> — the Studio's <code>profile="all"</code> calls then go to Anthropic for snappy responses, while bulk pipeline jobs stay local.
+  </div>
+</section>
+
+<!-- QUICK PRESETS -->
+<section class="wrap">
+  <div class="eyebrow">Quick presets</div>
+  <h2>Three setups, ranked by setup time.</h2>
+  <p class="sub">All three are valid. Pick the one that matches what you've already paid for and how much fiddling you want to do.</p>
+
+  <div class="grid g3">
+    <div class="card">
+      <h3>① All Anthropic</h3>
+      <p class="mono" style="font-size:11.5px;color:var(--faint)">~2 minutes</p>
+      <p>One row, purpose <code>all</code>, Sonnet 4.6, API key. Done. Pipeline + Studio all go to Claude. The best default if you don't want to think about it.</p>
+    </div>
+    <div class="card">
+      <h3>② Tiered Anthropic</h3>
+      <p class="mono" style="font-size:11.5px;color:var(--faint)">~5 minutes</p>
+      <p>Three rows: Haiku → <code>fast_audio_only</code>, Sonnet → <code>standard_audio_visual</code>, Opus → <code>premium_multimodal</code>. Quality scales with package profile; cost stays in check.</p>
+    </div>
+    <div class="card">
+      <h3>③ Local + cloud</h3>
+      <p class="mono" style="font-size:11.5px;color:var(--faint)">~15 minutes</p>
+      <p>LM Studio (Qwen3-32B at 16k ctx) for the pipeline, Anthropic Haiku for Studio actions. Cheapest steady state on a Mac Studio; needs LM Studio loaded with enough context.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / FOOTER -->
+<section class="wrap">
+  <div class="figure" style="text-align:center;padding:40px 20px">
+    <h2 style="margin:0 0 8px">Configure it.</h2>
+    <p class="sub" style="margin:0 auto 22px;max-width:520px">The Providers settings page lets you add, test, and tag rows per purpose. API keys are encrypted at rest and never sent back to the browser.</p>
+    <a href="/providers" style="display:inline-block;padding:10px 18px;font-weight:600;border-radius:8px;background:var(--accent);color:#fff;border:1px solid color-mix(in oklab,var(--accent) 80%,white);box-shadow:0 0 0 1px var(--accent-glow)">⚙ Open /providers</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · LLM routing field guide</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/worker-concurrency.html" style="color:var(--muted)">concurrency</a> ·
+      <a href="/providers" style="color:var(--muted)">providers</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

@@ -6,6 +6,7 @@ import {
   GhostBtn,
   MockThumb,
   Pipeline,
+  type PipelineDetails,
   type PipelineProgress,
   PlatformIcon,
   PrimaryBtn,
@@ -23,7 +24,10 @@ import {
   selectTitle,
 } from '@/server-actions/studio';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useState, useTransition } from 'react';
+import { YoutubeLinkPill } from './YoutubeLinkPill';
+import { YoutubePublishOptions } from './YoutubePublishOptions';
+import { ShortsList } from './shorts/ShortsList';
 
 export type GenericAsset = {
   id: string;
@@ -31,7 +35,45 @@ export type GenericAsset = {
   payload: Record<string, unknown>;
   status?: string;
 };
-export type ApprovalAsset = { id: string; label: string; sub: string; status: string };
+export type ApprovalAsset = {
+  id: string;
+  label: string;
+  sub: string;
+  status: string;
+  type: string;
+  /** When set, the row is non-publishable for this reason — UI greys it out and excludes from default selection. */
+  blocked: string | null;
+  /** Worker-side failure reason (asset.dispatch.error) — surfaced on the failed row. */
+  dispatchError: string | null;
+  /**
+   * If set, this asset will be auto-bundled into the upload of another asset
+   * (its `id`) when that one dispatches. The panel hides bundled rows and
+   * lists their labels under the parent's "Includes:" subtitle. Used by
+   * youtube_direct: title_set's upload sweeps description/chapters/tags in.
+   */
+  bundledInto: string | null;
+};
+
+/**
+ * Per-clip row for the Shorts tab. Collapses the `short_clip_plan`'s
+ * editable per-clip metadata with the corresponding `rendered_short_clip`
+ * asset (if a render exists). The Shorts list + editor read from this
+ * shape — the rendered side is null while the worker is still rendering
+ * or before the operator has clicked Render.
+ */
+export type ShortClipRow = {
+  planAssetId: string;
+  clipIndex: number;
+  plan: Record<string, unknown>; // the plan.clips[clipIndex] object — typed loosely so the editor can edit any field
+  rendered: {
+    id: string;
+    status: string;
+    videoUrl: string | null;
+    durationSeconds: number | null;
+    width: number | null;
+    height: number | null;
+  } | null;
+};
 
 export type StudioData = {
   packageId: string;
@@ -41,6 +83,9 @@ export type StudioData = {
   videoUrl: string | null;
   metadataText: string;
   progress: PipelineProgress;
+  pipelineDetails: PipelineDetails;
+  /** True once intelligence.analysis exists — i.e. generate_asset jobs are firing or done. */
+  analysisReady: boolean;
   counts: { ready: number; pending: number; failed: number; total: number };
   youtube: {
     titlesAssetId: string | null;
@@ -56,6 +101,16 @@ export type StudioData = {
   tabs: { key: string; label: string; icon: string }[];
   assetsByTab: Record<string, GenericAsset[]>;
   approval: ApprovalAsset[];
+  /** Public YouTube URL captured after the operator manually uploads the video. */
+  youtubeLive: { url: string; videoId: string } | null;
+  /** Per-package YouTube publish options. Only meaningful when the brand uses youtube_direct. */
+  youtubeDirect: {
+    enabled: boolean;
+    privacy: 'public' | 'unlisted' | 'private' | 'schedule';
+    publishAt: string | null;
+  };
+  /** Per-clip rows for the Shorts tab. See ShortClipRow above. */
+  shorts: ShortClipRow[];
 };
 
 const PLATFORM_GROUP: Record<string, 'video' | 'editorial' | 'social'> = {
@@ -169,6 +224,8 @@ function ConsoleLayout({
           </div>
           {activePlatform === 'youtube' ? (
             <YoutubeStack data={data} />
+          ) : activePlatform === 'shorts' ? (
+            <ShortsList packageId={data.packageId} rows={data.shorts} />
           ) : (
             <PlatformAssets data={data} platform={activePlatform} />
           )}
@@ -272,6 +329,16 @@ function StudioHeader({ data }: { data: StudioData }) {
             <span style={{ fontFamily: 'var(--font-mono)' }}>{data.pkg.duration}</span>
             <span style={{ color: 'var(--text-faint)' }}>·</span>
             <StatusPill status={data.pkg.status} />
+            <YoutubeLinkPill
+              packageId={data.packageId}
+              initialUrl={data.youtubeLive?.url ?? null}
+              initialVideoId={data.youtubeLive?.videoId ?? null}
+              showPasteAffordance={data.approval.some(
+                (a) =>
+                  a.type.startsWith('youtube_') &&
+                  (a.status === 'dispatched' || a.status === 'published'),
+              )}
+            />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -334,7 +401,7 @@ function PipelinePanel({ data }: { data: StudioData }) {
           {done}/4 layers complete
         </span>
       </div>
-      <Pipeline progress={data.progress} layout="col" />
+      <Pipeline progress={data.progress} details={data.pipelineDetails} layout="col" />
       <div
         style={{
           marginTop: 4,
@@ -513,25 +580,97 @@ function CompletionDot({ value }: { value: number }) {
 }
 
 function ApprovalPanel({ data }: { data: StudioData }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [published, setPublished] = useState<Set<string>>(new Set());
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [pollingFor, setPollingFor] = useState<Set<string>>(new Set());
+  // "Ready" = available to dispatch right now (no blocked reason, no terminal
+  // state, not bundled into another asset's upload).
   const ready = data.approval.filter(
-    (a) => a.status === 'ready_for_review' || a.status === 'approved',
+    (a) =>
+      !a.blocked &&
+      !a.bundledInto &&
+      (a.status === 'ready_for_review' || a.status === 'approved'),
   );
   const approvedCount = data.approval.filter(
     (a) => a.status === 'approved' || published.has(a.id),
   ).length;
+
+  // Real selection state. Defaults to "every ready asset selected" so the
+  // bottom button's previous default-everything behavior is preserved if you
+  // just click it. Clicking a row TOGGLES (it no longer immediately publishes
+  // — that was the bug behind "I can not deselect").
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(ready.map((a) => a.id)));
+  // If the server-side list of ready assets changes (e.g. after a refresh),
+  // sync the selection so newly-ready assets are picked up by default and
+  // disappeared ones leave the set.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — sync only when ready ids change
+  useEffect(() => {
+    const readyIds = new Set(ready.map((a) => a.id));
+    setSelected((prev) => {
+      const next = new Set<string>();
+      // Keep previously-selected ids that are still ready.
+      for (const id of prev) if (readyIds.has(id)) next.add(id);
+      // Add newly-ready assets as selected by default.
+      for (const id of readyIds) if (!prev.has(id) && !published.has(id)) next.add(id);
+      return next;
+    });
+  }, [ready.map((a) => a.id).join(',')]);
+
+  function toggle(id: string): void {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function publish(id: string) {
     start(async () => {
       try {
         await publishAsset(id);
         setPublished((s) => new Set(s).add(id));
-      } catch {
-        // surfaced elsewhere; keep panel responsive
+        setRowErrors((e) => {
+          if (!(id in e)) return e;
+          const { [id]: _, ...rest } = e;
+          return rest;
+        });
+      } catch (err) {
+        // Surface inline so the user sees which row failed and why, instead
+        // of a generic 500 in the dev tools.
+        const msg = err instanceof Error ? err.message : String(err);
+        setRowErrors((e) => ({ ...e, [id]: msg }));
       }
     });
   }
+
+  function publishSelected(): void {
+    const ids = Array.from(selected).filter((id) => !published.has(id));
+    if (ids.length === 0) return;
+    setPollingFor(new Set(ids));
+    for (const id of ids) publish(id);
+  }
+
+  // Live status poll: while any selected-and-just-dispatched asset is still
+  // in flight on the worker (status === 'approved' before it flips to
+  // dispatched/published/failed), refresh the page data every 2 s so the
+  // operator sees real progress instead of staring at an unchanging panel.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — driven by pollingFor only
+  useEffect(() => {
+    if (pollingFor.size === 0) return;
+    const inFlight = data.approval.filter(
+      (a) => pollingFor.has(a.id) && (a.status === 'approved' || a.status === 'ready_for_review'),
+    );
+    if (inFlight.length === 0) {
+      // Everything we asked about has reached a terminal state.
+      setPollingFor(new Set());
+      return;
+    }
+    const t = setTimeout(() => router.refresh(), 2000);
+    return () => clearTimeout(t);
+  }, [pollingFor, data.approval.map((a) => `${a.id}:${a.status}`).join(',')]);
 
   return (
     <aside
@@ -589,6 +728,15 @@ function ApprovalPanel({ data }: { data: StudioData }) {
         </div>
       </div>
 
+      <div style={{ padding: '10px 10px 0', }}>
+        <YoutubePublishOptions
+          packageId={data.packageId}
+          initialPrivacy={data.youtubeDirect.privacy}
+          initialPublishAt={data.youtubeDirect.publishAt}
+          visible={data.youtubeDirect.enabled}
+        />
+      </div>
+
       <div style={{ padding: 10, flex: 1 }}>
         {data.approval.length === 0 && (
           <div
@@ -598,87 +746,160 @@ function ApprovalPanel({ data }: { data: StudioData }) {
           </div>
         )}
         {data.approval.map((a) => {
-          const isReady =
+          // Bundled rows don't get their own checkbox or click handler —
+          // they're shown as a one-line "Includes:" hint under their parent.
+          if (a.bundledInto) return null;
+          const bundledChildren = data.approval.filter((c) => c.bundledInto === a.id);
+          const inReadyState =
             a.status === 'ready_for_review' || a.status === 'approved' || published.has(a.id);
-          const ok = a.status === 'approved' || published.has(a.id);
+          const isDispatched =
+            a.status === 'dispatched' || a.status === 'published' || a.status === 'failed';
+          const blocked = !!a.blocked;
+          const interactive = inReadyState && !blocked;
+          const checked = selected.has(a.id);
+          const err = rowErrors[a.id];
           return (
-            <button
-              key={a.id}
-              type="button"
-              disabled={!isReady || pending}
-              onClick={() => publish(a.id)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '10px 8px',
-                borderRadius: 6,
-                textAlign: 'left',
-                background: 'transparent',
-                border: 'none',
-                opacity: isReady ? 1 : 0.5,
-                cursor: isReady ? 'pointer' : 'not-allowed',
-              }}
-              onMouseEnter={(e) => {
-                if (isReady) e.currentTarget.style.background = 'var(--bg-elev-2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <span
+            <div key={a.id}>
+              <button
+                type="button"
+                disabled={!interactive || pending}
+                onClick={() => toggle(a.id)}
+                title={
+                  blocked
+                    ? (a.blocked ?? 'not dispatchable')
+                    : interactive
+                      ? (checked
+                          ? 'Click to exclude from dispatch'
+                          : 'Click to include in dispatch')
+                      : `Status: ${a.status}`
+                }
                 style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 4,
-                  background: ok ? 'var(--accent)' : 'transparent',
-                  border: `1.5px solid ${ok ? 'var(--accent)' : 'var(--border-strong)'}`,
-                  display: 'inline-flex',
+                  width: '100%',
+                  display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: 11,
-                  flexShrink: 0,
+                  gap: 10,
+                  padding: '10px 8px',
+                  borderRadius: 6,
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 'none',
+                  opacity: interactive ? 1 : 0.45,
+                  cursor: interactive ? 'pointer' : 'not-allowed',
+                }}
+                onMouseEnter={(e) => {
+                  if (interactive) e.currentTarget.style.background = 'var(--bg-elev-2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {ok && '✓'}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: isReady ? 'var(--text)' : 'var(--text-muted)',
-                  }}
-                >
-                  {a.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: 'var(--text-faint)',
-                    fontFamily: 'var(--font-mono)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {a.sub}
-                </div>
-              </div>
-              {!isReady && (
                 <span
                   style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    background: blocked
+                      ? 'transparent'
+                      : checked
+                        ? 'var(--accent)'
+                        : 'transparent',
+                    border: `1.5px solid ${
+                      blocked
+                        ? 'var(--border)'
+                        : checked
+                          ? 'var(--accent)'
+                          : 'var(--border-strong)'
+                    }`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: blocked ? 'var(--text-faint)' : '#fff',
+                    fontSize: 11,
+                    flexShrink: 0,
+                  }}
+                >
+                  {blocked ? '⊘' : checked ? '✓' : ''}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: interactive ? 'var(--text)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {a.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-faint)',
+                      fontFamily: 'var(--font-mono)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {bundledChildren.length > 0
+                      ? `bundles: ${bundledChildren.map((c) => c.label.toLowerCase().replace(/^youtube /, '')).join(' · ')}`
+                      : a.sub}
+                  </div>
+                </div>
+                {isDispatched && !blocked && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color:
+                        a.status === 'failed' ? 'var(--status-failed)' : 'var(--text-faint)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    {a.status}
+                  </span>
+                )}
+                {blocked && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-faint)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    locked
+                  </span>
+                )}
+              </button>
+              {a.blocked && (
+                <div
+                  style={{
+                    padding: '0 8px 6px 36px',
                     fontSize: 10,
                     color: 'var(--text-faint)',
                     fontFamily: 'var(--font-mono)',
+                    lineHeight: 1.5,
                   }}
                 >
-                  {a.status}
-                </span>
+                  {a.blocked}
+                </div>
               )}
-            </button>
+              {(err || (a.status === 'failed' && a.dispatchError)) && (
+                <div
+                  style={{
+                    margin: '2px 6px 8px 36px',
+                    padding: '6px 8px',
+                    fontSize: 11,
+                    color: 'var(--status-failed)',
+                    background: 'color-mix(in oklab, var(--status-failed) 8%, transparent)',
+                    border:
+                      '1px solid color-mix(in oklab, var(--status-failed) 28%, transparent)',
+                    borderRadius: 5,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {err ?? a.dispatchError}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -693,13 +914,77 @@ function ApprovalPanel({ data }: { data: StudioData }) {
         <PrimaryBtn
           icon="↗"
           style={{ width: '100%', justifyContent: 'center', padding: '10px 12px' }}
-          disabled={ready.length === 0 || pending}
-          onClick={() => {
-            for (const a of ready) publish(a.id);
-          }}
+          disabled={selected.size === 0 || pending}
+          onClick={publishSelected}
         >
-          Approve &amp; dispatch · {ready.length}
+          Approve &amp; dispatch · {selected.size}
         </PrimaryBtn>
+        {pollingFor.size > 0 && (
+          <div
+            style={{
+              marginTop: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 10px',
+              background: 'color-mix(in oklab, var(--status-analyzing) 10%, transparent)',
+              border: '1px solid color-mix(in oklab, var(--status-analyzing) 28%, transparent)',
+              borderRadius: 6,
+              fontSize: 11,
+              color: 'var(--status-analyzing)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: 'var(--status-analyzing)',
+                animation: 'pulse 1.4s ease-in-out infinite',
+              }}
+            />
+            dispatching {pollingFor.size} · auto-refresh every 2s
+          </div>
+        )}
+        {selected.size !== ready.length && (
+          <div
+            style={{
+              marginTop: 8,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 10,
+                color: 'var(--text-faint)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {selected.size === 0
+                ? 'no assets selected'
+                : `${ready.length - selected.size} excluded`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set(ready.map((a) => a.id)))}
+              style={{
+                fontSize: 10,
+                color: 'var(--accent)',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              select all
+            </button>
+          </div>
+        )}
         <div
           style={{
             marginTop: 10,
@@ -799,7 +1084,7 @@ function YoutubeStack({ data }: { data: StudioData }) {
       <TitlesCard data={data} />
       <DescriptionCard data={data} />
       <TagsCard data={data} />
-      <TranscriptCard text={data.youtube.transcript} />
+      <TranscriptCard text={data.youtube.transcript} audioReady={data.progress.audio >= 1} />
     </div>
   );
 }
@@ -909,6 +1194,7 @@ function TitlesCard({ data }: { data: StudioData }) {
         <GenerateInline
           label="titles"
           onGenerate={() => generateSection(data.packageId, 'youtube_title_set')}
+          pipelineRunning={!data.analysisReady}
         />
       </AssetCard>
     );
@@ -1090,6 +1376,7 @@ function DescriptionCard({ data }: { data: StudioData }) {
         <GenerateInline
           label="description"
           onGenerate={() => generateSection(data.packageId, 'youtube_description')}
+          pipelineRunning={!data.analysisReady}
         />
       </AssetCard>
     );
@@ -1197,6 +1484,7 @@ function TagsCard({ data }: { data: StudioData }) {
         <GenerateInline
           label="tags"
           onGenerate={() => generateSection(data.packageId, 'youtube_tags')}
+          pipelineRunning={!data.analysisReady}
         />
       </AssetCard>
     );
@@ -1257,12 +1545,44 @@ function TagsCard({ data }: { data: StudioData }) {
   );
 }
 
-function TranscriptCard({ text }: { text: string }) {
+function TranscriptCard({ text, audioReady }: { text: string; audioReady: boolean }) {
   const [open, setOpen] = useState(false);
   if (!text) {
     return (
       <AssetCard title="Transcript" icon="≡">
-        <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Transcript not ready yet.</div>
+        <div style={{ textAlign: 'center', padding: '20px 8px' }}>
+          {audioReady ? (
+            <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+              Transcript not ready yet.
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                background: 'color-mix(in oklab, var(--status-analyzing) 10%, transparent)',
+                border: '1px solid color-mix(in oklab, var(--status-analyzing) 28%, transparent)',
+                borderRadius: 999,
+                fontSize: 12,
+                color: 'var(--status-analyzing)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: 'var(--status-analyzing)',
+                  animation: 'pulse 1.4s ease-in-out infinite',
+                }}
+              />
+              transcribing audio — generates automatically
+            </div>
+          )}
+        </div>
       </AssetCard>
     );
   }
@@ -1312,14 +1632,59 @@ function TranscriptCard({ text }: { text: string }) {
   );
 }
 
-function GenerateInline({ label, onGenerate }: { label: string; onGenerate: () => Promise<void> }) {
+function GenerateInline({
+  label,
+  onGenerate,
+  pipelineRunning,
+}: {
+  label: string;
+  onGenerate: () => Promise<void>;
+  /** True while the package's analysis hasn't completed yet — generate_asset will fire automatically. */
+  pipelineRunning?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // While the upstream pipeline is still running, the generate_asset worker
+  // will fire automatically as soon as analyze_intelligence completes — show
+  // a quiet status indicator instead of a misleading "Generate" button.
+  if (pipelineRunning) {
+    return (
+      <div style={{ textAlign: 'center', padding: '20px 8px' }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            background: 'color-mix(in oklab, var(--status-analyzing) 10%, transparent)',
+            border: '1px solid color-mix(in oklab, var(--status-analyzing) 28%, transparent)',
+            borderRadius: 999,
+            fontSize: 12,
+            color: 'var(--status-analyzing)',
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 999,
+              background: 'var(--status-analyzing)',
+              animation: 'pulse 1.4s ease-in-out infinite',
+            }}
+          />
+          {label} — generates automatically when analysis completes
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ textAlign: 'center', padding: '20px 8px' }}>
       <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>No {label} yet</div>
       <div style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 12 }}>
-        Generate from the transcript on demand
+        Generation completed but produced no asset — generate manually below
       </div>
       <PrimaryBtn
         size="sm"
@@ -1589,7 +1954,11 @@ function EditorLayout({
               <Eyebrow style={{ marginBottom: 10 }}>
                 {data.tabs.find((t) => t.key === activePlatform)?.label}
               </Eyebrow>
-              <PlatformAssets data={data} platform={activePlatform} />
+              {activePlatform === 'shorts' ? (
+                <ShortsList packageId={data.packageId} rows={data.shorts} />
+              ) : (
+                <PlatformAssets data={data} platform={activePlatform} />
+              )}
             </div>
           )}
         </div>
@@ -1615,7 +1984,7 @@ function EditorLayout({
         <div style={{ marginTop: 14 }}>
           <Eyebrow>Pipeline</Eyebrow>
           <div style={{ marginTop: 8 }}>
-            <Pipeline progress={data.progress} layout="col" />
+            <Pipeline progress={data.progress} details={data.pipelineDetails} layout="col" />
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
@@ -1836,6 +2205,8 @@ function AtlasLayout({
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {focused === 'youtube' ? (
                 <YoutubeStack data={data} />
+              ) : focused === 'shorts' ? (
+                <ShortsList packageId={data.packageId} rows={data.shorts} />
               ) : (
                 <PlatformAssets data={data} platform={focused} />
               )}

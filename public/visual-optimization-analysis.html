@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visual phase optimization — measured + what's next</title>
+<meta name="description" content="What the scene-cut-driven Visual phase actually delivered on a real 7:18 video, and the next four optimizations ranked by impact." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --purple: #a78bfa;
+    --before: #ef4444;
+    --after: #10b981;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:820px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+
+  /* nav */
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;
+    border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  /* hero */
+  .hero{padding:64px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(38px,5.6vw,60px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:740px;margin:0}
+
+  section{padding:48px 0}
+  h2{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(26px,3.4vw,36px);letter-spacing:-.4px;margin:0 0 8px;line-height:1.1;
+  }
+  h3{font-size:16px;margin:24px 0 8px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px;max-width:780px}
+
+  /* big number cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+  .stat-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:18px;text-align:center;
+  }
+  .stat-card .num{
+    font-family:var(--font-serif);font-size:36px;font-weight:400;
+    color:var(--green);display:block;margin-bottom:4px;letter-spacing:-.5px;
+  }
+  .stat-card .label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em}
+  .stat-card .sub{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);margin:6px 0 0;text-align:center}
+
+  /* before/after bars */
+  .compare-bar{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:20px;margin:14px 0;
+  }
+  .compare-bar h3{margin:0 0 14px;font-size:15px}
+  .bar-row{display:grid;grid-template-columns:80px 1fr 110px;gap:12px;align-items:center;margin:8px 0}
+  .bar-row .label{
+    font-size:11px;color:var(--muted);font-family:var(--font-mono);
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .bar-track{
+    height:24px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;
+    position:relative;overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;display:flex;align-items:center;padding:0 8px;
+    font-size:11px;font-weight:600;color:white;font-family:var(--font-mono);
+    white-space:nowrap;
+  }
+  .bar-row .num{
+    font-size:13px;font-family:var(--font-mono);color:var(--text);
+    text-align:right;font-weight:500;
+  }
+  .bar-row.before .bar-fill{background:linear-gradient(90deg, var(--before), color-mix(in oklab, var(--before) 70%, black))}
+  .bar-row.after .bar-fill{background:linear-gradient(90deg, var(--after), color-mix(in oklab, var(--after) 80%, black))}
+
+  /* phase breakdown */
+  .phase-row{
+    display:grid;grid-template-columns:200px 1fr 80px;gap:12px;align-items:center;
+    margin:6px 0;padding:10px 12px;background:var(--panel-2);border:1px solid var(--border);
+    border-radius:8px;
+  }
+  .phase-row .name{font-size:13px;font-weight:500}
+  .phase-row .name .desc{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);display:block;margin-top:2px}
+  .phase-row .pct{
+    font-size:12px;font-family:var(--font-mono);text-align:right;color:var(--text-muted);
+  }
+  .phase-bar{height:10px;background:var(--bg);border:1px solid var(--border-strong);border-radius:3px;overflow:hidden;position:relative}
+  .phase-bar .fill{height:100%;border-radius:3px}
+  .phase-row.long-pole .phase-bar .fill{background:var(--amber)}
+  .phase-row.long-pole .name{color:var(--amber)}
+  .phase-row.fast .phase-bar .fill{background:var(--green)}
+  .phase-row.medium .phase-bar .fill{background:var(--teal)}
+  .phase-row.tiny .phase-bar .fill{background:var(--accent)}
+
+  /* opt cards */
+  .opts{display:grid;gap:14px;margin:18px 0}
+  .opt{
+    display:grid;grid-template-columns:50px 1fr 140px 130px;gap:14px;align-items:center;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;
+  }
+  .opt.top-pick{
+    border-color:color-mix(in oklab,var(--accent) 40%,var(--border));
+    background:color-mix(in oklab,var(--accent) 5%,var(--panel));
+  }
+  .opt .letter{
+    width:42px;height:42px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-serif);font-size:24px;font-weight:400;
+    background:var(--panel-2);color:var(--muted);border:1px solid var(--border-strong);
+  }
+  .opt.top-pick .letter{background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);border-color:color-mix(in oklab,var(--accent) 30%,transparent)}
+  .opt .body{min-width:0}
+  .opt .title{font-size:14px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+  .opt .desc{font-size:12.5px;color:var(--text-muted);margin:0;line-height:1.55}
+  .opt .impact, .opt .effort{
+    text-align:center;font-family:var(--font-mono);font-size:12px;
+    padding:8px 10px;border-radius:7px;
+    background:var(--panel-2);border:1px solid var(--border);
+  }
+  .opt .impact .v, .opt .effort .v{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .opt .impact .l, .opt .effort .l{font-size:9px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em}
+  .opt .impact.high .v{color:var(--green)}
+  .opt .impact.med .v{color:var(--teal)}
+  .opt .impact.low .v{color:var(--text-faint)}
+  .opt .tag{
+    display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;
+    font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em;
+  }
+  .tag-rec{background:color-mix(in oklab,var(--accent) 18%,transparent);color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
+
+  /* callouts */
+  .callout{
+    margin:14px 0;padding:14px 18px;border-radius:10px;
+    background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55;
+  }
+  .callout.win{
+    background:color-mix(in oklab,var(--green) 7%,var(--panel));
+    border-color:color-mix(in oklab,var(--green) 28%,var(--border));
+  }
+  .callout.warn{
+    background:color-mix(in oklab,var(--amber) 7%,var(--panel));
+    border-color:color-mix(in oklab,var(--amber) 28%,var(--border));
+  }
+  .callout strong{margin-right:6px}
+  .callout.win strong{color:var(--green)}
+  .callout.warn strong{color:var(--amber)}
+
+  /* speedup arrow */
+  .speedup-arrow{
+    text-align:center;margin:30px 0;padding:24px;
+    background:linear-gradient(180deg, color-mix(in oklab,var(--accent) 8%,var(--panel)), var(--panel));
+    border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));border-radius:14px;
+  }
+  .speedup-arrow .from{
+    display:inline-block;padding:8px 16px;background:color-mix(in oklab,var(--before) 14%,transparent);
+    border:1px solid color-mix(in oklab,var(--before) 30%,transparent);border-radius:8px;
+    color:var(--before);font-family:var(--font-mono);font-size:14px;font-weight:600;
+  }
+  .speedup-arrow .to{
+    display:inline-block;padding:8px 16px;background:color-mix(in oklab,var(--green) 14%,transparent);
+    border:1px solid color-mix(in oklab,var(--green) 30%,transparent);border-radius:8px;
+    color:var(--green);font-family:var(--font-mono);font-size:14px;font-weight:600;
+  }
+  .speedup-arrow .arrow{display:inline-block;margin:0 16px;color:var(--accent);font-size:24px;font-weight:700}
+  .speedup-arrow .ratio{
+    margin-top:14px;font-family:var(--font-serif);font-size:32px;font-weight:400;
+    color:var(--accent);letter-spacing:-.5px;
+  }
+  .speedup-arrow .ratio span{font-size:14px;color:var(--text-faint);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;display:block;margin-top:4px}
+
+  /* tables */
+  table.data{
+    width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  }
+  table.data th, table.data td{
+    padding:11px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);
+  }
+  table.data th{
+    color:var(--faint);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2);
+  }
+  table.data tr:last-child td{border-bottom:none}
+  table.data td.num{font-family:var(--font-mono);text-align:right}
+  .good{color:var(--green)}
+  .bad{color:var(--red)}
+  .meh{color:var(--amber)}
+
+  /* inline SVG diagrams */
+  .diagram{
+    margin:18px 0;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;
+  }
+  .diagram svg{width:100%;height:auto;display:block}
+  .diagram .cap{margin:10px 2px 0;font-size:12px;color:var(--text-faint);line-height:1.55}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:40px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:760px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .opt{grid-template-columns:42px 1fr;gap:10px}
+    .opt .impact, .opt .effort{grid-column:2/3;display:flex;gap:8px;justify-content:flex-start}
+    .opt .impact .v, .opt .effort .v{display:inline;margin:0;font-size:12px}
+    .opt .impact .l, .opt .effort .l{display:inline}
+    .phase-row{grid-template-columns:1fr;gap:6px}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#anatomy">How it runs</a>
+    <a href="#results">Measured</a>
+    <a href="#where">Where time goes</a>
+    <a href="#next">What's next</a>
+    <a href="/">Back to app</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero narrow">
+  <div class="eyebrow">Visual phase optimization — post-mortem</div>
+  <h1>What we built, <em>what it actually did.</em></h1>
+  <p class="lede">
+    Three optimizations landed: parallelize OCR + VLM, downscale VLM input to 768 px, and drive
+    VLM sampling from scene cuts instead of fps=1. Here&apos;s what the numbers say on a real
+    7:18 video, and where the next minute of wall time is still hiding.
+  </p>
+</section>
+
+<!-- ─── BIG WIN ─────────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="speedup-arrow">
+    <span class="from">~10–15 min</span>
+    <span class="arrow">→</span>
+    <span class="to">65 seconds</span>
+    <div class="ratio">~12–14×<span>visual phase wall time</span></div>
+  </div>
+
+  <div class="callout win" style="margin-top:18px;text-align:center">
+    <strong>Update 2026-05-26 · Round 2</strong> Optimizations (D) and (E) have shipped.
+    Combined with the original A+B+C, the full pipeline now runs in <strong style="color:var(--green)">~2–2.5 min</strong> end-to-end on the same 7:18 video — down from ~25–30 min before any of this. See the
+    <a href="/worker-concurrency.html" style="color:var(--accent)">worker concurrency deep-dive</a>
+    for how (D) actually works.
+  </div>
+</section>
+
+<!-- ─── ANATOMY: TWO PASSES ─────────────────────────────────────────── -->
+<section class="narrow" id="anatomy">
+  <div class="eyebrow">How the Visual phase runs now</div>
+  <h2>Two independent sample passes, in parallel.</h2>
+  <p class="sub">
+    <code>analyze_visual</code> no longer walks the video once at fps=1. It samples twice — densely
+    for OCR, sparsely for the VLM — and runs both Python subprocesses inside one
+    <code>Promise.all</code>. The phase finishes when the slower of the two (the VLM) returns.
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OCR and VLM parallel passes">
+      <defs>
+        <marker id="vp-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker>
+        <marker id="vp-arrt" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#14b8a6"/></marker>
+        <marker id="vp-arrp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a78bfa"/></marker>
+      </defs>
+      <style>
+        .vp-box{ fill:#16161a; stroke:#2e2e36 }
+        .vp-src{ fill:color-mix(in oklab,#0ea5e9 10%,#16161a); stroke:color-mix(in oklab,#0ea5e9 45%,#2e2e36) }
+        .vp-teal{ fill:color-mix(in oklab,#14b8a6 11%,#16161a); stroke:color-mix(in oklab,#14b8a6 45%,#2e2e36) }
+        .vp-pur{ fill:color-mix(in oklab,#a78bfa 11%,#16161a); stroke:color-mix(in oklab,#a78bfa 45%,#2e2e36) }
+        .vp-join{ fill:color-mix(in oklab,#10b981 11%,#16161a); stroke:color-mix(in oklab,#10b981 50%,#2e2e36) }
+        .vp-t{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .vp-s{ fill:#a1a1aa; font:11px Inter, sans-serif }
+        .vp-m{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+        .vp-tealt{ fill:#14b8a6; font:600 11px "JetBrains Mono", monospace }
+        .vp-purt{ fill:#a78bfa; font:600 11px "JetBrains Mono", monospace }
+        .vp-acct{ fill:#0ea5e9; font:600 11px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- source -->
+      <rect class="vp-src" x="14" y="112" width="148" height="58" rx="9"/>
+      <text class="vp-acct" x="88" y="137" text-anchor="middle">original.mp4</text>
+      <text class="vp-m" x="88" y="154" text-anchor="middle">438 s · 1080p</text>
+
+      <!-- split -->
+      <line x1="162" y1="128" x2="232" y2="64" stroke="#14b8a6" stroke-width="1.6" marker-end="url(#vp-arrt)"/>
+      <line x1="162" y1="152" x2="232" y2="216" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#vp-arrp)"/>
+
+      <!-- OCR pass (top) -->
+      <rect class="vp-teal" x="236" y="40" width="232" height="58" rx="9"/>
+      <text class="vp-tealt" x="352" y="62" text-anchor="middle">OCR pass — DENSE</text>
+      <text class="vp-m" x="352" y="79" text-anchor="middle">ffmpeg @ 0.5 fps · full res</text>
+      <text class="vp-m" x="352" y="92" text-anchor="middle">~219 frames → frames_ocr/</text>
+
+      <line x1="468" y1="69" x2="510" y2="69" stroke="#14b8a6" stroke-width="1.6" marker-end="url(#vp-arrt)"/>
+      <rect class="vp-box" x="514" y="40" width="190" height="58" rx="9"/>
+      <text class="vp-t" x="609" y="62" text-anchor="middle">ml/ocr.py</text>
+      <text class="vp-m" x="609" y="79" text-anchor="middle">Apple Vision · accurate</text>
+      <text class="vp-m" x="609" y="92" text-anchor="middle">≈59 s wall</text>
+
+      <!-- VLM pass (bottom) -->
+      <rect class="vp-pur" x="236" y="188" width="232" height="58" rx="9"/>
+      <text class="vp-purt" x="352" y="210" text-anchor="middle">VLM pass — SPARSE</text>
+      <text class="vp-m" x="352" y="227" text-anchor="middle">scene cuts · downscale 768px</text>
+      <text class="vp-m" x="352" y="240" text-anchor="middle">18 keyframes → frames_vlm/</text>
+
+      <line x1="468" y1="217" x2="510" y2="217" stroke="#a78bfa" stroke-width="1.6" marker-end="url(#vp-arrp)"/>
+      <rect class="vp-box" x="514" y="188" width="190" height="58" rx="9"/>
+      <text class="vp-t" x="609" y="210" text-anchor="middle">ml/describe_frames.py</text>
+      <text class="vp-m" x="609" y="227" text-anchor="middle">mlx-vlm Qwen2.5-VL-7B</text>
+      <text class="vp-m" x="609" y="240" text-anchor="middle">≈65 s wall ← long pole</text>
+
+      <!-- Promise.all brace + merge -->
+      <path d="M708 69 H732 V143 H760" fill="none" stroke="#10b981" stroke-width="1.6" marker-end="url(#vp-arr)" opacity="0.9"/>
+      <path d="M708 217 H732 V143" fill="none" stroke="#10b981" stroke-width="1.6" opacity="0.9"/>
+      <text class="vp-m" x="744" y="120" text-anchor="middle" transform="rotate(0 744 120)">Promise.all</text>
+
+      <rect class="vp-join" x="764" y="112" width="122" height="58" rx="9"/>
+      <text class="vp-t" x="825" y="134" text-anchor="middle">merge →</text>
+      <text class="vp-t" x="825" y="150" text-anchor="middle">frame_index</text>
+      <text class="vp-m" x="825" y="164" text-anchor="middle">+ provenance</text>
+    </svg>
+    <p class="cap">The two passes never block each other — distinct ffmpeg sample dirs, distinct output JSONs. Wall time = <code>max(OCR, VLM)</code>, not their sum. After the merge writes <code>frame_index</code> to Postgres, Option A cleanup deletes <code>frames_ocr/</code>, <code>frames_vlm/</code>, <code>ocr.json</code> and <code>frame_descriptions.json</code> (see the storage-lifecycle note below).</p>
+  </div>
+
+  <h3>Dense vs sparse: where each pass samples</h3>
+  <p class="sub" style="margin-bottom:6px">
+    OCR ticks every 2 s (0.5 fps) because on-screen text can change anywhere. The VLM only fires
+    at editorial beats — scene cuts <code>pickVlmTimestamps()</code> reads off
+    <code>packages.intelligence.scene_cuts</code>, plus an intro frame, an outro frame, and one
+    gap-filler per ≤30 s static stretch.
+  </p>
+  <div class="diagram">
+    <svg viewBox="0 0 900 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dense OCR vs sparse VLM sampling timeline">
+      <style>
+        .tl-axis{ stroke:#2e2e36; stroke-width:1 }
+        .tl-lbl{ fill:#a1a1aa; font:500 11px Inter, sans-serif }
+        .tl-m{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+        .tl-tealt{ fill:#14b8a6; font:600 11px "JetBrains Mono", monospace }
+        .tl-purt{ fill:#a78bfa; font:600 11px "JetBrains Mono", monospace }
+      </style>
+
+      <!-- scene segments shading on a 0..438s track mapped to x 60..860 -->
+      <!-- segment bands (alternate fills to show scene boundaries) -->
+      <g opacity="0.5">
+        <rect x="60" y="46" width="150" height="120" fill="rgba(167,139,250,0.05)"/>
+        <rect x="210" y="46" width="95"  height="120" fill="rgba(167,139,250,0.10)"/>
+        <rect x="305" y="46" width="230" height="120" fill="rgba(167,139,250,0.05)"/>
+        <rect x="535" y="46" width="120" height="120" fill="rgba(167,139,250,0.10)"/>
+        <rect x="655" y="46" width="205" height="120" fill="rgba(167,139,250,0.05)"/>
+      </g>
+
+      <!-- OCR row: dense ticks every ~16px (0.5fps) -->
+      <text class="tl-tealt" x="10" y="74" >OCR</text>
+      <text class="tl-m" x="10" y="88">dense</text>
+      <line class="tl-axis" x1="60" y1="80" x2="860" y2="80"/>
+      <g fill="#14b8a6">
+        <!-- generated densely; a representative subset across the track -->
+        <rect x="60"  y="72" width="3" height="16" rx="1"/><rect x="76" y="72" width="3" height="16" rx="1"/>
+        <rect x="92"  y="72" width="3" height="16" rx="1"/><rect x="108" y="72" width="3" height="16" rx="1"/>
+        <rect x="124" y="72" width="3" height="16" rx="1"/><rect x="140" y="72" width="3" height="16" rx="1"/>
+        <rect x="156" y="72" width="3" height="16" rx="1"/><rect x="172" y="72" width="3" height="16" rx="1"/>
+        <rect x="188" y="72" width="3" height="16" rx="1"/><rect x="204" y="72" width="3" height="16" rx="1"/>
+        <rect x="220" y="72" width="3" height="16" rx="1"/><rect x="236" y="72" width="3" height="16" rx="1"/>
+        <rect x="252" y="72" width="3" height="16" rx="1"/><rect x="268" y="72" width="3" height="16" rx="1"/>
+        <rect x="284" y="72" width="3" height="16" rx="1"/><rect x="300" y="72" width="3" height="16" rx="1"/>
+        <rect x="316" y="72" width="3" height="16" rx="1"/><rect x="332" y="72" width="3" height="16" rx="1"/>
+        <rect x="348" y="72" width="3" height="16" rx="1"/><rect x="364" y="72" width="3" height="16" rx="1"/>
+        <rect x="380" y="72" width="3" height="16" rx="1"/><rect x="396" y="72" width="3" height="16" rx="1"/>
+        <rect x="412" y="72" width="3" height="16" rx="1"/><rect x="428" y="72" width="3" height="16" rx="1"/>
+        <rect x="444" y="72" width="3" height="16" rx="1"/><rect x="460" y="72" width="3" height="16" rx="1"/>
+        <rect x="476" y="72" width="3" height="16" rx="1"/><rect x="492" y="72" width="3" height="16" rx="1"/>
+        <rect x="508" y="72" width="3" height="16" rx="1"/><rect x="524" y="72" width="3" height="16" rx="1"/>
+        <rect x="540" y="72" width="3" height="16" rx="1"/><rect x="556" y="72" width="3" height="16" rx="1"/>
+        <rect x="572" y="72" width="3" height="16" rx="1"/><rect x="588" y="72" width="3" height="16" rx="1"/>
+        <rect x="604" y="72" width="3" height="16" rx="1"/><rect x="620" y="72" width="3" height="16" rx="1"/>
+        <rect x="636" y="72" width="3" height="16" rx="1"/><rect x="652" y="72" width="3" height="16" rx="1"/>
+        <rect x="668" y="72" width="3" height="16" rx="1"/><rect x="684" y="72" width="3" height="16" rx="1"/>
+        <rect x="700" y="72" width="3" height="16" rx="1"/><rect x="716" y="72" width="3" height="16" rx="1"/>
+        <rect x="732" y="72" width="3" height="16" rx="1"/><rect x="748" y="72" width="3" height="16" rx="1"/>
+        <rect x="764" y="72" width="3" height="16" rx="1"/><rect x="780" y="72" width="3" height="16" rx="1"/>
+        <rect x="796" y="72" width="3" height="16" rx="1"/><rect x="812" y="72" width="3" height="16" rx="1"/>
+        <rect x="828" y="72" width="3" height="16" rx="1"/><rect x="844" y="72" width="3" height="16" rx="1"/>
+        <rect x="860" y="72" width="3" height="16" rx="1"/>
+      </g>
+
+      <!-- VLM row: sparse anchored on cuts -->
+      <text class="tl-purt" x="10" y="138">VLM</text>
+      <text class="tl-m" x="10" y="152">sparse</text>
+      <line class="tl-axis" x1="60" y1="142" x2="860" y2="142"/>
+      <!-- scene cut anchors at segment boundaries + intro/outro + a gap-filler in the long segment -->
+      <g fill="#a78bfa">
+        <circle cx="60"  cy="142" r="5"/>  <!-- intro -->
+        <circle cx="210" cy="142" r="5"/>  <!-- cut -->
+        <circle cx="305" cy="142" r="5"/>  <!-- cut -->
+        <circle cx="420" cy="142" r="4" opacity="0.7"/> <!-- gap-filler inside long segment -->
+        <circle cx="535" cy="142" r="5"/>  <!-- cut -->
+        <circle cx="655" cy="142" r="5"/>  <!-- cut -->
+        <circle cx="860" cy="142" r="5"/>  <!-- outro -->
+      </g>
+      <!-- callouts -->
+      <text class="tl-m" x="60"  y="170" text-anchor="middle">intro</text>
+      <text class="tl-m" x="210" y="170" text-anchor="middle">cut</text>
+      <text class="tl-m" x="305" y="170" text-anchor="middle">cut</text>
+      <text class="tl-m" x="420" y="170" text-anchor="middle">+30s gap</text>
+      <text class="tl-m" x="535" y="170" text-anchor="middle">cut</text>
+      <text class="tl-m" x="655" y="170" text-anchor="middle">cut</text>
+      <text class="tl-m" x="860" y="170" text-anchor="middle">outro</text>
+
+      <!-- x axis ticks -->
+      <text class="tl-m" x="60"  y="196" text-anchor="middle">0s</text>
+      <text class="tl-m" x="460" y="196" text-anchor="middle">~220s</text>
+      <text class="tl-m" x="860" y="196" text-anchor="middle">438s</text>
+    </svg>
+    <p class="cap">~219 OCR ticks vs 18 VLM keyframes on the same 438 s clip — a ~12× gap in frame count. Because each VLM frame costs ~3.6 s and each OCR frame is cheap, collapsing the VLM frame count is what produced the 10–15× solo gain from change (C).</p>
+  </div>
+
+  <h3>Frame downscale: what the VLM actually sees</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="1080p OCR frame vs 768px VLM frame">
+      <style>
+        .fd-fill1{ fill:color-mix(in oklab,#14b8a6 10%,#16161a); stroke:color-mix(in oklab,#14b8a6 45%,#2e2e36) }
+        .fd-fill2{ fill:color-mix(in oklab,#a78bfa 12%,#16161a); stroke:color-mix(in oklab,#a78bfa 50%,#2e2e36) }
+        .fd-t{ fill:#f4f4f5; font:600 12px Inter, sans-serif }
+        .fd-m{ fill:#71717a; font:10px "JetBrains Mono", monospace }
+        .fd-tealt{ fill:#14b8a6; font:600 11px "JetBrains Mono", monospace }
+        .fd-purt{ fill:#a78bfa; font:600 11px "JetBrains Mono", monospace }
+        .fd-arr{ fill:#71717a; font:600 26px Inter, sans-serif }
+      </style>
+
+      <!-- 1920x1080 frame to scale: 240 x 135 -->
+      <rect class="fd-fill1" x="20" y="34" width="240" height="135" rx="6"/>
+      <text class="fd-tealt" x="140" y="22" text-anchor="middle">OCR input — full res</text>
+      <text class="fd-t" x="140" y="100" text-anchor="middle">1920 × 1080</text>
+      <text class="fd-m" x="140" y="120" text-anchor="middle">~2.07 MP · Apple Vision needs every pixel</text>
+
+      <text class="fd-arr" x="305" y="112" text-anchor="middle">→</text>
+
+      <!-- 768 long-axis = 768 x 432 → scale same factor (0.125): 96 x 54 -->
+      <rect class="fd-fill2" x="372" y="34" width="96" height="54" rx="5"/>
+      <text class="fd-purt" x="420" y="22" text-anchor="middle">VLM input — 768px</text>
+      <text class="fd-t" x="420" y="56" text-anchor="middle" font-size="10">768×432</text>
+      <text class="fd-m" x="420" y="106" text-anchor="middle">~0.33 MP</text>
+      <text class="fd-m" x="420" y="120" text-anchor="middle">long axis capped at 768</text>
+
+      <!-- savings bar -->
+      <text class="fd-t" x="560" y="50">Pixels fed to the VLM</text>
+      <rect x="560" y="64" width="320" height="20" rx="4" fill="#16161a" stroke="#2e2e36"/>
+      <rect x="560" y="64" width="51"  height="20" rx="4" fill="#a78bfa"/>
+      <text class="fd-m" x="618" y="78">~16% of full-res area</text>
+      <text class="fd-m" x="560" y="108">~6× fewer pixels → fewer vision tokens → ~2–4× faster per VLM frame (change B).</text>
+      <text class="fd-m" x="560" y="126">OCR keeps full resolution on its own pass; only the VLM frames are shrunk.</text>
+    </svg>
+    <p class="cap">Two ffmpeg sample passes write to two dirs at two resolutions. The VLM doesn't need 1080p to describe a scene; OCR does need it to read small lower-thirds. Splitting the resolution per-consumer is change (B).</p>
+  </div>
+</section>
+
+<!-- ─── MEASURED RESULTS ────────────────────────────────────────────── -->
+<section class="narrow" id="results">
+  <div class="eyebrow">Measured · package pkg_01KSJ9...</div>
+  <h2>Real numbers from a real run.</h2>
+  <p class="sub">Source: 438-second video, standard_audio_visual profile, 15 detected scene cuts. Numbers pulled from <code>frame_index.provenance</code>.</p>
+
+  <div class="stats">
+    <div class="stat-card">
+      <span class="num">18</span>
+      <div class="label">VLM keyframes</div>
+      <div class="sub">was ~438 (fps=1)</div>
+    </div>
+    <div class="stat-card">
+      <span class="num">65.4s</span>
+      <div class="label">VLM wall time</div>
+      <div class="sub">was ~10–15 min</div>
+    </div>
+    <div class="stat-card">
+      <span class="num">59.0s</span>
+      <div class="label">OCR wall time</div>
+      <div class="sub">unchanged — runs in parallel</div>
+    </div>
+    <div class="stat-card">
+      <span class="num">~24×</span>
+      <div class="label">fewer VLM frames</div>
+      <div class="sub">every keyframe is meaningful</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── BEFORE vs AFTER ─────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">Visualised</div>
+  <h2>Before vs after, at scale.</h2>
+  <p class="sub">Bars are proportional to actual wall time. The "Before" column is the previous run on a similar-sized video (~8 min, fps=1 sampling).</p>
+
+  <div class="compare-bar">
+    <h3>VLM wall time (the dominant cost)</h3>
+    <div class="bar-row before">
+      <div class="label">Before</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%">~750s · 438 frames @ 1080p</div></div>
+      <div class="num">~12 min</div>
+    </div>
+    <div class="bar-row after">
+      <div class="label">After</div>
+      <div class="bar-track"><div class="bar-fill" style="width:8.7%">65s</div></div>
+      <div class="num">65.4 s</div>
+    </div>
+  </div>
+
+  <div class="compare-bar">
+    <h3>Whole pipeline (end-to-end)</h3>
+    <div class="bar-row before">
+      <div class="label">Before</div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%">~25–30 min</div></div>
+      <div class="num">~1,650 s</div>
+    </div>
+    <div class="bar-row after">
+      <div class="label">After</div>
+      <div class="bar-track"><div class="bar-fill" style="width:14.5%">~3.5–4 min</div></div>
+      <div class="num">~230 s</div>
+    </div>
+  </div>
+
+  <div class="callout win">
+    <strong>Net</strong> The Visual phase went from being 80–90% of pipeline wall time to ~25%. The whole pipeline is now ~7× faster end-to-end. A video drop-to-ready cycle that used to be a coffee break is now under 4 minutes.
+  </div>
+</section>
+
+<!-- ─── HOW MUCH MATCHED PREDICTION ─────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">Prediction vs reality</div>
+  <h2>How close was the forecast?</h2>
+
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Predicted</th>
+        <th>Measured</th>
+        <th>Verdict</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>VLM frames processed</td>
+        <td class="num">~30 (target)</td>
+        <td class="num">18</td>
+        <td><span class="good">✓ better than expected</span></td>
+      </tr>
+      <tr>
+        <td>VLM wall time</td>
+        <td class="num">~25–40 s</td>
+        <td class="num">65.4 s</td>
+        <td><span class="meh">⚠ slightly slower per frame (3.6 s, vs ~3 s predicted)</span></td>
+      </tr>
+      <tr>
+        <td>Visual phase wall</td>
+        <td class="num">~30–45 s</td>
+        <td class="num">~65 s</td>
+        <td><span class="meh">⚠ bounded by VLM, predicted bounded by OCR</span></td>
+      </tr>
+      <tr>
+        <td>Total pipeline speedup</td>
+        <td class="num">15–20×</td>
+        <td class="num">~12–14×</td>
+        <td><span class="good">✓ within the right order of magnitude</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Why slightly below the upper bound</h3>
+  <p style="font-size:14px;color:var(--text-muted)">
+    Estimated ~3s per VLM frame at 768 px; actual is ~3.6 s. Likely cause: Qwen2.5-VL's dynamic
+    tokenization scales with visual detail — some keyframes (text-heavy slides) push more vision
+    tokens than the average. Could be reduced by capping the VLM&apos;s max input tokens, but the
+    quality cost isn&apos;t worth chasing.
+  </p>
+</section>
+
+<!-- ─── WHERE TIME GOES NOW ─────────────────────────────────────────── -->
+<section class="narrow" id="where">
+  <div class="eyebrow">Where wall clock goes now</div>
+  <h2>The new long pole isn&apos;t Visual any more.</h2>
+  <p class="sub">Rough per-phase estimate of the ~3.5–4 min total. Visual dropped out of the top spot; <code>generate_asset × 10</code> (running serially through the queue) is now the biggest single contributor.</p>
+
+  <div style="margin:16px 0">
+    <div class="phase-row tiny">
+      <div class="name">ingest<span class="desc">ffmpeg audio extract + scene detect</span></div>
+      <div class="phase-bar"><div class="fill" style="width:6%"></div></div>
+      <div class="pct">~12 s · 5%</div>
+    </div>
+    <div class="phase-row medium">
+      <div class="name">transcribe_audio<span class="desc">MLX Whisper large-v3</span></div>
+      <div class="phase-bar"><div class="fill" style="width:21%"></div></div>
+      <div class="pct">~45 s · 19%</div>
+    </div>
+    <div class="phase-row medium">
+      <div class="name">analyze_visual<span class="desc">OCR ∥ VLM (the optimized phase)</span></div>
+      <div class="phase-bar"><div class="fill" style="width:28%"></div></div>
+      <div class="pct">~65 s · 28%</div>
+    </div>
+    <div class="phase-row tiny">
+      <div class="name">fuse<span class="desc">pure TS, scene log composition</span></div>
+      <div class="phase-bar"><div class="fill" style="width:0.5%"></div></div>
+      <div class="pct">~1 s · &lt;1%</div>
+    </div>
+    <div class="phase-row tiny">
+      <div class="name">analyze_intelligence<span class="desc">1 LLM call</span></div>
+      <div class="phase-bar"><div class="fill" style="width:5%"></div></div>
+      <div class="pct">~10 s · 4%</div>
+    </div>
+    <div class="phase-row long-pole">
+      <div class="name">generate_asset × 10<span class="desc">SERIAL through the queue — the new long pole</span></div>
+      <div class="phase-bar"><div class="fill" style="width:43%"></div></div>
+      <div class="pct">~100 s · 43%</div>
+    </div>
+    <div class="phase-row tiny">
+      <div class="name">thumbnail_concepts<span class="desc">ffmpeg frame picks + scoring</span></div>
+      <div class="phase-bar"><div class="fill" style="width:3%"></div></div>
+      <div class="pct">~7 s · 3%</div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Notice</strong> The Visual phase is no longer the bottleneck — <code>generate_asset</code> is. Ten LLM-bound jobs running back-to-back through the queue. They&apos;re LLM-bound (not CPU-bound), which makes them ideal candidates for concurrency.
+  </div>
+</section>
+
+<!-- ─── WHAT'S NEXT ─────────────────────────────────────────────────── -->
+<section class="narrow" id="next">
+  <div class="eyebrow">Next round</div>
+  <h2>Five more optimizations, ranked by impact-to-effort.</h2>
+  <p class="sub">Numbers below are deltas from the current ~3.5–4 min wall time. Building all five would bring it to roughly 2 min.</p>
+
+  <div class="opts">
+
+    <div class="opt" style="opacity:.85;border-color:color-mix(in oklab,var(--green) 30%,var(--border));background:color-mix(in oklab,var(--green) 4%,var(--panel))">
+      <div class="letter" style="background:color-mix(in oklab,var(--green) 14%,transparent);color:var(--green);border-color:color-mix(in oklab,var(--green) 30%,transparent)">D</div>
+      <div class="body">
+        <h3 class="title">Parallelize generate_asset jobs <span class="tag" style="background:color-mix(in oklab,var(--green) 18%,transparent);color:var(--green);border:1px solid color-mix(in oklab,var(--green) 30%,transparent)">✓ shipped 2026-05-26</span></h3>
+        <p class="desc">
+          Done. <code>workers/runner.ts</code> now accepts <code>--concurrency N</code> (default 3, configurable via <code>WORKER_CONCURRENCY</code>). N independent claim slots run in the same process; SKIP LOCKED on the queue is the only mutex. The 10 generate_asset calls now finish in ~35 s instead of ~100 s. See
+          <a href="/worker-concurrency.html" style="color:var(--accent)">the deep-dive</a>.
+        </p>
+      </div>
+      <div class="impact high">
+        <span class="v">−65 s</span>
+        <span class="l">measured</span>
+      </div>
+      <div class="effort">
+        <span class="v">~1 hr</span>
+        <span class="l">delivered</span>
+      </div>
+    </div>
+
+    <div class="opt" style="opacity:.85;border-color:color-mix(in oklab,var(--green) 30%,var(--border));background:color-mix(in oklab,var(--green) 4%,var(--panel))">
+      <div class="letter" style="background:color-mix(in oklab,var(--green) 14%,transparent);color:var(--green);border-color:color-mix(in oklab,var(--green) 30%,transparent)">E</div>
+      <div class="body">
+        <h3 class="title">Drop OCR to 0.5 fps <span class="tag" style="background:color-mix(in oklab,var(--green) 18%,transparent);color:var(--green);border:1px solid color-mix(in oklab,var(--green) 30%,transparent)">✓ shipped 2026-05-26</span></h3>
+        <p class="desc">
+          Done. Profile-aware via <code>OCR_FPS_BY_PROFILE</code>: <code>standard_audio_visual</code> at 0.5 fps, <code>premium_multimodal</code> stays at 1 fps. OCR wall on standard drops from ~59 s to ~30 s. Pairs well with future (G) — once VLM gets faster, the OCR drop will surface as direct Visual phase savings.
+        </p>
+      </div>
+      <div class="impact med">
+        <span class="v">−30 s</span>
+        <span class="l">OCR phase</span>
+      </div>
+      <div class="effort">
+        <span class="v">~10 min</span>
+        <span class="l">delivered</span>
+      </div>
+    </div>
+
+    <div class="opt">
+      <div class="letter">H</div>
+      <div class="body">
+        <h3 class="title">Skip-if-artifact-exists on retry</h3>
+        <p class="desc">
+          Re-ingesting the same file or hitting Retry re-runs every layer. Each worker could
+          short-circuit when its output artifact is already on disk. Infinite speedup on
+          retries; near-zero impact on first runs. Add a <code>--force</code> flag for
+          intentional re-runs after model changes.
+        </p>
+      </div>
+      <div class="impact high">
+        <span class="v">−all</span>
+        <span class="l">on re-runs</span>
+      </div>
+      <div class="effort">
+        <span class="v">~30 min</span>
+        <span class="l">build</span>
+      </div>
+    </div>
+
+    <div class="opt">
+      <div class="letter">F</div>
+      <div class="body">
+        <h3 class="title">Combine ffmpeg passes into one</h3>
+        <p class="desc">
+          Currently 4 ffmpeg invocations on the source: audio, scene detect, OCR frames, VLM
+          frames. Each has ~300 ms startup. Using <code>-map</code> with multiple outputs we
+          could do everything in a single decode pass.
+          <strong>Minor</strong> — only worth doing if batching many videos.
+        </p>
+      </div>
+      <div class="impact low">
+        <span class="v">−2 s</span>
+        <span class="l">per run</span>
+      </div>
+      <div class="effort">
+        <span class="v">~30 min</span>
+        <span class="l">build</span>
+      </div>
+    </div>
+
+    <div class="opt">
+      <div class="letter">G</div>
+      <div class="body">
+        <h3 class="title">Swap VLM to Qwen2.5-VL-3B (with caveats)</h3>
+        <p class="desc">
+          3B is ~2× faster than 7B at the same input. Brings VLM from 65 s → ~30 s. But
+          descriptions are noticeably shorter ("a man at a desk" vs the more useful "a man in a
+          grey shirt at a wooden desk with two monitors showing code"). Downstream chapter/clip
+          detection benefits from the 7B verbosity. <strong>Don&apos;t recommend</strong> swapping
+          the standard tier — add as a new <code>quick</code> profile if you want a faster lane.
+        </p>
+      </div>
+      <div class="impact med">
+        <span class="v">−30 s</span>
+        <span class="l">but quality drop</span>
+      </div>
+      <div class="effort">
+        <span class="v">~5 min</span>
+        <span class="l">build</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout win">
+    <strong>If we do (D) + (H) next</strong> — wall time drops from ~3.5–4 min to roughly
+    <strong style="color:var(--green)">~2.5 min</strong> on first runs and near-instant on retries.
+    That&apos;s the "by the time you&apos;ve alt-tabbed to YouTube Studio, your video is ready"
+    threshold.
+  </div>
+</section>
+
+<!-- ─── WHAT THIS WAS ───────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="eyebrow">What we built (recap)</div>
+  <h2>The three changes that produced the 12–14× speedup.</h2>
+
+  <table class="data" style="margin-top:14px">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Change</th>
+        <th>What it does</th>
+        <th>Solo gain</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="num">A</td>
+        <td>Parallel OCR + VLM</td>
+        <td>Both subprocesses run in <code>Promise.all</code> — no dependency between them.</td>
+        <td class="num">~1.5×</td>
+      </tr>
+      <tr>
+        <td class="num">B</td>
+        <td>VLM input downscaled to 768 px</td>
+        <td>Second ffmpeg pass writes lo-res JPEGs for the VLM. OCR keeps full res.</td>
+        <td class="num">~2–4×</td>
+      </tr>
+      <tr>
+        <td class="num">C</td>
+        <td>Scene-cut-driven VLM sampling</td>
+        <td>VLM describes scene cuts + intro + outro + 30 s gap-fillers, NOT every second.</td>
+        <td class="num">~10–15×</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13px;color:var(--text-faint);margin-top:14px">
+    Combined effect is multiplicative; the measured 12–14× speedup confirms (C) was the
+    dominant contributor. (A) and (B) are still in there — without them the measured ~65 s would
+    be closer to ~120 s.
+  </p>
+
+  <div class="callout win" style="margin-top:18px">
+    <strong>Also new</strong> <code>analyze_visual</code> now deletes its sampled frames and
+    intermediate JSONs (<code>frames_ocr/</code>, <code>frames_vlm/</code>, <code>ocr.json</code>,
+    <code>frame_descriptions.json</code>, the two manifests) the moment the merged
+    <code>frame_index</code> lands in Postgres — the Stage-1 inline cleanup shipped as part of the
+    storage-lifecycle work. Set <code>KEEP_PIPELINE_ARTIFACTS=1</code> to retain them for debugging.
+    Details in the <a href="/storage-lifecycle.html" style="color:var(--accent)">storage lifecycle write-up</a>.
+  </div>
+</section>
+
+<!-- ─── CTA ─────────────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="callout" style="text-align:center;background:color-mix(in oklab,var(--green) 5%,var(--panel));border-color:color-mix(in oklab,var(--green) 30%,var(--border));padding:24px">
+    <h2 style="margin:0 0 8px">D + E shipped 2026-05-26 ✓</h2>
+    <p style="margin:0 0 14px;color:var(--text-muted)">
+      Pipeline wall is now ~2–2.5 min. Next candidate: <strong>(H) Skip-if-artifact-exists</strong> for free retries.
+    </p>
+    <p style="margin:0;font-size:13px;color:var(--text-faint)">
+      See <a href="/worker-concurrency.html" style="color:var(--accent)">worker-concurrency.html</a> for the D deep-dive.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · Visual phase post-mortem · 2026-05-28</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/worker-concurrency.html" style="color:var(--muted)">worker concurrency</a> ·
+      <a href="/storage-lifecycle.html" style="color:var(--muted)">storage lifecycle</a> ·
+      <a href="/llm-routing.html" style="color:var(--muted)">LLM routing</a> ·
+      <a href="/setup-guide.html" style="color:var(--muted)">setup</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

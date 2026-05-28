@@ -10,8 +10,10 @@
  *   --max-iter <int>  cap iterations even without --once (default unlimited)
  */
 import { hostname } from 'node:os';
+import { loadSettingsIntoEnv, subscribeSettingsChanges } from '@/lib/settings';
 import { run as runAnalyzeIntelligence } from './kinds/analyze_intelligence';
 import { run as runAnalyzeVisual } from './kinds/analyze_visual';
+import { run as runArchivePackage } from './kinds/archive_package';
 import { run as runClipRender } from './kinds/clip_render';
 import { run as runCollectSignal } from './kinds/collect_signal';
 import { run as runDispatch } from './kinds/dispatch';
@@ -48,6 +50,7 @@ const HANDLERS: Record<string, Handler> = {
   dispatch: runDispatch,
   collect_signal: runCollectSignal,
   promote_voice_examples: runPromoteVoiceExamples,
+  archive_package: runArchivePackage,
 };
 
 function parseArgs(argv: string[]): {
@@ -55,11 +58,19 @@ function parseArgs(argv: string[]): {
   once: boolean;
   idleMs: number;
   maxIter: number;
+  concurrency: number;
 } {
   let kinds: string[] = [];
   let once = false;
   let idleMs = 1000;
   let maxIter = Number.POSITIVE_INFINITY;
+  // §13/perf: how many concurrent job slots this worker process holds. Each
+  // slot is an independent claim→run→ack loop. SKIP LOCKED on the queue
+  // ensures no two slots ever take the same job. LLM-bound kinds
+  // (generate_asset, analyze_intelligence) benefit the most; CPU-bound kinds
+  // (analyze_visual VLM) just see modest gains from overlapping I/O.
+  let concurrency = Number.parseInt(process.env.WORKER_CONCURRENCY ?? '3', 10);
+  if (!Number.isFinite(concurrency) || concurrency < 1) concurrency = 3;
 
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -71,9 +82,12 @@ function parseArgs(argv: string[]): {
       idleMs = Number.parseInt(argv[++i] ?? '', 10);
     } else if (flag === '--max-iter') {
       maxIter = Number.parseInt(argv[++i] ?? '', 10);
+    } else if (flag === '--concurrency') {
+      const n = Number.parseInt(argv[++i] ?? '', 10);
+      if (Number.isFinite(n) && n >= 1) concurrency = n;
     }
   }
-  return { kinds, once, idleMs, maxIter };
+  return { kinds, once, idleMs, maxIter, concurrency };
 }
 
 let shuttingDown = false;
@@ -88,7 +102,7 @@ function installSignalHandlers(): void {
 }
 
 async function main(): Promise<void> {
-  const { kinds, once, idleMs, maxIter } = parseArgs(process.argv.slice(2));
+  const { kinds, once, idleMs, maxIter, concurrency } = parseArgs(process.argv.slice(2));
   if (kinds.length === 0) {
     console.error('runner: --kinds <csv> is required');
     process.exit(2);
@@ -99,33 +113,77 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
+  // Hydrate runtime settings into process.env (DB > .env), then subscribe to
+  // pg_notify('chs_settings') so changes made on /settings propagate live.
+  try {
+    await loadSettingsIntoEnv();
+    await subscribeSettingsChanges();
+  } catch (err) {
+    // Don't crash the worker on a fresh checkout — the settings table may not
+    // exist yet before `pnpm db:migrate`. Workers fall back to bare .env.
+    console.warn('[runner] settings hydration deferred:', (err as Error).message);
+  }
+
   const lockedBy = `${hostname()}:${process.pid}`;
   console.log(
-    `[runner] started lockedBy=${lockedBy} kinds=${kinds.join(',')} once=${once} idleMs=${idleMs}`,
+    `[runner] started lockedBy=${lockedBy} kinds=${kinds.join(',')} once=${once} idleMs=${idleMs} concurrency=${concurrency}`,
   );
 
   installSignalHandlers();
 
+  // Stale-lock reclaim runs centrally on a 30 s timer rather than inside each
+  // slot — one query per cycle regardless of `concurrency`. Doesn't conflict
+  // with running slots because reclaim only targets `running` rows whose
+  // `locked_at` exceeds the per-kind timeout (i.e. genuinely abandoned).
+  const reclaimTimer = setInterval(async () => {
+    if (shuttingDown) return;
+    try {
+      const reclaimed = await reclaimStaleJobs(kinds);
+      if (reclaimed.length > 0) {
+        console.warn(
+          `[runner] reclaimed ${reclaimed.length} stale job(s): ${reclaimed
+            .map((r) => `${r.id}/${r.kind}`)
+            .join(', ')}`,
+        );
+      }
+    } catch (err) {
+      console.error('[runner] reclaim failed:', err);
+    }
+  }, 30_000);
+
+  // Spawn N concurrent claim slots. Each is an independent claim→run→ack
+  // loop. The queue's `SELECT … FOR UPDATE SKIP LOCKED` (queue.ts) guarantees
+  // no two slots ever pick the same job, so we don't need any in-process
+  // locking. `--once` collapses to a single slot for deterministic test runs.
+  const effectiveConcurrency = once ? 1 : concurrency;
+  const iterPerSlot = Math.ceil(maxIter / effectiveConcurrency);
+  await Promise.all(
+    Array.from({ length: effectiveConcurrency }, (_, slot) =>
+      runSlot({ slot, lockedBy, kinds, once, idleMs, maxIter: iterPerSlot }),
+    ),
+  );
+
+  clearInterval(reclaimTimer);
+  await shutdown();
+}
+
+/**
+ * One claim slot: loops claim → handler → ack until shutdown or maxIter.
+ * `slot` is purely for logging context so it's easy to read interleaved
+ * output. The DB queue is the source of truth — no in-process state.
+ */
+async function runSlot(opts: {
+  slot: number;
+  lockedBy: string;
+  kinds: string[];
+  once: boolean;
+  idleMs: number;
+  maxIter: number;
+}): Promise<void> {
+  const { slot, lockedBy, kinds, once, idleMs, maxIter } = opts;
   let iter = 0;
-  let lastReclaim = 0;
   while (!shuttingDown && iter < maxIter) {
     iter++;
-    // §7: periodically requeue jobs abandoned in `running` by a crashed worker.
-    if (Date.now() - lastReclaim > 30_000) {
-      lastReclaim = Date.now();
-      try {
-        const reclaimed = await reclaimStaleJobs(kinds);
-        if (reclaimed.length > 0) {
-          console.warn(
-            `[runner] reclaimed ${reclaimed.length} stale job(s): ${reclaimed
-              .map((r) => `${r.id}/${r.kind}`)
-              .join(', ')}`,
-          );
-        }
-      } catch (err) {
-        console.error('[runner] reclaim failed:', err);
-      }
-    }
     const job = await claim(kinds, lockedBy);
     if (!job) {
       if (once) break;
@@ -142,23 +200,21 @@ async function main(): Promise<void> {
     try {
       await handler(job);
       await complete(job.id);
-      console.log(`[runner] done job=${job.id} kind=${job.kind}`);
+      console.log(`[runner${slot > 0 ? `:${slot}` : ''}] done job=${job.id} kind=${job.kind}`);
     } catch (err) {
       if (err instanceof RequeueLater) {
         await requeueAt(job.id, err.runAfter);
         console.log(
-          `[runner] requeued job=${job.id} kind=${job.kind} until ${err.runAfter.toISOString()} (${err.message})`,
+          `[runner${slot > 0 ? `:${slot}` : ''}] requeued job=${job.id} kind=${job.kind} until ${err.runAfter.toISOString()} (${err.message})`,
         );
       } else {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error(`[runner] fail job=${job.id} kind=${job.kind}: ${msg}`);
+        console.error(`[runner${slot > 0 ? `:${slot}` : ''}] fail job=${job.id} kind=${job.kind}: ${msg}`);
         await fail(job.id, msg);
       }
     }
     if (once) break;
   }
-
-  await shutdown();
 }
 
 function sleep(ms: number): Promise<void> {
