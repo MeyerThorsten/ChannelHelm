@@ -19,8 +19,10 @@ import { publishAsset } from '@/server-actions/publish';
 import { generateSection, regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
 import {
   deletePackage,
+  deleteSourceVideo,
   generateThumbnails,
   retryPackage,
+  reviveSource,
   selectTitle,
 } from '@/server-actions/studio';
 import { useRouter } from 'next/navigation';
@@ -356,6 +358,43 @@ function StudioHeader({ data }: { data: StudioData }) {
             }
           >
             Retry
+          </GhostBtn>
+          <GhostBtn
+            size="sm"
+            icon="♻"
+            disabled={pending}
+            onClick={() => {
+              if (
+                !confirm(
+                  'Backlog Revival: re-mine this video under the transcription_only profile with the current prompts? Existing text assets are regenerated in place (dispatch history is kept). The source media must still be on disk.',
+                )
+              )
+                return;
+              start(async () => {
+                await reviveSource(data.packageId, 'transcription_only');
+              });
+            }}
+          >
+            Revive
+          </GhostBtn>
+          <GhostBtn
+            size="sm"
+            icon="📼"
+            danger
+            disabled={pending}
+            onClick={() => {
+              if (
+                !confirm(
+                  'Permanently delete this source video from disk (local + archive)? Postgres history is kept, but re-rendering clips and re-mining will no longer be possible. This cannot be undone.',
+                )
+              )
+                return;
+              start(async () => {
+                await deleteSourceVideo(data.packageId);
+              });
+            }}
+          >
+            Delete video
           </GhostBtn>
           <GhostBtn
             size="sm"

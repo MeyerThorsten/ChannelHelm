@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
 import { jobs, packages, sources } from '@/db/schema';
+import { isAudioOnlyProfile } from '@/lib/schemas';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
@@ -59,8 +60,8 @@ export async function run(job: JobRow): Promise<void> {
   const [pkg] = await db.select().from(packages).where(eq(packages.id, packageId)).limit(1);
   if (!pkg) throw new Error(`analyze_visual: package ${packageId} not found`);
   const profile = processingProfile ?? pkg.processingProfile;
-  if (profile === 'fast_audio_only') {
-    throw new Error('analyze_visual should not run under fast_audio_only profile');
+  if (isAudioOnlyProfile(profile)) {
+    throw new Error(`analyze_visual should not run under audio-only profile '${profile}'`);
   }
 
   const videoPath = join(source.localMediaPath, 'original.mp4');

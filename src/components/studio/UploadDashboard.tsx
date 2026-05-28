@@ -8,6 +8,7 @@ import { type DragEvent, useRef, useState, useTransition } from 'react';
 
 type Brand = { id: string; slug: string; name: string };
 const PROFILES = [
+  { id: 'transcription_only', label: 'Transcribe', sub: 'audio only · cheap', icon: '📝' },
   { id: 'fast_audio_only', label: 'Fast', sub: 'audio only', icon: '♬' },
   { id: 'standard_audio_visual', label: 'Standard', sub: 'audio + visual', icon: '▦' },
   { id: 'premium_multimodal', label: 'Premium', sub: 'full multimodal', icon: '✦' },

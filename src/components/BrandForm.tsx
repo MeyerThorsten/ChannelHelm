@@ -6,7 +6,12 @@ import { useState } from 'react';
 
 type Brand = typeof brands.$inferSelect;
 
-const PROFILES = ['fast_audio_only', 'standard_audio_visual', 'premium_multimodal'] as const;
+const PROFILES = [
+  'transcription_only',
+  'fast_audio_only',
+  'standard_audio_visual',
+  'premium_multimodal',
+] as const;
 
 const INPUT = 'ch-input';
 const LABEL = 'ch-label';

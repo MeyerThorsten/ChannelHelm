@@ -15,10 +15,9 @@
  *   - Body scroll lock while open
  *   - Click inside content area DOES NOT close (event.stopPropagation)
  *   - aria-modal=true, role=dialog, aria-labelledby points at title
- *
- * Focus trap is intentionally NOT included in v1 — the use cases so far
- * (Publish, etc.) have a small enough surface (~3 buttons) that tabbing
- * out is fine. Add later if needed.
+ *   - Focus trap (v1.1): focuses the first focusable element on open, cycles
+ *     Tab / Shift+Tab within the modal, and restores focus to the previously
+ *     focused element on close.
  */
 
 import { useEffect, useRef } from 'react';
@@ -38,20 +37,63 @@ export function Modal({
   maxWidth?: number;
 }) {
   const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2, 9)}`);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  // Element focused before the modal opened, restored on close so keyboard
+  // users land back where they were.
+  const prevFocusRef = useRef<HTMLElement | null>(null);
 
-  // Escape to close + body scroll lock while open. Effect re-runs only on
-  // open/onClose change so a parent re-render doesn't keep adding listeners.
+  const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  // Escape to close + body scroll lock + focus trap while open. Effect re-runs
+  // only on open/onClose change so a parent re-render doesn't keep adding
+  // listeners. The portal content has already mounted by the time this effect
+  // runs (effects fire after render), so contentRef is populated.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+
+    prevFocusRef.current = (document.activeElement as HTMLElement) ?? null;
+    // Focus the first focusable element inside the modal (or the content box
+    // itself as a fallback) so Tab cycling starts contained.
+    const focusFirst = () => {
+      const nodes = contentRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
+      (nodes && nodes.length > 0 ? nodes[0] : contentRef.current)?.focus();
     };
+    focusFirst();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const nodes = contentRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
+      if (!nodes || nodes.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement;
+      // Wrap focus at the edges; if focus somehow escaped the modal, pull it back.
+      if (e.shiftKey) {
+        if (active === first || !contentRef.current?.contains(active)) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else if (active === last || !contentRef.current?.contains(active)) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      prevFocusRef.current?.focus?.();
     };
   }, [open, onClose]);
 
@@ -79,6 +121,8 @@ export function Modal({
       }}
     >
       <div
+        ref={contentRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--panel)',
@@ -89,6 +133,7 @@ export function Modal({
           maxWidth,
           boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
           color: 'var(--text)',
+          outline: 'none',
         }}
       >
         {title && (

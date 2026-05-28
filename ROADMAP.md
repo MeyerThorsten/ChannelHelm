@@ -6,7 +6,7 @@ This roadmap reflects the milestones already defined in ChannelHelm's technical 
 timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
-    v1.1 — Backlog Revival : Re-mine old videos : transcription_only profile : Idempotent re-renders : Hard-delete sources (Option C) : Editor polish
+    v1.1 — Backlog Revival (landing) : Backlog Revival re-mine : transcription_only profile : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening (in progress)
     v1.5 — Signal & Intelligence : Title/thumbnail A/B routing : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```
@@ -29,18 +29,18 @@ The current foundation, for context.
 
 ---
 
-## 🔜 v1.1 — Backlog Revival
+## 🔜 v1.1 — Backlog Revival *(landing)*
 
-The headline feature: **re-mine an existing back catalogue** with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Backlog Revival has its own spec and extends the v1 contract. Bundled with near-term polish that makes re-running cheap and safe.
+The headline feature: **re-mine an existing back catalogue** with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Most of v1.1 has shipped; YouTube Direct hardening is in progress.
 
-| Item | What it does | Notes |
-|------|--------------|-------|
-| **Backlog Revival** | Point ChannelHelm at past videos and run them through the pipeline with updated prompts. | Separate spec; the primary v1.1 deliverable. |
-| **`transcription_only` profile** | A fourth, cheap processing profile for re-mining old material without the full visual/diarization passes. | Keeps backlog re-runs inexpensive. |
-| **Idempotent re-renders** | `clip_render` skip-if-exists + an explicit `--force`, so re-running doesn't redundantly re-encode unchanged clips. | From the visual-phase backlog. |
-| **Hard-delete sources (Option C)** | Operator-triggered "Delete source video" button; removes local + archived media, refuses re-render with a clean error. | Completes the storage lifecycle (A + B shipped). |
-| **YouTube Direct hardening** | OAuth state handling + reconnection flow for the per-brand Direct upload path. | In progress. |
-| **Editor polish** | Modal focus trap; small Shorts-editor ergonomics. | Deferred from the v1 Shorts drop. |
+| Item | Status | What it does |
+|------|--------|--------------|
+| **Backlog Revival** | ✅ shipped | `reviveSource(packageId, profile?)` clears the source's jobs and re-runs the whole pipeline in place with the current prompts (defaults to the cheap `transcription_only` profile). `generate_asset` UPSERTs, so assets refresh without losing dispatch history. A **Revive** button lives on the package page. |
+| **`transcription_only` profile** | ✅ shipped | A fourth, cheapest processing profile — audio transcription only, no visual phase or diarization. The engine that makes backlog re-runs inexpensive. Selectable on upload and as a brand default. |
+| **Hard-delete sources (Option C)** | ✅ shipped | A **Delete video** button removes local + archived media and nulls the paths; Postgres history is kept, and re-render/re-mine fail with a clean error. Completes the storage lifecycle (A + B already shipped). |
+| **Modal focus trap** | ✅ shipped | The modal primitive now focuses the first element on open, cycles Tab/Shift+Tab within, and restores focus on close. |
+| **YouTube Direct hardening** | 🛠 in progress | OAuth state table + reconnection flow for the per-brand Direct upload path. |
+| **Idempotent re-renders** | ✅ (already in v1.0) | `clip_render` is keyed by `(plan, clip)` + `render_rev` and skips when up to date; `scripts/render-shorts.ts` has `--force`. |
 
 ---
 

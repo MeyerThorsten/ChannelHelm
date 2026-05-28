@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
 import { resolveMediaPath } from '@/lib/media-path';
+import { isAudioOnlyProfile } from '@/lib/schemas';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { detectScenes, extractAudioWav, probeDurationSeconds } from '../integrations/ffmpeg';
@@ -78,8 +79,8 @@ export async function run(job: JobRow): Promise<void> {
   await extractAudioWav({ inputPath: videoPath, outputPath: audioPath });
 
   let sceneCuts: number[] = [];
-  if (profile === 'fast_audio_only') {
-    console.log('[ingest] profile=fast_audio_only — skipping scene detection');
+  if (isAudioOnlyProfile(profile)) {
+    console.log(`[ingest] profile=${profile} — audio-only, skipping scene detection`);
   } else {
     console.log('[ingest] detecting scene cuts');
     sceneCuts = await detectScenes({ inputPath: videoPath });
@@ -116,7 +117,7 @@ export async function run(job: JobRow): Promise<void> {
     payload: { sourceId, packageId, processingProfile: profile },
     idempotencyKey: `transcribe_audio:${sourceId}`,
   });
-  if (profile !== 'fast_audio_only') {
+  if (!isAudioOnlyProfile(profile)) {
     await enqueue({
       kind: 'analyze_visual',
       payload: { sourceId, packageId, processingProfile: profile },

@@ -136,8 +136,8 @@
       </style>
       <!-- spine -->
       <line x1="70" y1="60" x2="850" y2="60" stroke="#2e2e36" stroke-width="2"/>
-      <!-- shipped portion solid -->
-      <line x1="70" y1="60" x2="160" y2="60" stroke="#10b981" stroke-width="3"/>
+      <!-- shipped portion solid (through v1.1, which has largely landed) -->
+      <line x1="70" y1="60" x2="390" y2="60" stroke="#10b981" stroke-width="3"/>
 
       <!-- v1.0 -->
       <circle cx="120" cy="60" r="9" fill="#10b981"/>
@@ -149,13 +149,13 @@
       <text class="chip" x="120" y="166" text-anchor="middle">MIT open source</text>
 
       <!-- v1.1 -->
-      <circle cx="350" cy="60" r="9" fill="#0a0a0b" stroke="#0ea5e9" stroke-width="3"/>
+      <circle cx="350" cy="60" r="9" fill="#10b981"/>
       <text class="node" x="350" y="36" text-anchor="middle" fill="#f4f4f5">v1.1</text>
-      <text class="stat" x="350" y="86" text-anchor="middle" fill="#0ea5e9">next</text>
+      <text class="stat" x="350" y="86" text-anchor="middle" fill="#10b981">landing</text>
       <text class="theme" x="350" y="106" text-anchor="middle">Backlog Revival</text>
       <text class="chip" x="350" y="134" text-anchor="middle">re-mine old videos</text>
       <text class="chip" x="350" y="150" text-anchor="middle">transcription_only</text>
-      <text class="chip" x="350" y="166" text-anchor="middle">hard-delete · re-renders</text>
+      <text class="chip" x="350" y="166" text-anchor="middle">hard-delete · focus trap</text>
 
       <!-- v1.5 -->
       <circle cx="580" cy="60" r="9" fill="#0a0a0b" stroke="#f59e0b" stroke-width="3"/>
@@ -197,18 +197,18 @@
 
 <!-- ─── v1.1 ─────────────────────────────────────────────────────────── -->
 <section class="narrow" id="v11">
-  <div class="rel next">
-    <span class="tag">🔜 NEXT</span>
+  <div class="rel shipped">
+    <span class="tag">✓ LANDING</span>
     <h3>v1.1 — Backlog Revival</h3>
-    <p class="theme">Re-mine an existing back catalogue with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Bundled with near-term polish that makes re-running cheap and safe.</p>
+    <p class="theme">Re-mine an existing back catalogue with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Most of v1.1 has shipped; YouTube Direct hardening is in progress.</p>
     <table class="rel-items">
-      <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
-      <tr><td>Backlog Revival</td><td>Point ChannelHelm at past videos and run them with updated prompts.</td><td>Separate spec; the primary v1.1 deliverable.</td></tr>
-      <tr><td><code>transcription_only</code> profile</td><td>A cheap fourth profile for re-mining without the full visual/diarization passes.</td><td>Keeps backlog re-runs inexpensive.</td></tr>
-      <tr><td>Idempotent re-renders</td><td><code>clip_render</code> skip-if-exists + explicit <code>--force</code>.</td><td>From the visual-phase backlog.</td></tr>
-      <tr><td>Hard-delete sources</td><td>Operator-triggered "Delete source video" (Option C); removes local + archived media.</td><td>Completes the storage lifecycle.</td></tr>
-      <tr><td>YouTube Direct hardening</td><td>OAuth state handling + reconnection flow for per-brand Direct upload.</td><td>In progress.</td></tr>
-      <tr><td>Editor polish</td><td>Modal focus trap; Shorts-editor ergonomics.</td><td>Deferred from the v1 Shorts drop.</td></tr>
+      <tr><th>Item</th><th>Status</th><th>What it does</th></tr>
+      <tr><td>Backlog Revival</td><td>✅ shipped</td><td><code>reviveSource</code> clears the source's jobs and re-runs the whole pipeline in place with current prompts (defaults to the cheap <code>transcription_only</code> profile); assets UPSERT so dispatch history is kept. A <strong>Revive</strong> button lives on the package page.</td></tr>
+      <tr><td><code>transcription_only</code> profile</td><td>✅ shipped</td><td>A fourth, cheapest profile — audio transcription only, no visual phase or diarization. The engine that makes backlog re-runs inexpensive.</td></tr>
+      <tr><td>Hard-delete sources</td><td>✅ shipped</td><td>A <strong>Delete video</strong> button removes local + archived media and nulls the paths; Postgres history kept, re-render/re-mine fail cleanly. Completes the storage lifecycle.</td></tr>
+      <tr><td>Modal focus trap</td><td>✅ shipped</td><td>Focuses the first element on open, cycles Tab/Shift+Tab within, restores focus on close.</td></tr>
+      <tr><td>YouTube Direct hardening</td><td>🛠 in progress</td><td>OAuth state table + reconnection flow for per-brand Direct upload.</td></tr>
+      <tr><td>Idempotent re-renders</td><td>✅ in v1.0</td><td><code>clip_render</code> keyed by <code>(plan, clip)</code> + <code>render_rev</code>; <code>render-shorts.ts --force</code>.</td></tr>
     </table>
   </div>
 </section>

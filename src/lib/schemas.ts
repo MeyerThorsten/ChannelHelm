@@ -10,11 +10,24 @@ import { z } from 'zod';
  */
 
 export const ProcessingProfile = z.enum([
+  'transcription_only',
   'fast_audio_only',
   'standard_audio_visual',
   'premium_multimodal',
 ]);
 export type ProcessingProfile = z.infer<typeof ProcessingProfile>;
+
+/**
+ * Profiles that skip the visual phase entirely (no scene detection, no
+ * analyze_visual, no diarization) — the pipeline runs audio → fuse →
+ * intelligence → assets. `transcription_only` is the cheapest (used for
+ * Backlog Revival re-mining of old material); `fast_audio_only` is the
+ * same shape today but kept distinct so the two can diverge later.
+ * Single source of truth so workers branch consistently.
+ */
+export function isAudioOnlyProfile(profile: string): boolean {
+  return profile === 'transcription_only' || profile === 'fast_audio_only';
+}
 
 export const SourceKind = z.enum(['youtube_url', 'uploaded_video', 'podcast', 'transcript_only']);
 

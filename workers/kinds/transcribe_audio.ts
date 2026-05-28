@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
 import { jobs, packages, sources } from '@/db/schema';
+import { isAudioOnlyProfile } from '@/lib/schemas';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
@@ -63,7 +64,7 @@ export async function run(job: JobRow): Promise<void> {
   // Skipped (with a warning, not a failure) when HF_TOKEN is missing or the
   // user hasn't accepted the pyannote model license yet.
   let diarization: { turns: unknown[]; speakers: number } | null = null;
-  if (profile !== 'fast_audio_only' && process.env.HF_TOKEN) {
+  if (!isAudioOnlyProfile(profile) && process.env.HF_TOKEN) {
     try {
       await runMlScript({
         script: 'diarize.py',
@@ -82,7 +83,7 @@ export async function run(job: JobRow): Promise<void> {
         }`,
       );
     }
-  } else if (profile !== 'fast_audio_only') {
+  } else if (!isAudioOnlyProfile(profile)) {
     console.log('[transcribe_audio] HF_TOKEN not set, skipping diarization');
   }
 
@@ -132,7 +133,7 @@ async function maybeEnqueueFuse(opts: {
 }): Promise<void> {
   const { sourceId, packageId, profile } = opts;
 
-  if (profile === 'fast_audio_only') {
+  if (isAudioOnlyProfile(profile)) {
     await enqueue({
       kind: 'fuse',
       payload: { sourceId, packageId, processingProfile: profile },
