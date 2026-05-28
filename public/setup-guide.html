@@ -478,7 +478,8 @@ cp .env.example .env
 <span class="c"># Everything else (Zernio, DojoClaw, Google OAuth, HF_TOKEN, MAX_UPLOAD_BYTES…)</span>
 <span class="c"># is editable later at /settings — no restart. Leave it blank for now.</span>
 
-<span class="c"># Apply migrations (drizzle-kit migrate — runs 0000…0007 in order)</span>
+<span class="c"># Apply migrations (drizzle-kit migrate — runs 0000…0009 in order)</span>
+<span class="c">#   …0007 archive lifecycle · 0008 youtube_oauth_states · 0009 image providers</span>
 pnpm db:migrate
 
 <span class="c"># Run web + workers together (web + a single worker holding all kinds)</span>
@@ -553,7 +554,7 @@ pnpm dev:all
       <rect x="212" y="92" width="150" height="66" rx="11" fill="#111114" stroke="#0ea5e9" stroke-width="1.5"/>
       <text class="b-tag" x="226" y="112" fill="#0ea5e9">once / on schema change</text>
       <text class="b-lbl" x="226" y="132">pnpm db:migrate</text>
-      <text class="b-sub" x="226" y="149">0000 → 0007</text>
+      <text class="b-sub" x="226" y="149">0000 → 0009</text>
 
       <line x1="362" y1="125" x2="402" y2="125" stroke="#3a3a44" stroke-width="2" marker-end="url(#bArrow)"/>
 
@@ -596,7 +597,15 @@ pnpm dev:all
     <li>Top nav → <strong>+ New</strong> → <strong>Brand</strong> (or open <code>/brands/new</code> directly).</li>
     <li>Fill in <strong>Display name</strong> (the slug auto-derives in kebab-case — pick a clean name, it's hard to change cleanly later).</li>
     <li>(Optional) <strong>YouTube channel ID</strong> if you know it (looks like <code>UCxxxxxx…</code>). This auto-fills if you ever drop a YouTube URL into the ingest later. Leave blank for now.</li>
-    <li>Pick the <strong>Default processing profile</strong> — <code>standard_audio_visual</code> is the right choice for almost everyone.</li>
+    <li>Pick the <strong>Default processing profile</strong> — <code>standard_audio_visual</code> is the right choice for almost everyone. The four tiers (cheapest → richest):
+      <ul class="bullets" style="margin-top:6px">
+        <li><code>transcription_only</code> — audio-only, the cheapest. Skips the visual phase entirely; used for Backlog Revival re-mining of old material.</li>
+        <li><code>fast_audio_only</code> — audio-only too, batch volume (podcasts, daily uploads) where you just need decent titles + description + tags.</li>
+        <li><code>standard_audio_visual</code> — the default. Full audio + visual + fusion + intelligence pipeline.</li>
+        <li><code>premium_multimodal</code> — marquee episodes; maximum reasoning, dense VLM sampling. Wants a Mac Studio class machine.</li>
+      </ul>
+      The same four choices appear per-package on upload, defaulting to whatever you set here.
+    </li>
     <li>Hit <strong>Create brand</strong>. You land on the brand page.</li>
   </ol>
 
@@ -676,6 +685,67 @@ pnpm dev:all
   <div class="callout tip">
     <strong>Tip</strong> Want to learn the routing logic in depth? See the
     <a href="/llm-routing.html">LLM routing field guide</a> for a per-task matrix and three preset configurations.
+  </div>
+
+  <h3>Add an image provider (optional — for AI thumbnails)</h3>
+  <p style="font-size:14px;color:var(--muted)">
+    The <code>/providers</code> page holds two kinds of provider, split by a <strong>category</strong> toggle:
+    <strong>Text</strong> (the chat/LLM providers above) and <strong>Image</strong> (text-to-image, for AI thumbnail
+    generation). The two never cross — an image provider is never picked for chat, and an LLM is never picked to paint a
+    thumbnail. If you skip this, thumbnails simply <strong>fall back to frame extraction</strong> (stills pulled from the
+    video at the best hook timestamps), so it's genuinely optional.
+  </p>
+  <ol class="steps">
+    <li>Top nav → <strong>Providers</strong> → <strong>+ Add provider</strong>.</li>
+    <li>Flip the <strong>category toggle to Image</strong>.</li>
+    <li>Pick the <strong>Runware</strong> preset (the first image provider type), or set the fields by hand:
+      <ul class="bullets" style="margin-top:6px">
+        <li>Type: <code>runware</code></li>
+        <li>Base URL: <code>https://api.runware.ai/v1</code></li>
+        <li>API key: your key from <code>runware.ai</code> (encrypted at rest, same as LLM keys)</li>
+        <li>Model: <code>runware:z-image@turbo</code> (a Flux / Z-Image model)</li>
+      </ul>
+    </li>
+    <li>Leave <strong>Purpose</strong> as <code>all</code> and check <strong>Default</strong> — <code>is_default</code> is scoped per category, so this doesn't disturb your default LLM. <strong>Add provider</strong>.</li>
+  </ol>
+  <div class="mock">
+    <div class="browser">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="url">localhost:3000/providers</span>
+    </div>
+    <div class="body">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <mock h-title>Providers</mock>
+        <span style="display:inline-flex;border:1px solid var(--border-strong);border-radius:7px;overflow:hidden;font-size:11px;font-family:var(--font-mono)">
+          <span style="padding:4px 12px;color:var(--muted)">Text</span>
+          <span style="padding:4px 12px;background:var(--accent);color:#fff">Image</span>
+        </span>
+      </div>
+      <div class="card-mock">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-weight:600">Runware</span>
+            <span style="font-size:10px;font-family:var(--font-mono);background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);padding:1px 6px;border-radius:999px;margin-left:6px;border:1px solid color-mix(in oklab,var(--accent) 28%,transparent)">default</span>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--faint);margin-top:4px">image · runware · runware:z-image@turbo · all</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span style="font-size:11px;color:var(--muted)">Test</span>
+            <span style="font-size:11px;color:var(--muted)">Edit</span>
+            <span style="font-size:11px;color:var(--red)">Delete</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption"><strong>What you see</strong> The /providers Image tab with a Runware row. The Image default is independent of the Text (LLM) default — they live in the same table but never cross.</p>
+
+  <div class="callout">
+    <strong>Behind the scenes</strong> The <code>thumbnail_concepts</code> worker calls <code>getImageProvider(profile)</code>
+    (rows where <code>category = 'image'</code>). It returns <code>null</code> when no image provider exists → frame
+    extraction. With Runware configured, an LLM writes an image-gen prompt and Runware paints the thumbnails.
+    See the <a href="/llm-routing.html#image">LLM routing field guide</a> for how text vs image resolution works.
   </div>
 </section>
 

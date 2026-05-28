@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Which LLM for which task — ChannelHelm</title>
-<meta name="description" content="A field guide to picking the right LLM provider for each ChannelHelm task: pipeline analysis, asset generation, interactive regen, and thumbnail concepts." />
+<meta name="description" content="A field guide to picking the right LLM provider for each ChannelHelm task: pipeline analysis, asset generation, interactive regen, and thumbnail concepts — plus image providers for AI thumbnails." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
@@ -180,6 +180,7 @@
   <nav class="nav-links">
     <a href="#providers">Providers</a>
     <a href="#routing">Routing</a>
+    <a href="#image">Image</a>
     <a href="#tasks">Task matrix</a>
     <a href="#profiles">Profiles</a>
     <a href="/worker-concurrency.html">Concurrency</a>
@@ -439,6 +440,112 @@
   </div>
 </section>
 
+<!-- IMAGE PROVIDERS -->
+<section class="wrap" id="image">
+  <div class="eyebrow">Two categories, one table</div>
+  <h2>Text providers for chat. Image providers for thumbnails.</h2>
+  <p class="sub">The <code>llm_providers</code> table carries a <code>category</code> column: <span class="mono">text</span> (chat/LLM — everything above, the default) and <span class="mono">image</span> (text-to-image, for AI thumbnail generation). Same table, same <code>/providers</code> editor (a Text/Image toggle), encrypted keys at rest — but two <em>disjoint</em> resolvers that <strong>never cross</strong>. An image provider is never picked for chat; an LLM is never picked to paint a thumbnail.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 360" xmlns="http://www.w3.org/2000/svg" aria-labelledby="img-title">
+      <title id="img-title">The category fork — one table, two resolvers, no crossing</title>
+      <defs>
+        <marker id="ig-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+        <marker id="ig-arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="ig-arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a78bfa"/>
+        </marker>
+      </defs>
+      <style>
+        .ib{ fill:#111114; stroke:#232329 }
+        .ibT{ fill:rgba(14,165,233,0.08); stroke:rgba(14,165,233,0.42) }
+        .ibI{ fill:rgba(167,139,250,0.08); stroke:rgba(167,139,250,0.42) }
+        .it{ fill:#f4f4f5; font:600 13px Inter, sans-serif }
+        .im{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .ie{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.07em; text-transform:uppercase }
+        .ilA{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .ilP{ stroke:#a78bfa; stroke-width:1.6; fill:none }
+        .il{ stroke:#52525b; stroke-width:1.3; fill:none }
+      </style>
+
+      <!-- the table (source) -->
+      <rect class="ib" x="20" y="138" width="220" height="84" rx="12"/>
+      <text class="ie" x="34" y="160">one source</text>
+      <text class="it" x="34" y="182">llm_providers</text>
+      <text class="im" x="34" y="200">rows split by</text>
+      <text class="im" x="34" y="214" style="fill:#0ea5e9">category column</text>
+
+      <!-- fork: category split -->
+      <path class="ilA" d="M240,168 C 290,168 300,84 350,84" marker-end="url(#ig-arA)"/>
+      <path class="ilP" d="M240,192 C 290,192 300,276 350,276" marker-end="url(#ig-arP)"/>
+      <text class="im" x="262" y="116" style="fill:#0ea5e9">category='text'</text>
+      <text class="im" x="262" y="252" style="fill:#a78bfa">category='image'</text>
+
+      <!-- TEXT branch -->
+      <rect class="ibT" x="350" y="50" width="270" height="72" rx="10"/>
+      <text class="ie" x="364" y="72" style="fill:#0ea5e9">LLM resolver</text>
+      <text class="it" x="364" y="92">getProvider(profile)</text>
+      <text class="im" x="364" y="109">selectProvider · text rows only</text>
+
+      <rect class="ib" x="700" y="42" width="300" height="34" rx="8"/>
+      <text class="it" x="714" y="63">analyze_intelligence · generate_asset</text>
+      <rect class="ib" x="700" y="84" width="300" height="34" rx="8"/>
+      <text class="it" x="714" y="105">Studio Regenerate · Generate · clip desc</text>
+      <path class="ilA" d="M620,80 C 660,80 670,59 700,59" marker-end="url(#ig-arA)"/>
+      <path class="ilA" d="M620,92 C 660,92 670,101 700,101" marker-end="url(#ig-arA)"/>
+
+      <!-- IMAGE branch -->
+      <rect class="ibI" x="350" y="242" width="270" height="72" rx="10"/>
+      <text class="ie" x="364" y="264" style="fill:#a78bfa">image resolver</text>
+      <text class="it" x="364" y="284">getImageProvider(profile)</text>
+      <text class="im" x="364" y="301">selectProvider · image rows only</text>
+
+      <rect class="ib" x="700" y="240" width="300" height="38" rx="8"/>
+      <text class="it" x="714" y="258">thumbnail_concepts worker</text>
+      <text class="im" x="714" y="272">Runware → AI thumbnail images</text>
+      <rect class="ib" x="700" y="286" width="300" height="38" rx="8" style="stroke-dasharray:4 4"/>
+      <text class="it" x="714" y="304" style="fill:#a1a1aa">null → frame extraction</text>
+      <text class="im" x="714" y="318">fallback when no image provider</text>
+      <path class="ilP" d="M620,272 C 660,272 670,259 700,259" marker-end="url(#ig-arP)"/>
+      <path class="ilP" d="M620,286 C 660,286 670,303 700,303" marker-end="url(#ig-arP)"/>
+
+      <!-- no-cross wall -->
+      <line x1="660" y1="135" x2="660" y2="225" stroke="#ef4444" stroke-width="1.3" stroke-dasharray="3 4" opacity="0.55"/>
+      <text x="665" y="184" style="fill:#ef4444;font:600 10px Inter,sans-serif">they never cross</text>
+    </svg>
+    <div class="caption">Two resolvers over the same table, filtered by <code>category</code>. <code>getImageProvider</code> reuses the exact same <code>selectProvider()</code> scoring as the LLM path — only the candidate rows differ. <code>is_default</code> is scoped per category.</div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>How image resolution works</h3>
+      <p><code>getImageProvider(purpose)</code> loads only <code>category='image'</code> rows, then runs the <em>same</em> <code>selectProvider()</code> used for LLMs: <strong>exact purpose match (3) → <span class="mono">all</span> (2) → <code>is_default</code> (1)</strong>, tiebreak <code>is_default</code> DESC then id ASC. So a per-profile image provider works identically to a per-profile LLM. Returns <code>null</code> when no image row exists.</p>
+      <ul>
+        <li><strong>Resolver:</strong> <code>workers/integrations/image/get_image_provider.ts</code></li>
+        <li><strong>Scoring:</strong> the shared <code>selectProvider()</code> from the LLM path</li>
+        <li><strong>Never crosses:</strong> <code>getProvider</code> filters <code>category='text'</code>; <code>getImageProvider</code> filters <code>category='image'</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="badge b-codex" style="background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);border-color:color-mix(in oklab,var(--accent) 30%,transparent)">runware</span></h3>
+      <p>The first (and today only) image provider type. Text-to-image over Runware's HTTP REST API (<code>fetch</code>, no SDK), serving Flux / Z-Image models like <code>runware:z-image@turbo</code>. Add it at <code>/providers</code> with the Image-category Runware preset.</p>
+      <ul>
+        <li><strong>Base URL:</strong> <code>https://api.runware.ai/v1</code></li>
+        <li><strong>Model:</strong> <code>runware:z-image@turbo</code> (or <code>runware:100@1</code>, …)</li>
+        <li><strong>Call site:</strong> the <code>thumbnail_concepts</code> worker — the only image-provider consumer</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <strong>Optional by design:</strong> with no image provider configured, <code>thumbnail_concepts</code> falls back to <strong>frame extraction</strong> — stills pulled from the video at the best hook timestamps. Configure Runware only when you want AI-painted thumbnails. The LLM still writes the image-gen prompt either way (that's a <code>category='text'</code> call); the image provider only renders it.
+  </div>
+</section>
+
 <!-- TASK MATRIX -->
 <section class="wrap" id="tasks">
   <div class="eyebrow">Task × provider matrix</div>
@@ -523,7 +630,7 @@
           <td class="meh">◯ ok</td>
         </tr>
         <tr>
-          <td><strong>thumbnail_concepts</strong><span class="mono">concept + image-gen prompt</span></td>
+          <td><strong>thumbnail_concepts</strong><span class="mono">concept + image-gen prompt (text) · render via image provider →</span></td>
           <td class="mono">worker</td>
           <td class="mono">package.profile</td>
           <td class="check">★★ Qwen3-32B</td>
@@ -643,6 +750,19 @@
 
   <div class="figure">
     <div class="profile">
+      <div><span class="tag">transcription_only</span></div>
+      <div>
+        <h3>Cheapest tier — Backlog Revival re-mining</h3>
+        <p>Audio-only, no visual phase at all. Built for re-mining old material under current prompts (Backlog Revival). Same shape as <code>fast_audio_only</code> today but kept distinct so the two can diverge. Pick the cheapest fast model.</p>
+        <div class="picks">
+          <span class="pick"><span class="dot" style="background:var(--c-anthropic)"></span>Anthropic · Haiku 4.5</span>
+          <span class="pick"><span class="dot" style="background:var(--c-openai)"></span>OpenAI · gpt-4o-mini</span>
+          <span class="pick"><span class="dot" style="background:var(--c-local)"></span>LM Studio · Qwen3-8B/14B</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile">
       <div><span class="tag">fast_audio_only</span></div>
       <div>
         <h3>Audio-only, batch volume, cost-sensitive</h3>
@@ -738,6 +858,7 @@
     <span class="mono">ChannelHelm · LLM routing field guide</span>
     <span>
       <a href="/" style="color:var(--muted)">app</a> ·
+      <a href="/setup-guide.html" style="color:var(--muted)">setup guide</a> ·
       <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
       <a href="/worker-concurrency.html" style="color:var(--muted)">concurrency</a> ·
       <a href="/providers" style="color:var(--muted)">providers</a>

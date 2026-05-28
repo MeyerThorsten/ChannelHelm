@@ -350,7 +350,7 @@
 <section class="wrap" id="completeness">
   <div class="eyebrow">Asset completeness</div>
   <h2>Every required field, mapped to its status.</h2>
-  <p class="sub">The Direct upload bundles <code>youtube_title_set</code> (the trigger) with <code>youtube_description</code>, <code>youtube_chapters</code>, <code>youtube_tags</code>, and the top <code>thumbnail_concept</code>. All sit at <code>ready_for_review</code> — one approve away from <code>approved</code>, then <code>dispatched</code>, then <code>published</code>.</p>
+  <p class="sub">The Direct upload bundles <code>youtube_title_set</code> (the trigger) with <code>youtube_description</code>, <code>youtube_chapters</code>, <code>youtube_tags</code>, and the top <code>thumbnail_concept</code> (an AI-generated image, with frame-extract fallback). All sit at <code>ready_for_review</code> — one approve away from <code>approved</code>, then <code>dispatched</code>, then <code>published</code>.</p>
 
   <div class="gfx">
     <svg viewBox="0 0 1080 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Asset completeness by type and status">
@@ -398,7 +398,7 @@
       <rect x="540" y="152" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
 
       <!-- thumbnail_concept -->
-      <text class="bt" x="20" y="200">thumbnail_concept <tspan class="bm">2 candidates</tspan></text>
+      <text class="bt" x="20" y="200">thumbnail_concept <tspan class="bm">2 AI concepts</tspan></text>
       <rect x="300" y="188" width="240" height="16" rx="3" fill="#f59e0b" opacity="0.9"/>
       <rect x="540" y="188" width="520" height="16" rx="3" fill="none" stroke="#2e2e36" stroke-dasharray="3 3"/>
 
@@ -456,8 +456,8 @@
       <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">title_set · description · chapters · tags</p>
     </div>
     <div class="card"><h3>Thumbnails</h3>
-      <span class="pill p-ready"><span class="dot"></span>2 concepts</span>
-      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">frame proposals at t=476s &amp; alt — both ranked</p>
+      <span class="pill p-ready"><span class="dot"></span>2 AI concepts</span>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--muted)">AI-generated images · plain + headline variants — both ranked (frame-extract fallback if no image provider)</p>
     </div>
     <div class="card"><h3>YouTube Shorts</h3>
       <span class="pill p-ready"><span class="dot"></span>plan only</span>
@@ -509,7 +509,7 @@
       <ul>
         <li>Approve the YouTube assets — each card has a <strong>Copy</strong> button.</li>
         <li>Upload at <code>studio.youtube.com</code>; paste title / description / tags.</li>
-        <li>Pick a thumbnail concept; settles at <code>dispatched</code> (no <code>published</code> webhook).</li>
+        <li>Pick an AI thumbnail (plain or headline variant); settles at <code>dispatched</code> (no <code>published</code> webhook).</li>
       </ul>
     </div>
   </div>
@@ -631,9 +631,9 @@ Like the video and subscribe to {{brand.name}} for more practical AI workstation
       </div>
 
       <div class="yt-field">
-        <label>Thumbnail <span class="copy-tag">→ thumbnail_concept · 2 frame candidates</span></label>
+        <label>Thumbnail <span class="copy-tag">→ thumbnail_concept · 2 AI concepts (plain + headline)</span></label>
         <div class="yt-input" style="font-size:13px">
-          Top concept (rank 1): frame at <span class="mono">t = 476s</span> (hook score 0.96). Auto-uploaded via <code>thumbnails.set</code> on the Direct path.<br/>
+          AI-generated images: the LLM drafts distinct visual concepts + ≤4-word headlines, the image provider (Runware / Flux-Z-Image) renders each, and ffmpeg cuts a plain + headline-overlay variant per concept. You pick one; it auto-uploads via <code>thumbnails.set</code> on the Direct path. With no image provider configured, this falls back to frame extraction at the top hook timestamp.<br/>
           <span style="color:var(--faint)">media/Thorsten Meyer AI/src_01KSHR023MRZZ3AHZQ49YM29Y7/thumbs/concept_01.jpg</span>
         </div>
       </div>

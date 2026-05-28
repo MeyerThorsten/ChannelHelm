@@ -454,7 +454,7 @@
           <text class="lblA" x="14" y="30">videos.insert (resumable)</text>
           <text class="lblS" x="14" y="50">snippet + status</text>
           <text class="lblS" x="14" y="68">privacyStatus=private</text>
-          <text class="lblS" x="14" y="86">thumbnails.set (top concept)</text>
+          <text class="lblS" x="14" y="86">thumbnails.set (AI image)</text>
           <text class="lblS" x="14" y="104">returns videoId</text>
         </g>
         <g transform="translate(830,46)">
@@ -487,7 +487,7 @@
         <h4>What&apos;s already built</h4>
         <ul>
           <li><code>brands.youtube_oauth jsonb</code> (encrypted refresh_token, channel_id/title, scope, connected_at) + <code>brands.youtube_dispatch_target text default 'manual'</code>.</li>
-          <li><code>workers/integrations/youtube.ts</code> — <code>youtubeAuthUrl()</code>, on-demand token refresh, <code>uploadVideo()</code> (resumable, streams from disk), thumbnail set.</li>
+          <li><code>workers/integrations/youtube.ts</code> — <code>youtubeAuthUrl()</code>, on-demand token refresh, <code>uploadVideo()</code> (resumable, streams from disk), <code>thumbnails.set</code> of the picked concept (an AI-generated image, or a captured frame on the fallback path).</li>
           <li>OAuth routes: <code>/api/youtube/oauth/start</code> · <code>/callback</code> · <code>/disconnect</code>.</li>
           <li><code>dispatch.ts</code> <code>youtube_direct</code> branch: bundles siblings, honors privacy/schedule, mirrors the URL onto <code>packages.intelligence.published.youtube</code>, flips <code>youtube_description/chapters/tags</code> to dispatched in the same transaction.</li>
           <li>Per-package picker via <code>setYoutubePublishOptions()</code>; per-brand routing via <code>setYoutubeDispatchTarget()</code>.</li>
@@ -510,7 +510,7 @@
         <ul>
           <li>No public URL ever — the file streams Mac → YouTube directly over HTTPS</li>
           <li>You own the OAuth app; the quota is yours alone</li>
-          <li>Full native field surface — title, description, tags, privacy, schedule, thumbnail</li>
+          <li>Full native field surface — title, description, tags, privacy, schedule, thumbnail (an AI-generated image, with frame-extract fallback)</li>
           <li>Matches the local-first constraint perfectly; survives reboots (tokens persist in the DB)</li>
           <li>If Zernio has an outage, YouTube still works</li>
         </ul>
@@ -693,7 +693,7 @@
           <text class="lblA" x="14" y="30">studio.youtube.com</text>
           <text class="lblS" x="14" y="50">upload original.mp4</text>
           <text class="lblS" x="14" y="68">paste each field</text>
-          <text class="lblS" x="14" y="86">pick a thumbnail concept</text>
+          <text class="lblS" x="14" y="86">pick an AI thumbnail</text>
         </g>
         <g transform="translate(600,46)">
           <text class="lblE" x="0" y="-12">YOUTUBE</text>

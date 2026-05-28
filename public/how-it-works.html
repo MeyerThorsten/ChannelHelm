@@ -525,7 +525,7 @@
 
     <div class="step"><div>
       <h3>The pipeline runs in the background</h3>
-      <p><strong>ingest</strong> downloads or probes the file, extracts <code>audio.wav</code>, detects scene cuts. <strong>transcribe_audio</strong> + <strong>analyze_visual</strong> run in parallel via <code>uv run python ml/*</code>. <strong>fuse</strong> stitches their outputs into a scene log. <strong>analyze_intelligence</strong> calls the LLM for topics/hooks/retention, then fans out one <strong>generate_asset</strong> per type (titles/description/tags/chapters/linkedin/x/article…) and a <strong>thumbnail_concepts</strong> job.</p>
+      <p><strong>ingest</strong> downloads or probes the file, extracts <code>audio.wav</code>, detects scene cuts. <strong>transcribe_audio</strong> + <strong>analyze_visual</strong> run in parallel via <code>uv run python ml/*</code>. <strong>fuse</strong> stitches their outputs into a scene log. <strong>analyze_intelligence</strong> calls the LLM for topics/hooks/retention, then fans out one <strong>generate_asset</strong> per type (titles/description/tags/chapters/linkedin/x/article…) and a <strong>thumbnail_concepts</strong> job that <strong>generates AI thumbnail images</strong> (when an image provider is configured) — or falls back to frame extraction at hook timestamps.</p>
       <div class="mono">package: draft → ingested → fused → analyzed → ready_for_review</div>
     </div></div>
 
@@ -609,6 +609,95 @@
     </svg>
     <div class="caption">Audio + Visual run in parallel; Fusion merges them; Intelligence is the brief everything else is drafted from.</div>
   </div>
+
+  <div class="eyebrow" style="margin-top:36px">Thumbnails</div>
+  <h2>Generated, not just grabbed.</h2>
+  <p class="sub">The <code>thumbnail_concepts</code> worker now <strong>generates AI thumbnail images</strong>. The LLM turns the package analysis into N distinct visual concepts + ≤4-word headlines, your image provider renders each, and ffmpeg produces two variants per concept for you to pick from. With no image provider configured it falls back to the original frame-extraction at hook timestamps — so it still works zero-config. Audio-only profiles skip thumbnails entirely.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 1040 220" xmlns="http://www.w3.org/2000/svg" aria-labelledby="thumb-title">
+      <title id="thumb-title">Thumbnail generation flow</title>
+      <defs>
+        <marker id="thar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/>
+        </marker>
+        <marker id="tharN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#52525b"/>
+        </marker>
+      </defs>
+      <style>
+        .thb{ fill:#111114; stroke:#232329 }
+        .thba{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .thbx{ fill:#16161a; stroke:#2e2e36 }
+        .tht{ fill:#f4f4f5; font:600 12.5px Inter, sans-serif }
+        .thts{ fill:#a1a1aa; font:10.5px "JetBrains Mono", monospace }
+        .thte{ fill:#71717a; font:500 10px Inter, sans-serif; letter-spacing:.08em; text-transform:uppercase }
+        .thline{ stroke:#52525b; stroke-width:1.4; fill:none }
+        .thlineA{ stroke:#0ea5e9; stroke-width:1.6; fill:none }
+        .thlineD{ stroke:#52525b; stroke-width:1.2; fill:none; stroke-dasharray:4 4 }
+      </style>
+
+      <!-- analysis in -->
+      <g transform="translate(24,70)">
+        <rect class="thb" width="150" height="64" rx="10"/>
+        <text class="thte" x="14" y="22">FROM</text>
+        <text class="tht" x="14" y="42">package analysis</text>
+        <text class="thts" x="14" y="57">topics · hooks</text>
+      </g>
+
+      <!-- LLM concepts -->
+      <g transform="translate(214,40)">
+        <rect class="thba" width="180" height="124" rx="10"/>
+        <text class="thte" x="14" y="22">LLM</text>
+        <text class="tht" x="14" y="42">N visual concepts</text>
+        <text class="thts" x="14" y="62">distinct scenes</text>
+        <text class="thts" x="14" y="80">+ ≤4-word headlines</text>
+        <text class="thts" x="14" y="104">2 standard · 3 premium</text>
+      </g>
+
+      <!-- image provider -->
+      <g transform="translate(434,40)">
+        <rect class="thba" width="180" height="124" rx="10"/>
+        <text class="thte" x="14" y="22">IMAGE PROVIDER</text>
+        <text class="tht" x="14" y="42">Runware / Flux-Z</text>
+        <text class="thts" x="14" y="62">renders each concept</text>
+        <text class="thts" x="14" y="80">→ download to disk</text>
+        <text class="thts" x="14" y="104">(MEDIA_ROOT/thumbs)</text>
+      </g>
+
+      <!-- ffmpeg variants -->
+      <g transform="translate(654,40)">
+        <rect class="thb" width="180" height="124" rx="10"/>
+        <text class="thte" x="14" y="22">FFMPEG · per concept</text>
+        <text class="tht" x="14" y="42">two variants</text>
+        <text class="thts" x="14" y="62">plain image</text>
+        <text class="thts" x="14" y="80">headline overlay</text>
+        <text class="thts" x="14" y="104">(drawtext)</text>
+      </g>
+
+      <!-- operator picks -->
+      <g transform="translate(874,70)">
+        <rect class="thb" width="142" height="64" rx="10"/>
+        <text class="thte" x="14" y="22">STUDIO</text>
+        <text class="tht" x="14" y="42">operator picks</text>
+        <text class="thts" x="14" y="57">one variant</text>
+      </g>
+
+      <!-- fallback note -->
+      <g transform="translate(214,178)">
+        <rect class="thbx" width="620" height="30" rx="8"/>
+        <text class="thts" x="14" y="20">No image provider? → ffmpeg frame-extract at hook timestamps (zero-config fallback) · audio-only profiles skip thumbnails</text>
+      </g>
+
+      <!-- arrows -->
+      <path class="thlineA" d="M174,102 h40" marker-end="url(#thar)"/>
+      <path class="thlineA" d="M394,102 h40" marker-end="url(#thar)"/>
+      <path class="thlineA" d="M614,102 h40" marker-end="url(#thar)"/>
+      <path class="thlineA" d="M834,102 h40" marker-end="url(#thar)"/>
+      <path class="thlineD" d="M99,134 v44 h115" marker-end="url(#tharN)"/>
+    </svg>
+    <div class="caption">Primary path is AI image generation (Runware / Flux-Z-Image) → plain + headline variants per concept. Dashed = the frame-extraction fallback when no image provider is set.</div>
+  </div>
 </section>
 
 <!-- ASSET / DISPATCH ROUTING -->
@@ -657,7 +746,7 @@
       <g transform="translate(38,112)">
         <rect class="rb" width="234" height="40" rx="8"/>
         <text class="rt" x="14" y="18">Thumbnails</text>
-        <text class="rts" x="14" y="33">thumbnail_concepts · concept_*.jpg</text>
+        <text class="rts" x="14" y="33">AI image · plain + headline variants</text>
       </g>
       <g transform="translate(38,162)">
         <rect class="rb" width="234" height="40" rx="8"/>

@@ -621,15 +621,17 @@ pnpm dev:all</pre>
   <div class="callout tip"><strong>Tip</strong> URL ingest works for videos on any YouTube channel — you don&apos;t need to own them. Useful for analyzing competitor content or repurposing your own old videos for new platforms.</div>
 
   <h3>Processing profiles</h3>
-  <p>Each package runs under one of three profiles. The brand has a default; you can override per package.</p>
+  <p>Each package runs under one of four profiles. The brand has a default; you can override per package on upload.</p>
   <table class="ref">
     <thead><tr><th>Profile</th><th>What runs</th><th>Best for</th></tr></thead>
     <tbody>
-      <tr><td><code>fast_audio_only</code></td><td>Audio + intelligence only. Skips visual entirely.</td><td>Podcasts, webinars, audio interviews. Fast (~1 min for a 30-min episode).</td></tr>
+      <tr><td><code>transcription_only</code></td><td>Audio transcription only. No visual phase, no diarization, no thumbnails — the cheapest tier.</td><td>Re-mining old material via <a href="#storage">Backlog Revival</a>; bulk transcribing a back catalogue when you only need text.</td></tr>
+      <tr><td><code>fast_audio_only</code></td><td>Audio + intelligence + full asset kit. Skips visual entirely (but still drafts titles, descriptions, social posts, etc.).</td><td>Podcasts, webinars, audio interviews. Fast (~1 min for a 30-min episode).</td></tr>
       <tr><td><code>standard_audio_visual</code></td><td>Full 4-layer pipeline at default model tiers.</td><td>Your YouTube uploads. The default for almost everyone.</td></tr>
       <tr><td><code>premium_multimodal</code></td><td>Same layers, larger VLM (32B), denser OCR (1 fps).</td><td>High-stakes content where descriptions matter (course modules, marquee episodes).</td></tr>
     </tbody>
   </table>
+  <div class="callout tip"><strong>transcription_only vs fast_audio_only</strong> Both skip the visual phase. The difference: <code>transcription_only</code> is the bare-minimum re-mine — it exists mainly so Backlog Revival can cheaply re-run an old video through today&apos;s prompts. <code>fast_audio_only</code> is the everyday audio profile for content you&apos;re actively publishing.</div>
 
   <h3>Upload limits</h3>
   <p>The default cap on <code>/api/uploads</code> body size is 2 GB (<code>MAX_UPLOAD_BYTES=2000000000</code> in your settings). Larger? Bump the setting on <code>/settings</code>.</p>
@@ -715,6 +717,76 @@ pnpm dev:all</pre>
 
   <div class="callout tip"><strong>Where to watch progress</strong> The Studio&apos;s pipeline panel updates live as each layer completes. Each layer shows "what&apos;s done" (e.g. <em>transcript · 4,212 words</em>) once finished, or "preparing X…" while running.</div>
 
+  <h3 id="thumbnail-generation">Thumbnail generation</h3>
+  <p>Thumbnails are <strong>AI-generated images</strong>, not stills pulled from the video. After intelligence, the <code>thumbnail_concepts</code> worker turns the package analysis into visual concepts and renders each one with your configured image provider:</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI thumbnail generation flow">
+      <defs><marker id="ar-th" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0ea5e9"/></marker></defs>
+      <style>
+        .b{ fill:#16161a; stroke:#2e2e36 }
+        .g{ fill:rgba(14,165,233,0.10); stroke:rgba(14,165,233,0.40) }
+        .pick{ fill:rgba(16,185,129,0.12); stroke:rgba(16,185,129,0.5) }
+        .t{ fill:#f4f4f5; font:600 12.5px Inter, sans-serif }
+        .s{ fill:#a1a1aa; font:10px "JetBrains Mono", monospace }
+        .l{ stroke:#0ea5e9; stroke-width:1.7; fill:none }
+        .cap{ fill:#71717a; font:9.5px "JetBrains Mono", monospace }
+      </style>
+      <!-- analysis -->
+      <g transform="translate(8,76)">
+        <rect class="b" width="118" height="78" rx="9"/>
+        <text class="t" x="14" y="30">✦ analysis</text>
+        <text class="s" x="14" y="50">topics · hooks</text>
+        <text class="s" x="14" y="66">retention</text>
+      </g>
+      <!-- LLM concepts -->
+      <g transform="translate(158,68)">
+        <rect class="g" width="138" height="94" rx="9"/>
+        <text class="t" x="14" y="28">LLM concepts</text>
+        <text class="s" x="14" y="48">N distinct</text>
+        <text class="s" x="14" y="64">visual_prompt</text>
+        <text class="s" x="14" y="80">+ headline</text>
+      </g>
+      <!-- image provider -->
+      <g transform="translate(328,68)">
+        <rect class="g" width="138" height="94" rx="9"/>
+        <text class="t" x="14" y="28">image provider</text>
+        <text class="s" x="14" y="48">/providers</text>
+        <text class="s" x="14" y="64">category=image</text>
+        <text class="s" x="14" y="80">Runware · 1280×720</text>
+      </g>
+      <!-- download + variants -->
+      <g transform="translate(498,58)">
+        <rect class="g" width="148" height="114" rx="9"/>
+        <text class="t" x="14" y="26">download</text>
+        <text class="s" x="14" y="46">→ MEDIA_ROOT</text>
+        <text class="s" x="14" y="72">+ plain variant</text>
+        <text class="s" x="14" y="90">+ headline overlay</text>
+        <text class="s" x="14" y="106">(ffmpeg drawtext)</text>
+      </g>
+      <!-- pick -->
+      <g transform="translate(678,76)">
+        <rect class="pick" width="74" height="78" rx="9"/>
+        <text class="t" x="14" y="34" fill="#10b981">pick</text>
+        <text class="s" x="14" y="56">operator</text>
+        <text class="s" x="14" y="72">chooses</text>
+      </g>
+      <!-- arrows -->
+      <path class="l" d="M126,115 h32" marker-end="url(#ar-th)"/>
+      <path class="l" d="M296,115 h32" marker-end="url(#ar-th)"/>
+      <path class="l" d="M466,115 h32" marker-end="url(#ar-th)"/>
+      <path class="l" d="M646,115 h32" marker-end="url(#ar-th)"/>
+      <!-- fallback note -->
+      <text class="cap" x="8" y="200">No image provider configured? Falls back to ffmpeg frame extraction at hook timestamps — the original behaviour, zero extra cost.</text>
+      <text class="cap" x="8" y="218">Audio-only profiles (transcription_only · fast_audio_only) skip thumbnails entirely.</text>
+    </svg>
+  </div>
+  <ul class="bullets">
+    <li><strong>Configure an image provider</strong> at <code>/providers</code> with category <code>image</code> (Runware is the first / default type). Without one, ChannelHelm falls back to extracting still frames at the high-retention hook timestamps — the original behaviour, so you always get <em>something</em> with zero extra config or cost.</li>
+    <li><strong>Two variants per concept</strong> — a plain rendered image and a headline-overlay version (the short headline composited on top via ffmpeg). The operator picks whichever reads better.</li>
+    <li><strong>Audio-only profiles skip it</strong> — <code>transcription_only</code> and <code>fast_audio_only</code> produce no thumbnails.</li>
+    <li><strong>Image-provider API keys are encrypted at rest</strong>, same as LLM keys (AES-256-GCM via <code>PROVIDER_SECRET_KEY</code>).</li>
+  </ul>
+
   <div class="related"><strong>Deep dive</strong> <a href="/how-it-works.html">How ChannelHelm works</a> has the full pipeline diagram + per-step descriptions.</div>
 </section>
 
@@ -738,7 +810,7 @@ pnpm dev:all</pre>
   <ul class="bullets">
     <li><strong>Title</strong> (Instrument Serif) — whichever title you&apos;ve selected from the title_set asset. Defaults to the highest-scored one until you pick.</li>
     <li><strong>Meta row</strong> — brand chip · processing profile · duration · status pill · YouTube link chip (appears when published).</li>
-    <li><strong>Action buttons</strong> (right side) — Metadata (download the YouTube text), Retry (re-run the pipeline), Delete.</li>
+    <li><strong>Action buttons</strong> (right side) — Metadata (download the YouTube text), Retry (re-run the pipeline), <strong>♻ Revive</strong> (re-mine the source through today&apos;s prompts — see <a href="#storage">Chapter 16</a>), <strong>📼 Delete video</strong> (hard-delete the source media, keep the history), Delete (delete the whole package).</li>
   </ul>
 
   <h3>The pipeline panel</h3>
@@ -758,7 +830,7 @@ pnpm dev:all</pre>
     <li><strong>Description</strong> — full multi-paragraph text with chapters block + hashtags. Editable inline.</li>
     <li><strong>Chapters</strong> — standalone timestamp list (also embedded in the description).</li>
     <li><strong>Tags</strong> — 15 scored pills. Click an X to drop one.</li>
-    <li><strong>Thumbnails</strong> — 2 frame proposals with hook scores. "Generate" button to extract more.</li>
+    <li><strong>Thumbnails</strong> — 2 AI-generated thumbnail concepts (plain + headline-overlay variants), each with a hook score. "Generate" button to roll fresh ones. See <a href="#thumbnail-generation">Chapter 7 · Thumbnail generation</a>.</li>
     <li><strong>Transcript</strong> — toggleable; full text with copy button.</li>
   </ul>
 
@@ -1011,6 +1083,9 @@ tsx scripts/render-shorts.ts --dry-run</pre>
 
   <h3>API key security</h3>
   <p>API keys are encrypted at rest using AES-256-GCM via your <code>PROVIDER_SECRET_KEY</code> (set in <code>/settings</code>). Keys are NEVER serialized back to the browser. When you edit a provider, the API key field shows the placeholder "•••••••• saved" — leaving it blank preserves the saved key; typing replaces it.</p>
+
+  <h3>Image providers (for AI thumbnails)</h3>
+  <p>The same <code>/providers</code> page also holds <strong>image providers</strong> — rows with category <code>image</code> (Runware is the first / default type). These power AI thumbnail generation: the pipeline turns the package analysis into visual concepts and the image provider renders them. Add one the same way you add an LLM provider; keys are encrypted at rest identically. If you don&apos;t configure one, ChannelHelm falls back to ffmpeg frame extraction for thumbnails — see <a href="#thumbnail-generation">Chapter 7 · Thumbnail generation</a>.</p>
 
   <h3>Three preset configurations</h3>
   <table class="ref">
@@ -1487,7 +1562,7 @@ tsx scripts/render-shorts.ts --dry-run</pre>
       <tr><td>fuse</td><td>~1 s</td><td>TypeScript scene log composition</td></tr>
       <tr><td>analyze_intelligence</td><td>~10 s</td><td>One LLM call for topics/hooks/retention</td></tr>
       <tr><td>generate_asset × 10</td><td>~35 s</td><td>10 LLM calls running 3-way parallel</td></tr>
-      <tr><td>thumbnail_concepts</td><td>~7 s</td><td>ffmpeg frame extraction + scoring</td></tr>
+      <tr><td>thumbnail_concepts</td><td>~7–25 s</td><td>AI image generation (LLM concepts → image provider) — or ~7 s ffmpeg frame extraction when no image provider is set</td></tr>
       <tr><td><strong>Total</strong></td><td><strong>~2–2.5 min</strong></td><td>End-to-end on an 8-min video</td></tr>
     </tbody>
   </table>
@@ -1518,7 +1593,8 @@ WORKER_CONCURRENCY=<span class="n">1</span> pnpm dev:all</pre>
   <table class="ref">
     <thead><tr><th>Profile</th><th>Pipeline wall</th><th>Quality</th></tr></thead>
     <tbody>
-      <tr><td><code>fast_audio_only</code></td><td>~1 min (skips visual)</td><td>Audio-only metadata. Fine for podcasts.</td></tr>
+      <tr><td><code>transcription_only</code></td><td>&lt;1 min (transcript only)</td><td>Just the transcript — no visual, no diarization, no thumbnails. The cheapest tier, built for Backlog Revival re-mines.</td></tr>
+      <tr><td><code>fast_audio_only</code></td><td>~1 min (skips visual)</td><td>Audio-only metadata + full asset kit. Fine for podcasts.</td></tr>
       <tr><td><code>standard_audio_visual</code></td><td>~2–2.5 min</td><td>Full pipeline at sensible defaults. Best ratio.</td></tr>
       <tr><td><code>premium_multimodal</code></td><td>~4–6 min</td><td>32B VLM, dense OCR. Use for content where descriptions really matter.</td></tr>
     </tbody>
@@ -1532,7 +1608,7 @@ WORKER_CONCURRENCY=<span class="n">1</span> pnpm dev:all</pre>
   <div class="ch-num">Chapter 16</div>
   <div class="chap-divider"><span class="num">16</span><span class="line"></span></div>
   <h2>Storage &amp; the file lifecycle.</h2>
-  <p class="intro">Every file ChannelHelm writes has exactly one lifecycle. Most are throwaway by the time the pipeline finishes; a few are permanent. Left alone, a typical 8-minute video would sit at ~85 MB on disk forever. Two cleanup mechanisms — inline cleanup and the archive worker — keep that lean. Here&apos;s the whole map.</p>
+  <p class="intro">Every file ChannelHelm writes has exactly one lifecycle. Most are throwaway by the time the pipeline finishes; a few are permanent. Left alone, a typical 8-minute video would sit at ~85 MB on disk forever. Two automatic mechanisms — inline cleanup and the archive worker — plus two operator actions (Revive &amp; Delete video) keep that lean. Here&apos;s the whole map.</p>
 
   <h3>The four stages</h3>
   <p>An artifact&apos;s stage is set by its <em>last legitimate consumer</em>. After that read, it&apos;s either re-readable later (a later stage) or never touched again (delete).</p>
@@ -1645,6 +1721,28 @@ KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
 
   <div class="callout tip"><strong>The duplication insight</strong> Three on-disk JSONs (<code>scene_log.json</code>, <code>frame_index.json</code>, <code>transcript.json</code>) are also mirrored into the <code>packages.intelligence</code> JSONB column. The disk copies are pure duplication — every downstream reader can use the Postgres version — which is exactly why inline cleanup can delete them safely.</div>
 
+  <h3>Operator actions: Revive &amp; Delete video</h3>
+  <p>Two buttons in the Studio header act on a source&apos;s lifecycle directly. Both live next to Retry.</p>
+
+  <h4>♻ Revive — Backlog Revival</h4>
+  <p>Re-runs the <em>whole</em> pipeline in place on an existing source using today&apos;s prompts. Use it when you&apos;ve improved a prompt and want to refresh the kit on an old video, or to re-mine a back catalogue. By default it runs under the cheapest <code>transcription_only</code> profile.</p>
+  <ul class="bullets">
+    <li><strong>Every stage re-runs.</strong> Revive clears <em>all</em> jobs for the source first — otherwise the per-source idempotency keys would dedupe against the old completed jobs and skip the work. (This is the difference from <strong>Retry</strong>, which only clears the ingest key, so completed downstream stages don&apos;t re-run.)</li>
+    <li><strong>Assets refresh without losing history.</strong> <code>generate_asset</code> UPSERTs by <code>(package, type)</code>, so regenerated assets overwrite the old ones in place — fresh kit, same package id, dispatch/publish history preserved.</li>
+    <li><strong>Pick a profile</strong> — defaults to <code>transcription_only</code>; you can revive under a richer profile if you want the visual phase too.</li>
+    <li><strong>Requires the source media on disk</strong> (local or archived). If you&apos;ve hard-deleted the video, Revive fails cleanly at ingest with a "media deleted" error rather than crashing.</li>
+  </ul>
+
+  <h4>📼 Delete video — hard-delete the source (Storage Option C)</h4>
+  <p>Permanently removes the source video from disk — both the local copy <em>and</em> the archived copy — to free space, while keeping all Postgres history (assets, dispatches, signals). This is the third storage-lifecycle option, completing the set: <strong>A</strong> inline cleanup, <strong>B</strong> the archive worker, <strong>C</strong> operator hard-delete.</p>
+  <ul class="bullets">
+    <li><strong>What it removes</strong> — the local media directory (MEDIA_ROOT-guarded) and the archived directory if present, then nulls <code>sources.local_media_path</code> and <code>sources.archive_path</code>.</li>
+    <li><strong>What it keeps</strong> — every Postgres row. The rendered/published outputs remain the canonical artifacts.</li>
+    <li><strong>After deletion</strong>, re-rendering clips and re-mining (Revive) both fail cleanly with a "media deleted" error instead of an ENOENT crash.</li>
+    <li><strong>Confirmation required</strong> and irreversible — there&apos;s a confirm dialog spelling out the consequences.</li>
+  </ul>
+  <div class="callout danger"><strong>Delete video is irreversible.</strong> Once the source is hard-deleted you can no longer re-render Shorts or re-mine that video. Only do it after you&apos;ve shipped everything you need from it.</div>
+
   <div class="related"><strong>Deep dive</strong> <a href="/storage-lifecycle.html">Storage lifecycle</a> has the full artifact map, per-option pros/cons, and a 1→10,000-video cost table.</div>
 </section>
 
@@ -1708,7 +1806,7 @@ KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
     <dt>Source</dt><dd>The raw video input — either a file you uploaded or a YouTube URL you ingested. Lives in <code>MEDIA_ROOT/&lt;brand-slug&gt;/src_…/</code>.</dd>
     <dt>Package</dt><dd>One "unit of work" for a single video. Wraps the source + all derived intelligence + all generated assets. The Studio shows one package at a time.</dd>
     <dt>Asset</dt><dd>One generated artifact — e.g. youtube_title_set, youtube_description, linkedin_post, thumbnail_concept. Each has a type, payload, status, and dispatch metadata.</dd>
-    <dt>Processing profile</dt><dd>Which pipeline tier a package runs under. <code>fast_audio_only</code> · <code>standard_audio_visual</code> · <code>premium_multimodal</code>. Set on the brand as default; per-package override allowed.</dd>
+    <dt>Processing profile</dt><dd>Which pipeline tier a package runs under. <code>transcription_only</code> · <code>fast_audio_only</code> · <code>standard_audio_visual</code> · <code>premium_multimodal</code>. Set on the brand as default; per-package override allowed.</dd>
     <dt>Pipeline</dt><dd>The four sequential layers that turn a source into intelligence: audio → visual → fusion → intelligence.</dd>
     <dt>Scene log</dt><dd>The fused output of the pipeline. Array of time windows, each carrying the spoken text + visual descriptions + on-screen text for that interval. Used by analyze_intelligence as the LLM&apos;s input.</dd>
     <dt>Intelligence</dt><dd>Two meanings: (1) the fourth pipeline layer (the LLM call that produces topics/hooks/retention), (2) the JSONB column on packages that holds all derived artifacts.</dd>
@@ -1724,6 +1822,9 @@ KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
     <dt>Auto-render</dt><dd>When generate_asset writes a <code>*_plan</code>, it fans out one clip_render job per clip so rendered MP4s exist before you open the Shorts tab. Backfill older packages with <code>scripts/render-shorts.ts</code>.</dd>
     <dt>Lifecycle stage</dt><dd>Which of the four storage classes a file belongs to: 1 pipeline-only, 2 review-only, 3 post-publish (archivable), 4 permanent. Set by the file&apos;s last legitimate consumer.</dd>
     <dt>archive_package</dt><dd>Scheduled worker that moves a published package&apos;s original.mp4 (+ clips/) from MEDIA_ROOT to ARCHIVE_ROOT after ARCHIVE_AFTER_DAYS. Sets <code>packages.archived_at</code> and <code>sources.archive_path</code>.</dd>
+    <dt>Backlog Revival</dt><dd>The ♻ Revive action — re-runs the whole pipeline in place on an existing source under today&apos;s prompts (defaults to <code>transcription_only</code>). Clears all the source&apos;s jobs so every stage re-runs; <code>generate_asset</code> UPSERTs so assets refresh without losing dispatch history. Requires the source media still on disk. Server action: <code>reviveSource(packageId, profile?)</code>.</dd>
+    <dt>Delete video</dt><dd>The 📼 hard-delete action (Storage Option C) — removes a source&apos;s local + archived media and nulls the paths, keeping all Postgres history. Irreversible; afterward re-render and Revive fail cleanly. Server action: <code>deleteSourceVideo(packageId)</code>.</dd>
+    <dt>Image provider</dt><dd>A provider row at <code>/providers</code> with category <code>image</code> (Runware today) used to generate AI thumbnail images. When none is configured, the thumbnail worker falls back to ffmpeg frame extraction. Keys encrypted at rest like LLM providers.</dd>
     <dt>RequeueLater</dt><dd>A special exception a worker can throw to ask the queue to defer the job to a specific future time instead of failing it. Used for Zernio&apos;s 24-hour rate limit.</dd>
     <dt>Bundled (in approval panel)</dt><dd>An asset that doesn&apos;t dispatch on its own but is auto-included in another asset&apos;s upload. For YouTube Direct, description/chapters/tags are bundled into the title_set&apos;s upload.</dd>
     <dt>Studio</dt><dd>The per-package page at <code>/packages/[id]</code>. Where you review and approve.</dd>

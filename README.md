@@ -29,7 +29,7 @@
 | 🧠 **It understands the video** | Not just a transcript — a four-layer read of what's *said*, what's *shown*, and what *matters*, fused into one timestamped scene log. |
 | 📦 **It produces a Package** | One source video becomes a canonical **Publishing Package**: every derivative asset, each carrying full provenance (which model, prompt version, and inputs produced it). |
 | 🔒 **It stays on your machine** | Local-first by design. The only external dependency is your social-publishing API. Your media and transcripts never touch a cloud SaaS. |
-| 🔌 **Bring your own model** | Pluggable LLM providers — OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, or a local Codex CLI — routed per task or as a default. |
+| 🔌 **Bring your own model** | Pluggable LLM providers — OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, or a local Codex CLI — routed per task or as a default. Image providers too (Runware Flux / Z-Image) for AI thumbnails. |
 
 ## How it works
 
@@ -58,7 +58,7 @@ flowchart LR
 | **③ Fusion** | Audio + visual aligned into a single timestamped scene log. |
 | **④ Intelligence** | Topics, hooks, and retention windows — the brief every asset is drafted from. |
 
-Every package runs under a **processing profile** — `fast_audio_only`, `standard_audio_visual`, or `premium_multimodal` — which controls how deep the visual + diarization passes go.
+Every package runs under a **processing profile** — `transcription_only`, `fast_audio_only`, `standard_audio_visual`, or `premium_multimodal` — which controls how deep the visual + diarization passes go. `transcription_only` is the cheapest (audio transcription only, no visual phase or diarization) and powers Backlog Revival.
 
 ## The Studio
 
@@ -70,6 +70,7 @@ The per-package review is where you live. Read scored options, edit inline, rege
 - **Regenerate anything** — don't like a section? Regenerate just that one. Empty section? Generate it on demand straight from the transcript.
 - **Pipeline you can see** — a four-layer progress indicator shows exactly what's done and what's still generating. Partially-ready is a first-class state.
 - **Provenance on everything** — every generated asset records the model, provider, prompt version, and inputs that produced it. Nothing is a black box.
+- **Backlog Revival** — a ♻ Revive button re-mines an existing source through the pipeline with your current prompts (defaults to the cheap `transcription_only` profile), so old videos benefit from newer analysis without re-downloading.
 
 ## The Shorts editor
 
@@ -91,7 +92,7 @@ One ingest produces the whole kit — scored where it counts, editable everywher
 
 | Group | Assets |
 |-------|--------|
-| ▶ **YouTube** | Scored title options · full description with chapters + hashtags · scored tags · AI thumbnail concepts from your hook moments · clean transcript |
+| ▶ **YouTube** | Scored title options · full description with chapters + hashtags · scored tags · AI-generated thumbnails (Runware) — plain + headline-overlay variants — with ffmpeg frame-extraction as a zero-config fallback · clean transcript |
 | ✂ **Clips & Shorts** | Short-clip plans cut from the highest-retention moments · rendered vertical clips · long-form highlight cuts |
 | 📄 **Editorial** | Article briefs and blog drafts · newsletter summaries · routed to your editorial service |
 | 𝕏 **Social** | Posts & threads tailored per network · drafted in your brand voice |
@@ -178,7 +179,7 @@ Open <http://localhost:3000>, add a video, and watch the pipeline fill the Studi
 
 Most settings are **runtime-editable** at `/settings` (DB-backed, hydrated into `process.env`, propagated live across processes via `pg_notify` — no restart). A handful are **boot-only** (`DATABASE_URL`, `MEDIA_ROOT`, `ARCHIVE_ROOT`, `LOCAL_BEARER_TOKEN`, `PROVIDER_SECRET_KEY`) and change only by editing `.env` and restarting.
 
-LLM providers are **not** settings — they live in the `llm_providers` table and are managed at `/providers` (per-purpose routing, at-rest key encryption, test-connection). See [`.env.example`](.env.example) for the full template.
+Providers are **not** settings — they live in the `llm_providers` table and are managed at `/providers` (per-purpose routing, at-rest key encryption, test-connection). Two categories: **text** (LLMs — OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, OpenClaw, Codex CLI) and **image** (text-to-image — Runware Flux / Z-Image), the latter powering AI thumbnail generation. With no image provider configured, thumbnails fall back to ffmpeg frame extraction. See [`.env.example`](.env.example) for the full template.
 
 ## Storage lifecycle
 
@@ -232,7 +233,7 @@ ChannelHelm v1 does **not** deploy to a cloud SaaS. It runs on your own machine 
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for what's planned — Backlog Revival (v1.1), the Helm Signal feedback loop (v1.5), and scale/identity work (v2).
+See [`ROADMAP.md`](ROADMAP.md) for what's next — Backlog Revival (v1.1) has landed; the Helm Signal feedback loop (v1.5) and scale/identity work (v2) are ahead.
 
 ## Contributing
 

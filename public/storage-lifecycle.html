@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Storage lifecycle — what's temporary, what's archivable, what's forever</title>
-<meta name="description" content="The per-artifact lifecycle of every file ChannelHelm creates. Inline Stage-1 cleanup and the post-publish archive worker have shipped; operator hard-delete is still on the roadmap." />
+<meta name="description" content="The per-artifact lifecycle of every file ChannelHelm creates. All three cleanup options have shipped: inline Stage-1 cleanup, the post-publish archive worker, and operator hard-delete." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
@@ -289,11 +289,11 @@
   </p>
   <div class="callout win" style="margin-top:20px">
     <strong>Shipped</strong>
-    Two of the three options below are in production. <strong>Option A</strong> (inline Stage-1
+    All three options below are now in production. <strong>Option A</strong> (inline Stage-1
     cleanup) runs at the tail of every pipeline worker; <strong>Option B</strong> (the
-    <code>archive_package</code> worker + daily cron) moves published media to an external drive.
-    <strong>Option C</strong> (operator hard-delete) is still on the roadmap. The map and
-    diagrams below reflect what the code actually does today.
+    <code>archive_package</code> worker + daily cron) moves published media to an external drive;
+    <strong>Option C</strong> (operator hard-delete) is a 📼 <strong>Delete video</strong> button
+    on the package page. The map and diagrams below reflect what the code actually does today.
   </div>
 </section>
 
@@ -540,9 +540,9 @@
 
 <!-- ─── THREE OPTIONS COMPARE ──────────────────────────────────────── -->
 <section class="narrow" id="options">
-  <div class="eyebrow">Three cleanup options · two shipped</div>
+  <div class="eyebrow">Three cleanup options · all shipped</div>
   <h2>Same goal, different scope.</h2>
-  <p class="sub">All three are independent — each can stand alone or stack. <strong>A and B shipped</strong> (A was the highest ROI for least effort, so it landed first; B followed). <strong>C is not built yet</strong> — it's the operator-triggered escape hatch we'll add when there's a concrete need to purge a specific package.</p>
+  <p class="sub">All three are independent — each can stand alone or stack. <strong>A, B and C all shipped</strong> (A was the highest ROI for least effort, so it landed first; B followed; C is the operator-triggered escape hatch for purging a specific package's source on demand).</p>
 
   <div class="opts">
     <div class="opt shipped">
@@ -586,23 +586,23 @@
       </div>
     </div>
 
-    <div class="opt future">
+    <div class="opt shipped">
       <div class="letter">C</div>
-      <h3>Hard delete source video <span class="tag tag-planned">roadmap</span></h3>
+      <h3>Hard delete source video <span class="tag tag-shipped">✓ shipped</span></h3>
       <p>
-        Not built yet. Operator-triggered: a <code>Delete source video</code> button on the brand
-        or package page. Would remove <code>original.mp4</code> from local + archive; null
-        <code>sources.local_media_path</code> so re-renders refuse with a clean error. Keeps
-        all Postgres history.
+        Operator-triggered: a 📼 <code>Delete video</code> button (with confirm) on the package
+        page. <code>deleteSourceVideo</code> removes the local media dir (MEDIA_ROOT-guarded) AND
+        the archived copy, then nulls <code>sources.local_media_path</code> + <code>archive_path</code>
+        so future <code>clip_render</code> / Backlog-Revival re-runs fail cleanly. Postgres history kept.
       </p>
       <div class="metrics">
-        <div class="metric med">
+        <div class="metric good">
           <span class="v">−40 MB+</span>
           <span class="l">per deletion</span>
         </div>
-        <div class="metric low">
-          <span class="v">~45 min</span>
-          <span class="l">to build</span>
+        <div class="metric good">
+          <span class="v">live</span>
+          <span class="l">in production</span>
         </div>
       </div>
     </div>
@@ -868,20 +868,20 @@
 
 <!-- ─── OPTION C DETAIL ────────────────────────────────────────────── -->
 <section class="narrow">
-  <div class="opt-detail is-future">
+  <div class="opt-detail is-shipped">
     <header>
-      <div class="letter" style="background:var(--panel-2);color:var(--faint);border-color:var(--border-strong)">C</div>
+      <div class="letter">C</div>
       <div>
-        <span class="status-line future"><span class="ico"></span>NOT BUILT · on the roadmap</span>
+        <span class="status-line shipped"><span class="ico"></span>SHIPPED · 📼 Delete video button on the package page</span>
         <h3>Hard delete source video</h3>
-        <div class="subtitle">Operator-triggered button. Would remove the file permanently. Postgres history stays.</div>
+        <div class="subtitle">Operator-triggered button. Removes the file permanently. Postgres history stays.</div>
       </div>
     </header>
 
-    <h4>What it would do</h4>
-    <p>A "Delete source video" button on the package page (or brand-level bulk action). Would remove <code>original.mp4</code> from <code>MEDIA_ROOT</code> (and from <code>ARCHIVE_ROOT</code> now that Option B is live). Nulls <code>sources.local_media_path</code> so re-renders refuse with a friendly error message instead of an ENOENT crash.</p>
+    <h4>What it does</h4>
+    <p>A 📼 <code>Delete video</code> button (behind a confirm) on the package page. <code>deleteSourceVideo(packageId)</code> removes <code>original.mp4</code> (the whole local media dir) from <code>MEDIA_ROOT</code> — guarded — AND the archived copy from <code>ARCHIVE_ROOT</code> if Option B already moved it. It then nulls <code>sources.local_media_path</code> + <code>sources.archive_path</code> so re-renders refuse with a friendly "media deleted" error instead of an ENOENT crash.</p>
 
-    <p>It pairs naturally with the now-shipped Option B: archive after 14 days, then hard-delete operator-triggered when "I genuinely don't need this anymore." We'll build it when there's a concrete need to purge a specific package's source for storage or sensitivity reasons.</p>
+    <p>It pairs naturally with Option B: archive after 14 days, then hard-delete operator-triggered when "I genuinely don't need this anymore." This is the on-demand escape hatch for purging a specific package's source for storage or sensitivity reasons.</p>
 
     <h4>What stays</h4>
     <ul style="font-size:13.5px;color:var(--text-muted);padding-left:22px;line-height:1.7">
@@ -899,7 +899,7 @@
     </ul>
 
     <h4>UX guards</h4>
-    <p>Confirmation modal listing what stays + what's lost. Refuses if there's a clip currently in <code>pending_render</code> or <code>dispatching</code> state.</p>
+    <p>A confirm step before the irreversible delete. After deletion, any future <code>clip_render</code> or Backlog-Revival re-run on the source fails cleanly with a "media deleted" error rather than crashing.</p>
 
     <div class="pc">
       <div class="pc-list pros">
@@ -934,7 +934,7 @@
         <th></th>
         <th>A · Inline cleanup <span class="badge b-s4">shipped</span></th>
         <th>B · Archive job <span class="badge b-s4">shipped</span></th>
-        <th>C · Hard delete <span class="badge b-s2">roadmap</span></th>
+        <th>C · Hard delete <span class="badge b-s4">shipped</span></th>
       </tr>
     </thead>
     <tbody>
@@ -942,13 +942,13 @@
         <td><strong>When it runs</strong></td>
         <td>Automatically, at the end of each pipeline step</td>
         <td>Daily cron, N days after the latest dispatch</td>
-        <td>Manual, operator clicks the button <em>(future)</em></td>
+        <td>Manual, operator clicks the 📼 Delete video button</td>
       </tr>
       <tr>
         <td><strong>What it touches</strong></td>
         <td>Stage-1 artifacts only (audio.wav, diarization.json, frames, intermediate JSONs)</td>
         <td>Stage-3 artifacts (original.mp4, clips/) — moved only when last package on the source archives</td>
-        <td>Stage-3 artifacts (original.mp4 + local clips); would pair with B</td>
+        <td>Stage-3 artifacts (original.mp4 + local clips); pairs with B (deletes the archived copy too)</td>
       </tr>
       <tr>
         <td><strong>Destination</strong></td>
@@ -966,7 +966,7 @@
         <td><strong>Database changes</strong></td>
         <td>None</td>
         <td>2 new columns (<code>archived_at</code>, <code>archive_path</code>) — migration 0007, applied</td>
-        <td>None (would use existing <code>local_media_path</code>)</td>
+        <td>None (nulls existing <code>local_media_path</code> + <code>archive_path</code>)</td>
       </tr>
       <tr>
         <td><strong>Settings keys</strong></td>
@@ -990,7 +990,7 @@
         <td><strong>Status</strong></td>
         <td class="good">✓ shipped</td>
         <td class="good">✓ shipped</td>
-        <td class="meh">roadmap (~45 min: server action + button + confirm modal)</td>
+        <td class="good">✓ shipped (<code>deleteSourceVideo</code> + 📼 button + confirm)</td>
       </tr>
       <tr>
         <td><strong>Reversibility</strong></td>
@@ -1020,7 +1020,7 @@
         <th>Before cleanup</th>
         <th>Option A <span class="badge b-s4">live</span></th>
         <th>Option A + B <span class="badge b-s4">live</span> (archive after 14d)</th>
-        <th>+ C delete some <em>(future)</em></th>
+        <th>+ C delete some <span class="badge b-s4">live</span></th>
       </tr>
     </thead>
     <tbody>
@@ -1046,20 +1046,20 @@
     at the tail of every pipeline worker. Option B followed: the <code>archive_package</code>
     worker plus the daily recurring enqueuer move published media to <code>ARCHIVE_ROOT</code>
     once a package's latest dispatch is older than <code>ARCHIVE_AFTER_DAYS</code> (default 14).
-    Option C — operator-triggered hard delete — is the remaining piece; we'll add it the moment
-    there's a real need to purge a specific package's source for storage or sensitivity reasons.
+    Option C — operator-triggered hard delete — is now shipped too: the 📼 <code>Delete video</code>
+    button on the package page purges a specific package's source on demand. All three are live.
   </div>
 
   <p style="font-size:14px;color:var(--text-muted);margin-top:20px">
     All three were designed to be independent. A is self-contained (no dependencies on B or C).
-    B adds the archive system that a future C can leverage. C would also work standalone — it
-    would just delete from MEDIA_ROOT directly when there's no ARCHIVE_ROOT configured.
+    B adds the archive system that C leverages — deleting the archived copy alongside the local one.
+    C also works standalone: with no ARCHIVE_ROOT configured it just deletes from MEDIA_ROOT directly.
   </p>
 </section>
 
 <footer>
   <div class="wrap foot-inner">
-    <span class="mono">ChannelHelm · storage lifecycle · A + B shipped · 2026-05-28</span>
+    <span class="mono">ChannelHelm · storage lifecycle · A + B + C shipped · 2026-05-28</span>
     <span>
       <a href="/" style="color:var(--muted)">app</a> ·
       <a href="/handbook.html" style="color:var(--muted)">handbook</a> ·
