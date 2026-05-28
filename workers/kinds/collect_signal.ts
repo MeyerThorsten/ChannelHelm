@@ -2,6 +2,7 @@ import { db } from '@/db/client';
 import { assets, packages, signals } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { fetchArticleAnalytics } from '../integrations/dojoclaw';
 import { fetchVideoAnalytics } from '../integrations/youtube';
 import { fetchAnalytics } from '../integrations/zernio';
 import type { JobRow } from '../queue';
@@ -49,9 +50,17 @@ export async function run(job: JobRow): Promise<void> {
     return;
   }
 
+  // DojoClaw: pull per-article page-view / read / time-on-page metrics.
+  // fetchArticleAnalytics returns null gracefully when the endpoint is not yet
+  // implemented server-side or when DojoClaw is unreachable — no job failure.
+  if (dispatch.target === 'dojoclaw') {
+    await collectDojoclaw(asset, dispatch.external_id ?? null);
+    return;
+  }
+
   if (dispatch.target !== 'zernio' || !dispatch.external_id) {
     console.log(
-      `[collect_signal] asset=${assetId} not dispatched via zernio/youtube (target=${dispatch.target ?? 'none'}), skipping`,
+      `[collect_signal] asset=${assetId} not dispatched via zernio/youtube/dojoclaw (target=${dispatch.target ?? 'none'}), skipping`,
     );
     return;
   }
@@ -158,6 +167,63 @@ async function collectYoutube(asset: AssetRow, videoId: string | null): Promise<
 
   console.log(
     `[collect_signal] asset=${asset.id} youtube=${videoId} views=${a.views} avp=${actualFraction ?? 'n/a'}`,
+  );
+}
+
+/**
+ * DojoClaw analytics → signals. Writes page_views and, when available,
+ * reads + avg_time_on_page. Degrades cleanly when the analytics endpoint
+ * is not yet implemented on the DojoClaw side (fetchArticleAnalytics → null).
+ */
+async function collectDojoclaw(asset: AssetRow, storyId: string | null): Promise<void> {
+  if (!storyId) {
+    console.log(
+      `[collect_signal] asset=${asset.id} dojoclaw but no external_id (storyId), skipping`,
+    );
+    return;
+  }
+  console.log(`[collect_signal] asset=${asset.id} dojoclaw storyId=${storyId}`);
+
+  const analytics = await fetchArticleAnalytics(storyId);
+  if (!analytics) {
+    // Endpoint not yet available or DojoClaw unreachable — skip without error.
+    console.log(
+      `[collect_signal] asset=${asset.id} dojoclaw analytics unavailable — skipping (no-op)`,
+    );
+    return;
+  }
+
+  const sampledAt = new Date(analytics.lastSampledAt);
+  const base = { brandId: asset.brandId, assetId: asset.id, sourceSignal: 'dojoclaw', sampledAt };
+
+  await db.insert(signals).values({ ...base, metric: 'page_views', value: analytics.pageViews });
+  if (analytics.reads != null) {
+    await db.insert(signals).values({ ...base, metric: 'reads', value: analytics.reads });
+  }
+  if (analytics.avgTimeOnPage != null) {
+    await db
+      .insert(signals)
+      .values({ ...base, metric: 'avg_time_on_page', value: analytics.avgTimeOnPage });
+  }
+
+  // Mirror the latest snapshot into asset.signals for fast dashboard reads.
+  await db
+    .update(assets)
+    .set({
+      signals: {
+        page_views: analytics.pageViews,
+        reads: analytics.reads ?? null,
+        avg_time_on_page: analytics.avgTimeOnPage ?? null,
+        last_sampled_at: analytics.lastSampledAt,
+      },
+      updatedAt: sql`now()`,
+    })
+    .where(eq(assets.id, asset.id));
+
+  console.log(
+    `[collect_signal] asset=${asset.id} dojoclaw=${storyId} ` +
+      `page_views=${analytics.pageViews} reads=${analytics.reads ?? 'n/a'} ` +
+      `avg_time_on_page=${analytics.avgTimeOnPage ?? 'n/a'}`,
   );
 }
 

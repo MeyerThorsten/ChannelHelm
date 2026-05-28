@@ -56,13 +56,14 @@ async function main(): Promise<void> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   // ─── collect_signal — assets that need a fresh analytics pull ────────────
+  // Covers zernio, youtube_direct, and dojoclaw dispatch targets.
   const staleAssets = await db
     .select({ id: assets.id, brandId: assets.brandId, type: assets.type })
     .from(assets)
     .where(
       and(
         eq(assets.status, 'published'),
-        sql`(${assets.dispatch} ->> 'target') = 'zernio'`,
+        sql`(${assets.dispatch} ->> 'target') IN ('zernio', 'youtube_direct', 'dojoclaw')`,
         or(
           isNull(sql`${assets.signals} ->> 'last_sampled_at'`),
           lt(

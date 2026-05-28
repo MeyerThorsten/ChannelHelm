@@ -16,15 +16,15 @@
 const SYNDICATE_PATH = '/api/external/stories/syndicate';
 
 export type DojoclawSyndicateRequest = {
-  storyId: string;            // stable correlation key; "channelhelm:<assetId>" recommended
+  storyId: string; // stable correlation key; "channelhelm:<assetId>" recommended
   headline: string;
-  url: string;                // article permalink / source URL (used in attribution footer)
-  source: string;             // short source slug, e.g. "channelhelm" or brand.slug
-  sourceName: string;         // human-readable, e.g. "Thorsten Meyer AI"
-  topic: string;              // ai | tech | business | ai-work | …
-  city?: string;              // default "sfo"
-  publishedAt?: number;       // unix seconds; default now
-  maxSites?: number;          // 1..15, default 5
+  url: string; // article permalink / source URL (used in attribution footer)
+  source: string; // short source slug, e.g. "channelhelm" or brand.slug
+  sourceName: string; // human-readable, e.g. "Thorsten Meyer AI"
+  topic: string; // ai | tech | business | ai-work | …
+  city?: string; // default "sfo"
+  publishedAt?: number; // unix seconds; default now
+  maxSites?: number; // 1..15, default 5
   /** Pre-extracted rewrite text — transcript + brief + source evidence. When
    *  supplied, DojoClaw skips Readability and rewrites from this directly. */
   sourceText?: string;
@@ -117,8 +117,7 @@ export function formatBriefAsSourceText(
       ? brief.argument_outline
       : String(brief.argument_outline).split(/\n+/);
     parts.push(
-      'Argument outline:\n' +
-        arr.map((b, i) => `  ${i + 1}. ${String(b).trim()}`).join('\n'),
+      `Argument outline:\n${arr.map((b, i) => `  ${i + 1}. ${String(b).trim()}`).join('\n')}`,
     );
   }
   if (brief.source_evidence) {
@@ -126,14 +125,13 @@ export function formatBriefAsSourceText(
       ? brief.source_evidence
       : String(brief.source_evidence).split(/\n+/);
     parts.push(
-      'Source evidence:\n' +
-        arr
-          .map((e) => {
-            if (typeof e === 'string') return `  - ${e.trim()}`;
-            const q = e.quote ?? e.moment ?? JSON.stringify(e);
-            return `  - ${q}`;
-          })
-          .join('\n'),
+      `Source evidence:\n${arr
+        .map((e) => {
+          if (typeof e === 'string') return `  - ${e.trim()}`;
+          const q = e.quote ?? e.moment ?? JSON.stringify(e);
+          return `  - ${q}`;
+        })
+        .join('\n')}`,
     );
   }
   if (brief.tone_notes) parts.push(`Tone notes:\n${brief.tone_notes}`);
@@ -146,6 +144,100 @@ export function formatBriefAsSourceText(
     }
   }
   return parts.join('\n\n');
+}
+
+// ─── Article analytics ────────────────────────────────────────────────
+//
+// NOTE: This endpoint does not yet exist in DojoClaw as of ChannelHelm v1.3.
+// It is designed here as a sensible REST path; a DojoClaw-side implementation
+// would add GET /api/external/stories/:storyId/analytics returning the shape
+// below. Until then, this function degrades gracefully — returning null on any
+// 404, network refusal, or non-200 response so collect_signal skips cleanly.
+//
+// DEFERRED: Google Search Console (GSC) position + impression metrics are a
+// follow-up requiring Search Console OAuth. They will plug into the same
+// DojoclawArticleAnalytics shape (extra optional fields) once available.
+
+const ANALYTICS_PATH_PREFIX = '/api/external/stories';
+
+function resolveBaseUrl(): string {
+  const raw = (process.env.DOJOCLAW_API_URL ?? '').trim();
+  if (!raw) throw new Error('dojoclaw: DOJOCLAW_API_URL not set (configure at /settings)');
+  // Strip known path suffixes so we get back to the host root.
+  return raw.replace(/\/api\/external\/stories\/syndicate\/?$/, '').replace(/\/+$/, '');
+}
+
+export type DojoclawArticleAnalytics = {
+  /** Total page views for this story across syndicated sites. */
+  pageViews: number;
+  /** Number of readers who reached the end / scrolled ≥80 % of the article. */
+  reads?: number;
+  /** Average time on page in seconds across all visits. */
+  avgTimeOnPage?: number;
+  /** ISO-8601 timestamp when DojoClaw last computed these aggregates. */
+  lastSampledAt: string;
+};
+
+/**
+ * Fetch per-article analytics from DojoClaw for a syndicated story.
+ *
+ * Calls: GET {DOJOCLAW_BASE}/api/external/stories/{storyId}/analytics
+ * Auth:  Bearer DOJOCLAW_API_KEY (same key as syndicateStory)
+ *
+ * Returns `null` (never throws) when:
+ *   - DOJOCLAW_API_URL / DOJOCLAW_API_KEY are unset
+ *   - The endpoint returns 404 (not implemented server-side yet)
+ *   - Connection is refused or times out (DojoClaw offline)
+ *   - Any other non-200 HTTP status
+ *
+ * This graceful-null contract lets collect_signal skip cleanly without
+ * failing the job while DojoClaw has no analytics endpoint server-side.
+ */
+export async function fetchArticleAnalytics(
+  storyId: string,
+): Promise<DojoclawArticleAnalytics | null> {
+  const key = (process.env.DOJOCLAW_API_KEY ?? '').trim();
+  let baseUrl: string;
+  try {
+    baseUrl = resolveBaseUrl();
+  } catch {
+    // DOJOCLAW_API_URL not configured — nothing to fetch.
+    return null;
+  }
+  if (!key) return null;
+
+  const url = `${baseUrl}${ANALYTICS_PATH_PREFIX}/${encodeURIComponent(storyId)}/analytics`;
+  try {
+    const res = await fetch(url, {
+      headers: { authorization: `Bearer ${key}` },
+      // Short timeout — DojoClaw runs locally; if it's not responding in 5 s
+      // we don't want to hold up the recurring worker.
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (res.status === 404) {
+      // Endpoint not implemented server-side yet — expected during ramp-up.
+      return null;
+    }
+    if (!res.ok) {
+      console.warn(`[dojoclaw] analytics ${storyId}: ${res.status} ${res.statusText}`);
+      return null;
+    }
+    const data = (await res.json()) as Partial<DojoclawArticleAnalytics>;
+    if (typeof data.pageViews !== 'number') {
+      console.warn(`[dojoclaw] analytics ${storyId}: unexpected shape`, data);
+      return null;
+    }
+    return {
+      pageViews: data.pageViews,
+      reads: data.reads,
+      avgTimeOnPage: data.avgTimeOnPage,
+      lastSampledAt: data.lastSampledAt ?? new Date().toISOString(),
+    };
+  } catch (err) {
+    // Network error (ECONNREFUSED, timeout, etc.) — DojoClaw may be offline.
+    console.warn(`[dojoclaw] analytics ${storyId}: connection error — ${(err as Error).message}`);
+    return null;
+  }
 }
 
 // ─── Back-compat shim ──────────────────────────────────────────────────

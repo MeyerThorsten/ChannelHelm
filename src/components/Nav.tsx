@@ -11,6 +11,7 @@ export type NavPackage = { id: string; title: string; brand: string };
 const TABS = [
   { href: '/', label: 'New', glyph: '+' },
   { href: '/brands', label: 'Brands', glyph: null },
+  { href: '/performance', label: 'Performance', glyph: null },
   { href: '/jobs', label: 'Jobs', glyph: null },
   { href: '/providers', label: 'Providers', glyph: null },
   { href: '/settings', label: 'Settings', glyph: null },
@@ -388,6 +389,12 @@ function CommandPalette({
     })),
     ...brands.map((b) => ({ kind: 'Brand', label: b.name, sub: b.slug, href: `/brands/${b.id}` })),
     { kind: 'Page', label: 'New package', sub: 'Upload or paste URL', href: '/' },
+    {
+      kind: 'Page',
+      label: 'Performance',
+      sub: 'Published metrics & A/B results',
+      href: '/performance',
+    },
     { kind: 'Page', label: 'Jobs queue', sub: 'Pipeline inspector', href: '/jobs' },
     { kind: 'Page', label: 'Providers', sub: 'LLM provider config', href: '/providers' },
     { kind: 'Page', label: 'Webhooks', sub: 'Inbound events', href: '/webhooks' },

@@ -88,9 +88,15 @@ export default async function BrandDetailPage({ params, searchParams }: Props) {
             {brand.id} · slug {brand.slug}
           </p>
         </div>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {stats?.packageCount ?? 0} packages
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 12 }}>
+          <Link
+            href={`/brands/${id}/voice`}
+            style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}
+          >
+            Voice bootstrap →
+          </Link>
+          <span style={{ color: 'var(--text-muted)' }}>{stats?.packageCount ?? 0} packages</span>
+        </div>
       </header>
 
       {slugIsOff && (
