@@ -61,6 +61,13 @@
   .feat dd strong{color:var(--text)}
   @media (max-width:620px){ .feat dl{grid-template-columns:1fr} .feat dt{padding-top:8px} }
 
+  .idea-theme{font-size:15px;font-weight:600;margin:24px 0 4px}
+  .idea-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:8px 0 6px}
+  .idea-table th,.idea-table td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+  .idea-table th{color:var(--faint);font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;background:var(--panel-2)}
+  .idea-table td{color:var(--muted)}
+  .idea-table tr:last-child td{border-bottom:none}
+
   .callout{margin:14px 0;padding:14px 18px;border-radius:10px;background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55}
   .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 28%,var(--border))}
   .callout.tip strong{color:var(--accent);margin-right:6px}
@@ -226,7 +233,49 @@
 <section class="narrow" id="ideas">
   <div class="eyebrow">Ideas — unscheduled</div>
   <h2>Worth doing eventually.</h2>
-  <p class="ph">Not committed to a release — parked until the trade-off is clearly worth it.</p>
+  <p class="ph">A themed backlog of candidates — not committed to a release. Each is tagged <strong>grounded</strong> (scaffolding already exists in the codebase) or <strong>bet</strong> (a new product direction).</p>
+
+  <h3 class="idea-theme">Reach multipliers — more output from one video</h3>
+  <table class="idea-table">
+    <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
+    <tr><td>Generate for the 8 un-wired networks</td><td>Zernio already dispatches to Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord, Google Business — ChannelHelm generates for none. Add per-network prompts.</td><td>grounded</td><td>S–M</td></tr>
+    <tr><td>Per-platform Short captions</td><td>Tailored caption + hashtags per destination; <code>tiktok_caption</code> / <code>reels_caption</code> / <code>instagram_caption</code> are spec'd but unbuilt.</td><td>grounded</td><td>S</td></tr>
+    <tr><td>Long-clip planning</td><td><code>long_clip_plan</code> is schema'd + renderable but has no generator, so long-form cuts never get planned.</td><td>grounded</td><td>M</td></tr>
+    <tr><td>Wire <code>short_clip_description</code></td><td>The prompt exists but no worker enqueues it — an orphaned asset.</td><td>grounded</td><td>XS</td></tr>
+    <tr><td>Multi-language clips</td><td>Translate captions/subtitles (optionally dub) per language; reuses the transcript + ASS pipeline.</td><td>bet</td><td>M–L</td></tr>
+    <tr><td>Quote cards / carousels</td><td>Turn the highest-retention lines into image quote-cards + carousels, reusing the image layer.</td><td>bet</td><td>M</td></tr>
+  </table>
+
+  <h3 class="idea-theme">Deeper feedback loop — extend Helm Signal</h3>
+  <table class="idea-table">
+    <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
+    <tr><td>Comment mining → content loop</td><td>Top comments → next-video ideas, an FAQ, and a pinned comment (fills the unbuilt <code>youtube_pinned_comment</code>).</td><td>bet + grounded</td><td>M</td></tr>
+    <tr><td>Best-time-to-post</td><td>Learn per-platform optimal windows from the signals already collected; pre-fill the scheduler.</td><td>bet</td><td>S–M</td></tr>
+    <tr><td>Unified performance dashboard</td><td>One cross-surface view of how every asset performed (YouTube + Zernio already in <code>signals</code>).</td><td>bet</td><td>M</td></tr>
+    <tr><td>DojoClaw + GSC article signals</td><td>No DojoClaw collector today; pull article + Search Console metrics into <code>signals</code>.</td><td>grounded</td><td>M</td></tr>
+    <tr><td>Prompt-version A/B</td><td>A/B the prompt versions themselves — which prompt yields better-performing assets.</td><td>bet</td><td>M</td></tr>
+  </table>
+
+  <h3 class="idea-theme">Quality &amp; trust</h3>
+  <table class="idea-table">
+    <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
+    <tr><td>Prosodic analysis</td><td><code>energy_db</code> / <code>emphasis_words</code> are stubbed in the scene log; a prosody pass sharpens clip + hook selection.</td><td>grounded</td><td>M</td></tr>
+    <tr><td>Audio-event detection</td><td>Laughter / music / applause (YAMNet on the Neural Engine) — good for podcasts and a cheap music-presence signal.</td><td>grounded</td><td>M</td></tr>
+    <tr><td>Brand glossary</td><td>A per-brand term list so transcripts + assets spell names, products, and jargon correctly.</td><td>bet</td><td>S</td></tr>
+    <tr><td>Fact-check / claim guard</td><td>Flag unsupported factual claims in generated copy before dispatch.</td><td>bet</td><td>M</td></tr>
+    <tr><td>Music / copyright detection</td><td>Flag clips likely to carry copyrighted audio before non-YouTube syndication (worked through below).</td><td>bet</td><td>M</td></tr>
+  </table>
+
+  <h3 class="idea-theme">Operator &amp; business</h3>
+  <table class="idea-table">
+    <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
+    <tr><td>Cost tracking &amp; budgets</td><td>Per-package / per-brand spend (LLM + image + render) with optional caps.</td><td>bet</td><td>S–M</td></tr>
+    <tr><td>Brand-voice bootstrap</td><td>Seed <code>voice_examples</code> from existing posts, so voice is good from upload #1.</td><td>bet</td><td>M</td></tr>
+    <tr><td>Bulk / batch ingest</td><td>Drop a folder or paste N URLs → queue the whole backlog at once.</td><td>bet</td><td>S</td></tr>
+    <tr><td>Auto-approve rules</td><td>Per-asset-type trust thresholds so high-confidence assets skip manual review.</td><td>bet</td><td>S</td></tr>
+  </table>
+
+  <p class="ph" style="margin-top:26px">One idea, worked through in full — the depth each entry above reaches once it's picked up:</p>
 
   <div class="feat">
     <div class="feat-head"><span class="feat-ico">🎵</span><h3>Music / copyright detection</h3><span class="badge b-v2">Idea</span><span class="effort">~ medium</span></div>

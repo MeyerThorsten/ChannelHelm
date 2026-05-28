@@ -77,11 +77,47 @@ Bigger structural moves once single-operator throughput is no longer the constra
 
 ## 💡 Ideas (unscheduled)
 
-Things worth doing eventually, not yet committed to a release.
+A themed backlog of candidates — not committed to a release. Each is tagged **grounded** (scaffolding already exists in the codebase — low-risk) or **bet** (a new product direction), with a rough effort (XS–L).
 
-| Idea | What it is | Why it's only an idea |
-|------|------------|-----------------------|
-| **Music / copyright detection** | Flag clips that likely contain copyrighted audio before they syndicate to TikTok / Instagram (and as early warning before render/dispatch). | It can only ever be a **risk predictor, not a verdict** — the authoritative judge is YouTube Content ID / platform fingerprinting, which isn't queryable pre-publish. A fully-local build can accurately detect *music presence* (~90%) but not *copyright status*; genuine identification needs an opt-in commercial fingerprint API (e.g. ACRCloud), breaking local-first. And for the YouTube destination, YouTube's own pre-publish **Checks** already cover it for free. So the value is narrow (non-YouTube syndication) and the accuracy ceiling is real — parked until that trade-off is worth it. |
+### Reach multipliers — more output from one video
+
+| Idea | What it is | Type | Effort |
+|------|------------|------|--------|
+| **Generate for the 8 un-wired networks** | Zernio already dispatches to Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord, Google Business — but ChannelHelm generates content for none. Add per-network prompts + `ASSET_TYPES` entries (repeats the `linkedin_post.v1.md` pattern). | grounded | S–M |
+| **Per-platform Short captions** | Tailored caption + hashtags per destination — `tiktok_caption` / `reels_caption` / `instagram_caption` are specified in the contract but have no prompts. | grounded | S |
+| **Long-clip planning** | `long_clip_plan` / `rendered_long_clip` are schema'd and renderable, but no generator/prompt exists — so long-form highlight cuts never get planned. | grounded | M |
+| **`short_clip_description` wiring** | `prompts/short_clip_description.v1.md` exists but no worker enqueues it — an orphaned, already-written asset. | grounded | XS |
+| **Multi-language clips** | Translate captions/subtitles (optionally TTS-dub) per language. Reuses the transcript + ASS subtitle pipeline. | bet | M–L |
+| **Quote cards / carousels** | Turn the highest-retention lines into image quote-cards + carousels (LinkedIn/Instagram), reusing the image-provider layer built for thumbnails. | bet | M |
+
+### Deeper feedback loop — extend Helm Signal
+
+| Idea | What it is | Type | Effort |
+|------|------------|------|--------|
+| **Comment mining → content loop** | Top comments on published videos → next-video ideas, an FAQ, and a generated pinned comment (also fills the schema'd-but-unbuilt `youtube_pinned_comment`). | bet + grounded | M |
+| **Best-time-to-post** | Learn per-platform optimal windows from the `signals` already collected, and pre-fill the publish scheduler. | bet | S–M |
+| **Unified performance dashboard** | One cross-surface view of how every asset performed (YouTube + Zernio already in `signals`; + DojoClaw/GSC once wired). | bet | M |
+| **DojoClaw + GSC article signals** | `collect_signal` has no DojoClaw branch (`source_signal:'dojoclaw'` is unused). Pull article page metrics + Search Console position into `signals` to feed the editorial voice loop. | grounded | M |
+| **Prompt-version A/B** | Apply the A/B machinery to *prompt versions* (e.g. `youtube_title_set.v1` vs `.v2`) — measure which prompt yields better-performing assets. | bet | M |
+
+### Quality & trust
+
+| Idea | What it is | Type | Effort |
+|------|------------|------|--------|
+| **Prosodic analysis** | `energy_db` / `emphasis_words` are stubbed in the scene log (`workers/kinds/fuse.ts`); a prosody ML pass (energy/pitch/emphasis) sharpens clip + hook selection and pairs with the sentiment curve. | grounded | M |
+| **Audio-event detection** | Laughter / music / applause (YAMNet on the Neural Engine) — useful for podcasts and a cheap local *music-presence* signal. | grounded | M |
+| **Brand glossary** | A per-brand term list so transcripts + assets spell names, products, and jargon correctly (Whisper mishears proper nouns). | bet | S |
+| **Fact-check / claim guard** | Flag unsupported factual claims in generated copy before dispatch (a hallucination guard surfaced in the Studio). | bet | M |
+| **Music / copyright detection** | Flag clips likely to carry copyrighted audio before non-YouTube syndication. **A risk predictor, not a verdict** — local detects music *presence* (~90%) not copyright status; real identification needs an opt-in fingerprint API (breaks local-first); YouTube's own pre-publish Checks already cover YouTube. Parked until the trade-off is worth it. | bet | M |
+
+### Operator & business
+
+| Idea | What it is | Type | Effort |
+|------|------------|------|--------|
+| **Cost tracking & budgets** | Per-package / per-brand spend (LLM tokens + image gen + render time) with optional budget caps. | bet | S–M |
+| **Brand-voice bootstrap** | Seed `voice_examples` from a corpus of the brand's existing posts/transcripts, so voice quality is good from upload #1 instead of after the loop warms up. | bet | M |
+| **Bulk / batch ingest** | Drop a folder or paste N URLs → queue the whole backlog at once (pairs with the shipped Backlog Revival). | bet | S |
+| **Auto-approve rules** | Per-asset-type trust thresholds (e.g. auto-approve tags above score X) so high-confidence assets skip manual review. | bet | S |
 
 ---
 
