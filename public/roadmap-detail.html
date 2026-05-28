@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What's next — detailed roadmap · ChannelHelm</title>
+<meta name="description" content="A detailed, per-feature breakdown of ChannelHelm's upcoming work: what each item is, why it matters, how it would work, the effort, and what it unlocks." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root{
+    --accent:#0ea5e9;--accent-glow:rgba(14,165,233,0.18);--accent-soft:rgba(14,165,233,0.12);
+    --green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+    --bg:#0a0a0b;--panel:#111114;--panel-2:#16161a;--border:#232329;--border-strong:#2e2e36;
+    --text:#f4f4f5;--muted:#a1a1aa;--faint:#71717a;
+    --font-sans:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --font-serif:"Instrument Serif",ui-serif,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(rgba(255,255,255,0.04) 1px,transparent 1px) 0 0/24px 24px,var(--bg);color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .narrow{max-width:860px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.9em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{position:sticky;top:0;z-index:40;height:52px;border-bottom:1px solid var(--border);background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow)}
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 20px}
+  .hero h1{font-family:var(--font-serif);font-weight:400;font-size:clamp(36px,5.2vw,54px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px}
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:760px;margin:0}
+
+  section{padding:40px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-family:var(--font-serif);font-weight:400;font-size:clamp(23px,3vw,30px);letter-spacing:-.4px;margin:0 0 6px;line-height:1.1}
+  .ph{color:var(--muted);margin:0 0 22px;font-size:15px;max-width:780px}
+
+  .feat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin:16px 0}
+  .feat-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .feat-head h3{margin:0;font-size:18px;font-weight:600;font-family:var(--font-sans)}
+  .feat-ico{font-size:18px}
+  .badge{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid var(--border-strong)}
+  .b-next{color:var(--green);background:color-mix(in oklab,var(--green) 12%,var(--panel));border-color:color-mix(in oklab,var(--green) 35%,var(--border))}
+  .b-plan{color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,var(--panel));border-color:color-mix(in oklab,var(--accent) 32%,var(--border))}
+  .b-v2{color:var(--purple);background:color-mix(in oklab,var(--purple) 10%,var(--panel));border-color:color-mix(in oklab,var(--purple) 32%,var(--border))}
+  .effort{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+  .feat dl{display:grid;grid-template-columns:108px 1fr;gap:6px 14px;margin:14px 0 0;font-size:14px}
+  .feat dt{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+  .feat dd{margin:0;color:var(--muted)}
+  .feat dd strong{color:var(--text)}
+  @media (max-width:620px){ .feat dl{grid-template-columns:1fr} .feat dt{padding-top:8px} }
+
+  .callout{margin:14px 0;padding:14px 18px;border-radius:10px;background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55}
+  .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 28%,var(--border))}
+  .callout.tip strong{color:var(--accent);margin-right:6px}
+  .callout.win{background:color-mix(in oklab,var(--green) 7%,var(--panel));border-color:color-mix(in oklab,var(--green) 28%,var(--border))}
+  .callout.win strong{color:var(--green);margin-right:6px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:30px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#v15">v1.5</a>
+    <a href="#v2">v2</a>
+    <a href="/roadmap.html">Roadmap overview</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<section class="hero narrow">
+  <div class="eyebrow">Detailed roadmap · what's next</div>
+  <h1>Every upcoming feature, <em>in full.</em></h1>
+  <p class="lede">
+    The <a href="/roadmap.html">roadmap overview</a> gives you the one-line version. This page is the
+    deep dive: for each upcoming item — what it is, why it matters, how it would work, the rough
+    effort, and what it unlocks. <strong class="mono" style="font-weight:600">NEXT UP</strong> marks
+    the strongest candidates to build immediately after the self-run A/B routing that just shipped.
+  </p>
+  <div class="callout win"><strong>Just shipped</strong> Self-run title/thumbnail A/B routing — see the <a href="/ab-testing-guide.html">A/B testing guide</a>. Several items below build directly on the analytics + feedback plumbing it introduced.</div>
+</section>
+
+<!-- v1.5 -->
+<section class="narrow" id="v15">
+  <div class="eyebrow">v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(in progress)</span></div>
+  <h2>Close the Helm Signal loop.</h2>
+  <p class="ph">Stop generating-and-forgetting: measure what performs and feed it back into generation. A/B routing was the first slice; these are the rest.</p>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🖼️</span><h3>Thumbnail feedback loop</h3><span class="badge b-next">Next up</span><span class="effort">~ hours</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Extends the A/B work to <strong>thumbnails</strong>. Today, when a <em>title</em> experiment decides, the winner is written to <code>voice_examples</code> so future titles drift toward what won. Thumbnails currently record nothing.</dd>
+      <dt>Why it matters</dt><dd>The thumbnail is half the click decision. Without this, thumbnail experiments tell you a winner but don't make the <em>next</em> video's thumbnails any better.</dd>
+      <dt>How it'd work</dt><dd>On a decided thumbnail (or title+thumbnail) experiment, capture the winning concept's <code>visual_prompt</code> + style traits and inject them as positive guidance into <code>prompts/thumbnail_image.v1.md</code> context for subsequent packages (a per-brand "what wins" exemplar set, mirroring voice examples).</dd>
+      <dt>Effort</dt><dd>Small — the experiment, decision, and feedback plumbing already exist; this adds a thumbnail-side writer + prompt wiring.</dd>
+      <dt>Unlocks</dt><dd>Thumbnails that compound the same way titles now do — the other half of the packaging loop.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">📈</span><h3>Sentiment-over-time curves</h3><span class="badge b-next">Next up</span><span class="effort">~ low</span></div>
+    <dl>
+      <dt>What it is</dt><dd>An <strong>emotion curve</strong> across the video, derived from the fused scene log (the timestamped text + visual descriptions ChannelHelm already produces) — no new model inference.</dd>
+      <dt>Why it matters</dt><dd>The best Shorts come from emotional spikes, not arbitrary timestamps. An explicit curve makes "where's the energy" a first-class signal.</dd>
+      <dt>How it'd work</dt><dd>A light pass (lexicon or a single cheap LLM call) over each scene-log window scores valence/arousal; the curve is stored on the package. The clip planner prefers high-arousal windows; the Studio shows an emotion sparkline.</dd>
+      <dt>Effort</dt><dd>Low — reuses data already on disk; no new ML dependency.</dd>
+      <dt>Unlocks</dt><dd>Better-selected Shorts moments and an at-a-glance emotional map of every video.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🎯</span><h3>Retention calibration model</h3><span class="badge b-next">Next up</span><span class="effort">~ days</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Replaces the current <strong>LLM-only retention guess</strong> with a small model calibrated against your channel's <em>real</em> retention curves.</dd>
+      <dt>Why it matters</dt><dd>Hook scoring and clip selection lean on predicted retention. Grounding those predictions in actual audience behavior makes every downstream choice sharper — and it improves as more videos accrue.</dd>
+      <dt>How it'd work</dt><dd>Use the YouTube Analytics scope (just added for A/B) to pull per-video retention + average-view-percentage into <code>signals</code>, accumulate, then fit a lightweight calibration that corrects the LLM's predicted-retention score toward measured truth.</dd>
+      <dt>Effort</dt><dd>Days — needs a data-accumulation window plus a modeling pass. Highest long-term payoff.</dd>
+      <dt>Unlocks</dt><dd>Retention scores you can trust; a flywheel that gets more accurate with every upload.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">⚙️</span><h3>Per-provider concurrency limits</h3><span class="badge b-next">Next up</span><span class="effort">~ quick</span></div>
+    <dl>
+      <dt>What it is</dt><dd>A <code>max_concurrent</code> cap per row in <code>llm_providers</code>, enforced by the worker pool.</dd>
+      <dt>Why it matters</dt><dd>The queue runs N slots against whatever provider a job resolves to. A rate-limited provider (OpenAI/OpenRouter tiers) gets hammered and 429s when you raise <code>WORKER_CONCURRENCY</code>.</dd>
+      <dt>How it'd work</dt><dd>Add the column to the schema + <code>/providers</code> editor; the provider resolver holds a per-provider semaphore so in-flight requests never exceed the cap, independent of total worker slots.</dd>
+      <dt>Effort</dt><dd>Quick — one column, one semaphore.</dd>
+      <dt>Unlocks</dt><dd>Safely cranking worker concurrency without tripping provider limits.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🎵</span><h3>Music / copyright detection</h3><span class="badge b-plan">Planned</span><span class="effort">~ medium</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Flag clips that contain copyrighted audio <strong>before</strong> they syndicate to YouTube Shorts and other networks.</dd>
+      <dt>Why it matters</dt><dd>Becomes important as Shorts volume grows — a claimed or blocked clip wastes a slot and can hurt the channel.</dd>
+      <dt>How it'd work</dt><dd>An audio-fingerprint pass over each rendered clip; surface a warning in the Shorts editor / dispatch gate when a match is likely.</dd>
+      <dt>Effort</dt><dd>Medium — needs a fingerprinting source and a per-clip check in the pipeline.</dd>
+      <dt>Unlocks</dt><dd>Confidence that syndicated clips won't get claimed or muted.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- v2 -->
+<section class="narrow" id="v2">
+  <div class="eyebrow">v2 — Scale &amp; Identity</div>
+  <h2>Bigger structural moves.</h2>
+  <p class="ph">For when single-operator throughput is no longer the constraint. Larger efforts, taken on when they unblock real volume.</p>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">📲</span><h3>YouTube Direct for Shorts</h3><span class="badge b-v2">v2</span><span class="effort">~ medium</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Upload Shorts per-clip via the YouTube Data API directly, instead of only routing them through Zernio.</dd>
+      <dt>Why it matters</dt><dd>Native uploads give finer control (privacy, scheduling, metadata) and remove a dependency for the YouTube destination specifically.</dd>
+      <dt>How it'd work</dt><dd>The dispatch worker fires two dispatches per rendered Short — YouTube Direct for the YouTube target, Zernio for TikTok/Instagram — reusing the per-clip publish options.</dd>
+      <dt>Effort</dt><dd>Medium — dual-dispatch logic + quota considerations.</dd>
+      <dt>Unlocks</dt><dd>First-class YouTube Shorts publishing under your own OAuth.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🎬</span><h3>B-roll insertion</h3><span class="badge b-v2">v2</span><span class="effort">~ large</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Honour the existing <code>b_roll_enabled</code> flag by actually compositing b-roll into rendered clips.</dd>
+      <dt>Why it matters</dt><dd>B-roll lifts retention on talking-head clips. The UI flag exists; only the rendering is deferred.</dd>
+      <dt>How it'd work</dt><dd>Source/library selection + an ffmpeg overlay/cutaway stage in <code>clip_render</code>, timed against the transcript.</dd>
+      <dt>Effort</dt><dd>Large — sourcing, timing, and render-pipeline work.</dd>
+      <dt>Unlocks</dt><dd>Visually richer clips without manual editing.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🗄️</span><h3>Object storage (S3 / R2)</h3><span class="badge b-v2">v2</span><span class="effort">~ medium</span></div>
+    <dl>
+      <dt>What it is</dt><dd>An optional cloud object-storage backend for media, beyond the local NAS / archive export.</dd>
+      <dt>Why it matters</dt><dd>Local storage is plenty for v1 throughput; at higher volume an offload tier keeps the master lean.</dd>
+      <dt>How it'd work</dt><dd>A storage adapter behind the existing path helpers; the archive worker targets the bucket; <code>mediaUrlFor</code> resolves signed URLs.</dd>
+      <dt>Effort</dt><dd>Medium — adapter + path-resolution changes.</dd>
+      <dt>Unlocks</dt><dd>Effectively unbounded media retention without local disk pressure.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🗣️</span><h3>Speaker ID by name</h3><span class="badge b-v2">v2</span><span class="effort">~ large</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Replace generic <code>speaker_01</code> labels with named identification via a per-brand face/voice index.</dd>
+      <dt>Why it matters</dt><dd>Named speakers make transcripts, chapters, and clip captions far more useful for multi-person content.</dd>
+      <dt>How it'd work</dt><dd>A per-brand enrollment index keyed off the existing diarization output; match voice/face embeddings to known identities.</dd>
+      <dt>Effort</dt><dd>Large — plus storage and privacy considerations.</dd>
+      <dt>Unlocks</dt><dd>Named diarization across the whole pipeline.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🔎</span><h3>GSC article signals</h3><span class="badge b-v2">v2</span><span class="effort">~ medium</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Pull Google Search Console position + page metrics for DojoClaw-published articles into the <code>signals</code> table.</dd>
+      <dt>Why it matters</dt><dd>Completes cross-surface performance data — the editorial half of the Helm Signal loop, alongside YouTube/social.</dd>
+      <dt>How it'd work</dt><dd>A <code>collect_signal</code> source for GSC, mapping articles to queries/positions, feeding the same voice-example promotion path.</dd>
+      <dt>Effort</dt><dd>Medium — GSC auth + a new signal source.</dd>
+      <dt>Unlocks</dt><dd>Article generation that learns from search performance.</dd>
+    </dl>
+  </div>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">👥</span><h3>Multi-operator / teams</h3><span class="badge b-v2">v2</span><span class="effort">~ large</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Team accounts layered on top of the local-first single-operator model.</dd>
+      <dt>Why it matters</dt><dd>Only relevant if content-ops headcount grows; until then, single-operator throughput is the priority.</dd>
+      <dt>How it'd work</dt><dd>Auth + per-user attribution + review assignment, scoped by brand, without breaking the local-first posture.</dd>
+      <dt>Effort</dt><dd>Large — touches auth, the review flow, and provenance.</dd>
+      <dt>Unlocks</dt><dd>More than one person running the command center.</dd>
+    </dl>
+  </div>
+</section>
+
+<section class="narrow">
+  <div class="callout tip"><strong>How priorities are set</strong> ChannelHelm optimizes for <em>one person turning more videos into more on-brand output with less manual work</em>. Items move up when they unblock that; the feedback loop (v1.5) is weighted heavily because it compounds. Have a use case that isn't covered? It belongs on this list — say so.</div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · detailed roadmap</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> · <a href="/roadmap.html" style="color:var(--muted)">roadmap overview</a> ·
+      <a href="/ab-testing-guide.html" style="color:var(--muted)">a/b testing</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/handbook.html" style="color:var(--muted)">handbook</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>
