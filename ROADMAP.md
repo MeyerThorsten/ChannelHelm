@@ -6,7 +6,7 @@ This roadmap reflects the milestones already defined in ChannelHelm's technical 
 timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
-    v1.1 — Backlog Revival (landing) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening (in progress)
+    v1.1 — Backlog Revival (shipped) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening
     v1.5 — Signal & Intelligence : Title/thumbnail A/B routing : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```
@@ -29,9 +29,9 @@ The current foundation, for context.
 
 ---
 
-## 🔜 v1.1 — Backlog Revival *(landing)*
+## ✅ v1.1 — Backlog Revival *(shipped)*
 
-The headline feature: **re-mine an existing back catalogue** with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Most of v1.1 has shipped; YouTube Direct hardening is in progress.
+The headline feature: **re-mine an existing back catalogue** with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. All of v1.1 has shipped.
 
 | Item | Status | What it does |
 |------|--------|--------------|
@@ -40,7 +40,7 @@ The headline feature: **re-mine an existing back catalogue** with the current pi
 | **Hard-delete sources (Option C)** | ✅ shipped | A **Delete video** button removes local + archived media and nulls the paths; Postgres history is kept, and re-render/re-mine fail with a clean error. Completes the storage lifecycle (A + B already shipped). |
 | **AI thumbnail generation** | ✅ shipped | Thumbnails are AI-generated images via pluggable image providers (Runware) at `/providers`, with a frame-extraction fallback when none is configured. An LLM turns the package analysis into distinct visual concepts; each renders as a plain + headline-overlay variant for the operator to pick. |
 | **Modal focus trap** | ✅ shipped | The modal primitive now focuses the first element on open, cycles Tab/Shift+Tab within, and restores focus on close. |
-| **YouTube Direct hardening** | 🛠 in progress | OAuth state table + reconnection flow for the per-brand Direct upload path. |
+| **YouTube Direct hardening** | ✅ shipped | CSRF-safe OAuth state table (one-time `consumeOauthState`), encrypted refresh_token with auto-refreshed access tokens, and a Connect / Disconnect / reconnect brand card for the per-brand Direct upload path. |
 | **Idempotent re-renders** | ✅ (already in v1.0) | `clip_render` is keyed by `(plan, clip)` + `render_rev` and skips when up to date; `scripts/render-shorts.ts` has `--force`. |
 
 ---

@@ -676,6 +676,40 @@ CREATE TABLE voice_examples (
 
 CREATE INDEX idx_voice_examples_brand_type_score
     ON voice_examples(brand_id, asset_type, performance_score DESC);
+
+-- ─── LLM + image providers (configurable; added after v1.3) ────────
+-- The provider system postdates the original §4 schema. ONE table holds both
+-- chat/LLM providers (category='text', the default) and text-to-image providers
+-- (category='image', e.g. Runware for AI thumbnails). getProvider() and
+-- getImageProvider() filter by category so the two selection paths never cross.
+-- Edited at /providers (NOT a runtime setting — multi-row + structured; see §
+-- "LLM providers are explicitly NOT a setting"). API keys are encrypted at rest
+-- (secret-box, AES-256-GCM). When the table is empty the worker auto-seeds an
+-- LM Studio text row from LM_STUDIO_*/OPENCLAW_BASE_URL env, preserving the
+-- original env-only behavior with zero config.
+
+CREATE TABLE llm_providers (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'text',      -- 'text' (chat/LLM) | 'image' (text-to-image)
+    type TEXT NOT NULL DEFAULT 'openai-compatible',
+                                                --   text:  openai-compatible | anthropic | codex-cli
+                                                --   image: runware
+    base_url TEXT NOT NULL,
+    api_key TEXT NOT NULL DEFAULT '',           -- encrypted at rest (AES-256-GCM)
+    model TEXT NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    purpose TEXT NOT NULL DEFAULT 'all',        -- 'all' | a processing profile (per-purpose routing)
+    max_tokens INTEGER NOT NULL DEFAULT 2048,
+    temperature DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_llm_providers_enabled  ON llm_providers(enabled) WHERE enabled = TRUE;
+CREATE INDEX idx_llm_providers_purpose  ON llm_providers(purpose);
+CREATE INDEX idx_llm_providers_category ON llm_providers(category);
 ```
 
 ---

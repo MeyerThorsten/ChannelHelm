@@ -136,7 +136,7 @@
       </style>
       <!-- spine -->
       <line x1="70" y1="60" x2="850" y2="60" stroke="#2e2e36" stroke-width="2"/>
-      <!-- shipped portion solid (through v1.1, which has largely landed) -->
+      <!-- shipped portion solid (through v1.1, which has fully shipped) -->
       <line x1="70" y1="60" x2="390" y2="60" stroke="#10b981" stroke-width="3"/>
 
       <!-- v1.0 -->
@@ -198,9 +198,9 @@
 <!-- ─── v1.1 ─────────────────────────────────────────────────────────── -->
 <section class="narrow" id="v11">
   <div class="rel shipped">
-    <span class="tag">✓ LANDING</span>
+    <span class="tag">✓ SHIPPED</span>
     <h3>v1.1 — Backlog Revival</h3>
-    <p class="theme">Re-mine an existing back catalogue with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Most of v1.1 has shipped; YouTube Direct hardening is in progress.</p>
+    <p class="theme">Re-mine an existing back catalogue with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. All of v1.1 has shipped.</p>
     <table class="rel-items">
       <tr><th>Item</th><th>Status</th><th>What it does</th></tr>
       <tr><td>Backlog Revival</td><td>✅ shipped</td><td><code>reviveSource</code> clears the source's jobs and re-runs the whole pipeline in place with current prompts (defaults to the cheap <code>transcription_only</code> profile); assets UPSERT so dispatch history is kept. A <strong>Revive</strong> button lives on the package page.</td></tr>
@@ -208,7 +208,7 @@
       <tr><td>Hard-delete sources</td><td>✅ shipped</td><td>A <strong>Delete video</strong> button removes local + archived media and nulls the paths; Postgres history kept, re-render/re-mine fail cleanly. Completes the storage lifecycle.</td></tr>
       <tr><td>AI thumbnail generation</td><td>✅ shipped</td><td>Thumbnails are AI-generated images via pluggable image providers (Runware) at <code>/providers</code>, with a frame-extraction fallback when none is configured. An LLM turns the analysis into visual concepts; each renders as a plain + headline-overlay variant.</td></tr>
       <tr><td>Modal focus trap</td><td>✅ shipped</td><td>Focuses the first element on open, cycles Tab/Shift+Tab within, restores focus on close.</td></tr>
-      <tr><td>YouTube Direct hardening</td><td>🛠 in progress</td><td>OAuth state table + reconnection flow for per-brand Direct upload.</td></tr>
+      <tr><td>YouTube Direct hardening</td><td>✅ shipped</td><td>CSRF-safe OAuth state table (one-time state consume), encrypted refresh_token with auto-refreshed access tokens, and a Connect / Disconnect / reconnect brand card for per-brand Direct upload.</td></tr>
       <tr><td>Idempotent re-renders</td><td>✅ in v1.0</td><td><code>clip_render</code> keyed by <code>(plan, clip)</code> + <code>render_rev</code>; <code>render-shorts.ts --force</code>.</td></tr>
     </table>
   </div>
