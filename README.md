@@ -12,6 +12,8 @@
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-336791)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 
+**[🌐 channelhelm.com](https://channelhelm.com/) · [GitHub](https://github.com/MeyerThorsten/ChannelHelm)**
+
 </div>
 
 ---
