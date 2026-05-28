@@ -1719,3 +1719,31 @@ This addendum codifies the fixes from review issues #22-#27.
 **Shorts delete semantics.** `short_clip_plan.payload.clips[i]` is never spliced during deletion because rendered assets and dispatch records address clips by `clip_index`. Delete marks the clip with `deleted: true`, `deleted_at`, and `pending_render: false`. Studio list/editor readers hide deleted plan entries. Non-terminal rendered counterparts may be marked rejected/deleted, but `dispatched` and `published` rendered assets are preserved for audit and webhook lifecycle.
 
 **Rendered clip immutability after dispatch.** `rendered_short_clip` and `rendered_long_clip` rows that are `dispatched` or `published` are terminal for byte replacement. `renderClip` refuses to enqueue a new render for them, and `clip_render` re-checks before ffmpeg work so duplicate or stale jobs cannot overwrite the media file behind a published URL. Operators who need a changed clip after publish must create a new plan clip/revision path that results in a distinct rendered asset.
+
+## Addendum (2026-05-28) — multi-language subtitles for Shorts
+
+**§2.3 `short_clip_plan.payload.clips[i].subtitle_translations` (new optional field).** A map keyed by ISO-639-1 language code, recording translated subtitle sidecar files generated for the clip:
+
+```jsonc
+"subtitle_translations": {
+  "es": {
+    "srt_path": "<clipsDir>/clip_000.es.srt",  // absolute on-disk path
+    "ass_path": "<clipsDir>/clip_000.es.ass",  // absolute on-disk path
+    "segments": 7,                              // number of subtitle lines emitted
+    "used_fallback": false,                     // true → LLM returned wrong line count, captions are SOURCE text
+    "generated_at": "2026-05-28T12:00:00.000Z"
+  }
+  // …one entry per produced language
+}
+```
+
+The plan stays the editable source of truth; this field is operator-triggered via the Shorts editor "Translate subtitles" control. Re-translating a language overwrites both its sidecar files and its map entry. The field is a JSONB payload addition only — **no schema/migration change**.
+
+**Pipeline reuse, no new workers.** Translation runs SYNCHRONOUSLY in the Server Action `src/server-actions/subtitle-translate.ts::translateClipSubtitles` — the documented Content-Studio carve-out (bounded, text-only LLM call; one short line-by-line translation per language). It slices the package transcript to the clip's `[start,end]` window at **segment** granularity (word-level timings don't survive translation — word counts/order change across languages), renders `prompts/subtitle_translation.v1.md`, parses `{"segments":[...]}`, and emits SRT + ASS via the pure helpers in `src/lib/subtitle-translate.ts`. Timing math is segment-level + clip-local-rebased and unit-tested (`tests/subtitle-translate.test.ts`).
+
+**Count-mismatch guard.** The prompt requires the model to return exactly one translated line per input segment, in order (so positional pairing preserves each line's timing window). When the returned count differs, `reconcileTranslations` discards the (mis-aligned) translation for that clip and falls back to the SOURCE text for the whole track — a correct-but-untranslated caption beats mis-timed translated lines. `used_fallback: true` records this. An LLM/parse failure for one language degrades that language to source text without aborting the batch.
+
+**DEFERRED follow-ups (intentionally NOT built):**
+
+- **TTS dubbing (translated audio)** — out of scope; large ML dependency, would expand the Python surface. The translated text/SRT is the basis for it if pursued.
+- **Burned-in per-language re-render** — the translated `.ass` written here is the *basis* for a future `clip_render` variant that would consume it to produce one `rendered_short_clip` (or a sibling rendered asset) per language. That re-render is not wired; today translations are caption-track sidecars + a plan record only.

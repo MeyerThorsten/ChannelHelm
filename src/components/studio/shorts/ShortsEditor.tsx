@@ -22,17 +22,14 @@
 import { Modal } from '@/components/ui/Modal';
 import type { AssStyle } from '@/lib/ass-subtitles';
 import type { WordTiming } from '@/lib/word-snap';
-import {
-  generateClipDescription,
-  renderClip,
-  saveClipEdits,
-} from '@/server-actions/clip-edit';
+import { generateClipDescription, renderClip, saveClipEdits } from '@/server-actions/clip-edit';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { ClipPublishOptions } from './ClipPublishOptions';
 import { PreviewPlayer } from './PreviewPlayer';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { DEFAULT_STYLE, SubtitleStylePanel } from './SubtitleStylePanel';
+import { SubtitleTranslatePanel } from './SubtitleTranslatePanel';
 import { Timeline } from './Timeline';
 import { TranscriptPanel } from './TranscriptPanel';
 
@@ -56,6 +53,10 @@ type ClipShape = {
     privacy?: 'public' | 'unlisted' | 'private' | 'schedule';
     publish_at?: string;
   };
+  subtitle_translations?: Record<
+    string,
+    { srt_path: string; ass_path: string; segments: number; used_fallback?: boolean }
+  >;
 };
 
 export function ShortsEditor({
@@ -301,9 +302,8 @@ export function ShortsEditor({
                     maxWidth: '85%',
                   }}
                 >
-                  ⚠ no word-level transcript for this package — live
-                  subtitle overlay disabled. Re-run transcribe_audio with
-                  word_timestamps=true to enable.
+                  ⚠ no word-level transcript for this package — live subtitle overlay disabled.
+                  Re-run transcribe_audio with word_timestamps=true to enable.
                 </div>
               )}
             </div>
@@ -375,15 +375,22 @@ export function ShortsEditor({
 
           <Section title="Subtitles">
             <SubtitleStylePanel value={styling} onChange={setStyling} />
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <SubtitleTranslatePanel
+                planAssetId={planAssetId}
+                clipIndex={clipIndex}
+                existing={clip.subtitle_translations ?? {}}
+                hasTranscript={words.length > 0}
+                onTranslated={() => router.refresh()}
+              />
+            </div>
           </Section>
 
           <Section title="Description & Tags">
             <FieldLabel>
               Description (post body for TikTok / Reels / Shorts)
               {descriptionPending && (
-                <span style={{ marginLeft: 8, color: 'var(--accent)' }}>
-                  ✨ generating…
-                </span>
+                <span style={{ marginLeft: 8, color: 'var(--accent)' }}>✨ generating…</span>
               )}
             </FieldLabel>
             <textarea
@@ -656,7 +663,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function FieldLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function FieldLabel({
+  children,
+  style,
+}: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
       style={{
