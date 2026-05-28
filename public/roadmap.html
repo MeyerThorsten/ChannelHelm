@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roadmap — ChannelHelm</title>
+<meta name="description" content="ChannelHelm's release roadmap: Backlog Revival (v1.1), the Helm Signal feedback loop (v1.5), and scale + identity work (v2)." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --accent-soft: rgba(14,165,233,0.12);
+    --shipped: #10b981;
+    --next: #0ea5e9;
+    --mid: #f59e0b;
+    --far: #a855f7;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --dim: #52525b;
+    --grid: rgba(255,255,255,0.04);
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:860px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{position:sticky;top:0;z-index:40;height:52px;border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow)}
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero h1{font-family:var(--font-serif);font-weight:400;font-size:clamp(38px,5.6vw,60px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px}
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:720px;margin:0}
+
+  section{padding:40px 0}
+  h2{font-family:var(--font-serif);font-weight:400;font-size:clamp(24px,3.2vw,32px);letter-spacing:-.4px;margin:0 0 6px;line-height:1.15;display:flex;align-items:center;gap:10px}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:15px;max-width:760px}
+
+  /* timeline */
+  .timeline-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin:18px 0}
+  .timeline-wrap svg{width:100%;height:auto;display:block}
+
+  /* release blocks */
+  .rel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin:16px 0;border-left:4px solid}
+  .rel.shipped{border-left-color:var(--shipped)}
+  .rel.next{border-left-color:var(--next)}
+  .rel.mid{border-left-color:var(--mid)}
+  .rel.far{border-left-color:var(--far)}
+  .rel .tag{font-family:var(--font-mono);font-size:11px;padding:2px 9px;border-radius:5px;letter-spacing:.04em}
+  .rel.shipped .tag{background:color-mix(in oklab,var(--shipped) 18%,transparent);color:var(--shipped)}
+  .rel.next .tag{background:color-mix(in oklab,var(--next) 18%,transparent);color:var(--next)}
+  .rel.mid .tag{background:color-mix(in oklab,var(--mid) 18%,transparent);color:var(--mid)}
+  .rel.far .tag{background:color-mix(in oklab,var(--far) 18%,transparent);color:var(--far)}
+  .rel h3{margin:8px 0 4px;font-size:21px;font-weight:600;letter-spacing:-.2px}
+  .rel .theme{font-size:13.5px;color:var(--muted);margin:0 0 14px}
+
+  table.rel-items{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;margin-top:6px}
+  table.rel-items th,table.rel-items td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+  table.rel-items th{color:var(--faint);font-weight:500;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  table.rel-items tr:last-child td{border-bottom:none}
+  table.rel-items td:first-child{font-weight:600;color:var(--text);white-space:nowrap}
+  table.rel-items code{font-size:11.5px}
+
+  .callout{margin:14px 0;padding:14px 18px;border-radius:10px;background:color-mix(in oklab,var(--accent) 6%,var(--panel));
+    border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));font-size:14px;line-height:1.55}
+  .callout strong{color:var(--accent);margin-right:6px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:30px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:640px){ table.rel-items td:first-child{white-space:normal} }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#v11">v1.1</a>
+    <a href="#v15">v1.5</a>
+    <a href="#v2">v2</a>
+    <a href="/how-it-works.html">How it works</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<section class="hero narrow">
+  <div class="eyebrow">Roadmap</div>
+  <h1>Where ChannelHelm <em>is headed.</em></h1>
+  <p class="lede">
+    Drawn from the milestones already defined in the technical contract and the items documented
+    as deferred across the codebase. It's a direction, not a contract — priorities and dates are
+    the maintainer's call and may shift. Suggestions and PRs against any of these are welcome.
+  </p>
+</section>
+
+<!-- ─── TIMELINE ─────────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="timeline-wrap">
+    <svg viewBox="0 0 920 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Release timeline">
+      <style>
+        .node{font:600 14px Inter,sans-serif}
+        .theme{font:12px Inter,sans-serif;fill:#a1a1aa}
+        .chip{font:11px "JetBrains Mono",monospace;fill:#a1a1aa}
+        .stat{font:10px "JetBrains Mono",monospace}
+      </style>
+      <!-- spine -->
+      <line x1="70" y1="60" x2="850" y2="60" stroke="#2e2e36" stroke-width="2"/>
+      <!-- shipped portion solid -->
+      <line x1="70" y1="60" x2="160" y2="60" stroke="#10b981" stroke-width="3"/>
+
+      <!-- v1.0 -->
+      <circle cx="120" cy="60" r="9" fill="#10b981"/>
+      <text class="node" x="120" y="36" text-anchor="middle" fill="#f4f4f5">v1.0</text>
+      <text class="stat" x="120" y="86" text-anchor="middle" fill="#10b981">shipped</text>
+      <text class="theme" x="120" y="106" text-anchor="middle">Foundation</text>
+      <text class="chip" x="120" y="134" text-anchor="middle">pipeline · Studio</text>
+      <text class="chip" x="120" y="150" text-anchor="middle">Shorts · dispatch</text>
+      <text class="chip" x="120" y="166" text-anchor="middle">MIT open source</text>
+
+      <!-- v1.1 -->
+      <circle cx="350" cy="60" r="9" fill="#0a0a0b" stroke="#0ea5e9" stroke-width="3"/>
+      <text class="node" x="350" y="36" text-anchor="middle" fill="#f4f4f5">v1.1</text>
+      <text class="stat" x="350" y="86" text-anchor="middle" fill="#0ea5e9">next</text>
+      <text class="theme" x="350" y="106" text-anchor="middle">Backlog Revival</text>
+      <text class="chip" x="350" y="134" text-anchor="middle">re-mine old videos</text>
+      <text class="chip" x="350" y="150" text-anchor="middle">transcription_only</text>
+      <text class="chip" x="350" y="166" text-anchor="middle">hard-delete · re-renders</text>
+
+      <!-- v1.5 -->
+      <circle cx="580" cy="60" r="9" fill="#0a0a0b" stroke="#f59e0b" stroke-width="3"/>
+      <text class="node" x="580" y="36" text-anchor="middle" fill="#f4f4f5">v1.5</text>
+      <text class="stat" x="580" y="86" text-anchor="middle" fill="#f59e0b">planned</text>
+      <text class="theme" x="580" y="106" text-anchor="middle">Signal &amp; Intelligence</text>
+      <text class="chip" x="580" y="134" text-anchor="middle">title/thumb A/B</text>
+      <text class="chip" x="580" y="150" text-anchor="middle">retention calibration</text>
+      <text class="chip" x="580" y="166" text-anchor="middle">copyright · sentiment</text>
+
+      <!-- v2 -->
+      <circle cx="810" cy="60" r="9" fill="#0a0a0b" stroke="#a855f7" stroke-width="3"/>
+      <text class="node" x="810" y="36" text-anchor="middle" fill="#f4f4f5">v2</text>
+      <text class="stat" x="810" y="86" text-anchor="middle" fill="#a855f7">later</text>
+      <text class="theme" x="810" y="106" text-anchor="middle">Scale &amp; Identity</text>
+      <text class="chip" x="810" y="134" text-anchor="middle">Shorts via YT Direct</text>
+      <text class="chip" x="810" y="150" text-anchor="middle">object storage</text>
+      <text class="chip" x="810" y="166" text-anchor="middle">speaker ID · teams</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── v1.0 ─────────────────────────────────────────────────────────── -->
+<section class="narrow">
+  <div class="rel shipped">
+    <span class="tag">✓ SHIPPED</span>
+    <h3>v1.0 — Foundation</h3>
+    <p class="theme">The current base, for context.</p>
+    <table class="rel-items">
+      <tr><td>Pipeline</td><td>Four understanding layers (audio · visual · fusion · intelligence) on a custom <code>SKIP LOCKED</code> queue with tunable worker concurrency.</td></tr>
+      <tr><td>Studio</td><td>Per-package review: scored options, inline edit, on-demand regeneration, live pipeline status.</td></tr>
+      <tr><td>Shorts editor</td><td>Word-snap trimming, 6 ASS subtitle animations, live no-render subtitle preview, auto-written descriptions, per-clip publishing.</td></tr>
+      <tr><td>Dispatch</td><td>YouTube Direct (per-brand OAuth), Zernio (social + clips), DojoClaw (editorial).</td></tr>
+      <tr><td>Storage</td><td>Inline Stage-1 cleanup (Option A) + post-publish archive worker (Option B).</td></tr>
+      <tr><td>Providers</td><td>Pluggable LLM providers with per-purpose routing + at-rest key encryption.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ─── v1.1 ─────────────────────────────────────────────────────────── -->
+<section class="narrow" id="v11">
+  <div class="rel next">
+    <span class="tag">🔜 NEXT</span>
+    <h3>v1.1 — Backlog Revival</h3>
+    <p class="theme">Re-mine an existing back catalogue with the current pipeline + prompts, so old uploads yield fresh publishing kits without re-recording. Bundled with near-term polish that makes re-running cheap and safe.</p>
+    <table class="rel-items">
+      <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
+      <tr><td>Backlog Revival</td><td>Point ChannelHelm at past videos and run them with updated prompts.</td><td>Separate spec; the primary v1.1 deliverable.</td></tr>
+      <tr><td><code>transcription_only</code> profile</td><td>A cheap fourth profile for re-mining without the full visual/diarization passes.</td><td>Keeps backlog re-runs inexpensive.</td></tr>
+      <tr><td>Idempotent re-renders</td><td><code>clip_render</code> skip-if-exists + explicit <code>--force</code>.</td><td>From the visual-phase backlog.</td></tr>
+      <tr><td>Hard-delete sources</td><td>Operator-triggered "Delete source video" (Option C); removes local + archived media.</td><td>Completes the storage lifecycle.</td></tr>
+      <tr><td>YouTube Direct hardening</td><td>OAuth state handling + reconnection flow for per-brand Direct upload.</td><td>In progress.</td></tr>
+      <tr><td>Editor polish</td><td>Modal focus trap; Shorts-editor ergonomics.</td><td>Deferred from the v1 Shorts drop.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ─── v1.5 ─────────────────────────────────────────────────────────── -->
+<section class="narrow" id="v15">
+  <div class="rel mid">
+    <span class="tag">🧭 PLANNED</span>
+    <h3>v1.5 — Signal &amp; Intelligence</h3>
+    <p class="theme">Close the Helm Signal feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation.</p>
+    <table class="rel-items">
+      <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
+      <tr><td>Title/thumbnail A/B routing</td><td>Queue title + thumbnail options as a YouTube Studio split test; winner → positive voice example, loser → negative.</td><td>Schema already supports it.</td></tr>
+      <tr><td>Retention calibration model</td><td>Replace LLM-only retention prediction with a small model trained on real YouTube Studio retention curves.</td><td>Predicted scores become training signal.</td></tr>
+      <tr><td>Music / copyright detection</td><td>Flag clips with copyrighted audio before YouTube Shorts syndication.</td><td>Matters once Shorts volume grows.</td></tr>
+      <tr><td>Sentiment-over-time curves</td><td>Emotion curve from the scene log for emotion-aware clip selection.</td><td>Cheap; reuses existing data.</td></tr>
+      <tr><td>Per-provider concurrency limits</td><td>A <code>max_concurrent</code> column on <code>llm_providers</code> so a rate-limited provider isn't hammered.</td><td>From the worker-concurrency notes.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ─── v2 ───────────────────────────────────────────────────────────── -->
+<section class="narrow" id="v2">
+  <div class="rel far">
+    <span class="tag">🚀 LATER</span>
+    <h3>v2 — Scale &amp; Identity</h3>
+    <p class="theme">Bigger structural moves once single-operator throughput is no longer the constraint.</p>
+    <table class="rel-items">
+      <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
+      <tr><td>YouTube Direct for Shorts</td><td>Upload Shorts per-clip via the YouTube Data API, not only through Zernio.</td><td>Two dispatches per asset (Zernio still does TikTok/IG).</td></tr>
+      <tr><td>B-roll insertion</td><td>Honour <code>b_roll_enabled</code> — composite b-roll into rendered clips.</td><td>UI flag exists; rendering deferred.</td></tr>
+      <tr><td>Object storage</td><td>Optional S3 / R2 backend beyond the local NAS export.</td><td>Local storage suffices for v1.</td></tr>
+      <tr><td>Speaker ID by name</td><td>Replace <code>speaker_01</code> with named ID via a per-brand face/voice index.</td><td>More storage + privacy considerations.</td></tr>
+      <tr><td>GSC article signals</td><td>Pull Search Console position + page metrics for DojoClaw articles into <code>signals</code>.</td><td>Completes cross-surface performance data.</td></tr>
+      <tr><td>Multi-operator / teams</td><td>Team accounts atop the local-first single-operator model.</td><td>Only if content-ops headcount grows.</td></tr>
+      <tr><td>Higher dispatch-volume path</td><td>Documented upgrade path if dispatch outgrows local bandwidth.</td><td>Choose when needed.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ─── HOW PRIORITIES ───────────────────────────────────────────────── -->
+<section class="narrow">
+  <h2>How priorities are set</h2>
+  <p class="sub">
+    ChannelHelm is local-first and single-operator by design; the roadmap optimizes for
+    <strong>one person turning more videos into more on-brand output with less manual work</strong>,
+    not for multi-tenant scale. The feedback loop (v1.5) is weighted heavily because it compounds —
+    every shipped asset that gets measured makes the next one better.
+  </p>
+  <div class="callout">
+    <strong>Have an idea?</strong> Open an issue on
+    <a href="https://github.com/MeyerThorsten/ChannelHelm">GitHub</a>, or read the in-app guides
+    (<a href="/how-it-works.html">how it works</a>, <a href="/handbook.html">handbook</a>,
+    <a href="/shorts-editor-guide.html">Shorts editor</a>) for how the current system works.
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · roadmap · 2026</span>
+    <span>
+      <a href="https://channelhelm.com/" style="color:var(--muted)">website</a> ·
+      <a href="https://github.com/MeyerThorsten/ChannelHelm" style="color:var(--muted)">github</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>
