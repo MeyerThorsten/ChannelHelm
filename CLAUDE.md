@@ -222,7 +222,7 @@ At the start of every Claude Code session, do this:
 
 - Prefers implementation-ready output over outlines or questions.
 - Will push back when an approach doesn't fit existing constraints. Push back is signal, not friction.
-- Reads diffs and runs migrations himself rather than letting the agent auto-apply destructive operations. Show the migration; he runs it.
+- **Execute actions, don't hand them off** ("always do the action for me"). Run migrations, deploys, scripts, and setup steps directly. Still SHOW the migration/diff. Confirm before genuinely irreversible or destructive operations. For steps only a human can complete (e.g. a browser OAuth consent), drive it as far as possible (open the page) and hand off only the final click. (Supersedes the earlier "show the migration; he runs it.")
 - Uses MacWhisper Pro + Superwhisper for voice dictation into Claude Code. Long voice-dictated prompts are normal; parse intent rather than literal phrasing.
 - Working from Iffeldorf, Germany. UTC+1 / UTC+2 depending on DST. Use UTC for all ISO timestamps in code.
 
