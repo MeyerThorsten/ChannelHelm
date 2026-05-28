@@ -228,6 +228,10 @@ channelhelm/
 
 ChannelHelm v1 does **not** deploy to a cloud SaaS. It runs on your own machine (or Mac fleet). The only external network dependency is your social-publishing API; editorial routing goes to a local service over your LAN. Provider API keys are encrypted at rest (AES-256-GCM). Multi-brand is root: every entity is brand-scoped.
 
+## Roadmap
+
+See [`ROADMAP.md`](ROADMAP.md) for what's planned — Backlog Revival (v1.1), the Helm Signal feedback loop (v1.5), and scale/identity work (v2).
+
 ## Contributing
 
 Issues and pull requests are welcome. Run `pnpm typecheck`, `pnpm lint`, and `pnpm test` before opening a PR.
