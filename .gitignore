@@ -56,3 +56,8 @@ migrations/meta/*.json
 *.log
 tmp/
 .cache/
+
+# Local-only: the load-bearing technical contract stays on the operator's
+# machine and is never pushed to GitHub. (Already untracked via
+# `git rm --cached`; this rule stops it being re-added.)
+docs/channelhelm-technical-contract-v1.md
