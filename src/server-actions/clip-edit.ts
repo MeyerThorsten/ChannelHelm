@@ -97,6 +97,14 @@ function appendEditsLog(
   return { ...payload, edits_log: log };
 }
 
+function renderedTypeForPlan(planType: string): 'rendered_short_clip' | 'rendered_long_clip' {
+  return planType === 'long_clip_plan' ? 'rendered_long_clip' : 'rendered_short_clip';
+}
+
+function isTerminalRenderedStatus(status: string): boolean {
+  return status === 'dispatched' || status === 'published';
+}
+
 // ─── saveClipEdits ────────────────────────────────────────────────────────
 
 /**
@@ -231,11 +239,9 @@ export async function setClipPublishOptions(
   };
   const newClips = clips.slice();
   newClips[clipIndex] = { ...cur, publish_options: newOptions };
-  const newPayload = appendEditsLog(
-    { ...payload, clips: newClips },
-    clipIndex,
-    ['publish_options'],
-  );
+  const newPayload = appendEditsLog({ ...payload, clips: newClips }, clipIndex, [
+    'publish_options',
+  ]);
 
   await db
     .update(assets)
@@ -259,6 +265,28 @@ export async function renderClip(planAssetId: string, clipIndex: number): Promis
   const { plan, payload, clips } = await loadPlanAndClip(planAssetId, clipIndex);
 
   const cur = (clips[clipIndex] ?? {}) as Record<string, unknown>;
+  if (cur.deleted === true) {
+    throw new Error('clip has been deleted from the plan');
+  }
+
+  const [existingRendered] = await db
+    .select({ id: assets.id, status: assets.status })
+    .from(assets)
+    .where(
+      and(
+        eq(assets.packageId, plan.packageId),
+        eq(assets.type, renderedTypeForPlan(plan.type)),
+        sql`(${assets.payload} ->> 'plan_asset_id') = ${planAssetId}`,
+        sql`(${assets.payload} ->> 'clip_index')::int = ${clipIndex}`,
+      ),
+    )
+    .limit(1);
+  if (existingRendered && isTerminalRenderedStatus(existingRendered.status)) {
+    throw new Error(
+      `clip already ${existingRendered.status}; create a new plan clip instead of re-rendering ${existingRendered.id}`,
+    );
+  }
+
   const newRev = (Number(cur.render_rev) || 0) + 1;
   const newClips = clips.slice();
   newClips[clipIndex] = { ...cur, render_rev: newRev, pending_render: true };
@@ -372,11 +400,10 @@ export async function generateClipDescription(
   await db
     .update(assets)
     .set({
-      payload: appendEditsLog(
-        { ...payload, clips: newClips },
-        clipIndex,
-        ['description_generated_at', ...(succeeded ? ['description'] : [])],
-      ),
+      payload: appendEditsLog({ ...payload, clips: newClips }, clipIndex, [
+        'description_generated_at',
+        ...(succeeded ? ['description'] : []),
+      ]),
       updatedAt: sql`now()`,
     })
     .where(eq(assets.id, planAssetId));
@@ -400,11 +427,7 @@ function numOr(obj: unknown, key: string, fallback: number): number {
  * "(transcript not available)" if the package has no transcript — the
  * LLM still has title + caption + tags to work from.
  */
-function extractTranscriptInRange(
-  intelligence: unknown,
-  startSec: number,
-  endSec: number,
-): string {
+function extractTranscriptInRange(intelligence: unknown, startSec: number, endSec: number): string {
   const transcript = (intelligence as { transcript?: unknown } | null)?.transcript;
   const segments = (transcript as { segments?: unknown } | undefined)?.segments;
   if (!Array.isArray(segments) || segments.length === 0) {
@@ -431,8 +454,14 @@ function extractTranscriptInRange(
  */
 function cleanDescription(raw: string): string {
   let s = raw.trim();
-  s = s.replace(/^```(?:[a-zA-Z0-9_-]*)?\s*/i, '').replace(/```\s*$/i, '').trim();
-  s = s.replace(/^["'""]/, '').replace(/["'""]$/, '').trim();
+  s = s
+    .replace(/^```(?:[a-zA-Z0-9_-]*)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+  s = s
+    .replace(/^["'""]/, '')
+    .replace(/["'""]$/, '')
+    .trim();
   s = s.replace(/^(?:description|caption|post|body)\s*[:\-—]\s*/i, '').trim();
   if (s.length > 280) s = `${s.slice(0, 277).trimEnd()}…`;
   return s;
@@ -441,18 +470,24 @@ function cleanDescription(raw: string): string {
 // ─── deleteClip ───────────────────────────────────────────────────────────
 
 /**
- * Remove a clip from the plan AND its rendered counterpart (if any).
- * Used by the per-row Delete button on ShortsList. Soft delete is not
- * supported — the operator can always re-generate plans from
- * analyze_intelligence if needed.
+ * Mark a clip deleted on the plan. We keep the array index stable because
+ * rendered assets and dispatch rows refer to `clip_index`. Any non-terminal
+ * rendered counterpart is rejected/hidden; dispatched or published renders
+ * are preserved for audit and lifecycle correctness.
  */
 export async function deleteClip(planAssetId: string, clipIndex: number): Promise<void> {
   const { plan, payload, clips } = await loadPlanAndClip(planAssetId, clipIndex);
 
-  // Remove the clip entry. We DON'T renumber the others — keeping
-  // clip_index stable means in-flight dispatches don't lose their target.
+  const cur = (clips[clipIndex] ?? {}) as Record<string, unknown>;
+  if (cur.deleted === true) return;
+
   const newClips = clips.slice();
-  newClips.splice(clipIndex, 1);
+  newClips[clipIndex] = {
+    ...cur,
+    deleted: true,
+    deleted_at: new Date().toISOString(),
+    pending_render: false,
+  };
   await db
     .update(assets)
     .set({
@@ -461,18 +496,33 @@ export async function deleteClip(planAssetId: string, clipIndex: number): Promis
     })
     .where(eq(assets.id, planAssetId));
 
-  // Best-effort: drop the rendered_*_clip row for this index if it
-  // exists. Doesn't affect already-dispatched assets (those keep their
-  // history) but stops them appearing in the Shorts list.
-  await db
-    .delete(assets)
+  const renderedRows = await db
+    .select({ id: assets.id, status: assets.status, payload: assets.payload })
+    .from(assets)
     .where(
       and(
         eq(assets.packageId, plan.packageId),
+        eq(assets.type, renderedTypeForPlan(plan.type)),
         sql`(${assets.payload} ->> 'plan_asset_id') = ${planAssetId}`,
         sql`(${assets.payload} ->> 'clip_index')::int = ${clipIndex}`,
       ),
     );
+
+  for (const rendered of renderedRows) {
+    if (isTerminalRenderedStatus(rendered.status)) continue;
+    await db
+      .update(assets)
+      .set({
+        status: 'rejected',
+        payload: {
+          ...(rendered.payload as Record<string, unknown>),
+          deleted: true,
+          deleted_at: new Date().toISOString(),
+        },
+        updatedAt: sql`now()`,
+      })
+      .where(eq(assets.id, rendered.id));
+  }
 
   revalidatePath(`/packages/${plan.packageId}`);
 }

@@ -1,8 +1,10 @@
+import { requireAuth } from '@/lib/auth';
 import {
   MASK,
   SETTINGS_CATALOGUE,
   ensureHydrated,
   getSettingDef,
+  getSubscriberStatus,
   isMaskPlaceholder,
   maskValue,
   setSetting,
@@ -18,7 +20,10 @@ import { type NextRequest, NextResponse } from 'next/server';
  * Modeled on dojoclaw's /api/settings GET. We additionally return the
  * `bootOnly` flag so the UI can render those rows read-only.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<Response> {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   // Lazy hydrate so the page always reflects DB truth even if this Next.js
   // process started after rows already existed. No-op once hydrated.
   const migrationNeeded = !(await settingsTableExists());
@@ -41,7 +46,7 @@ export async function GET(): Promise<NextResponse> {
       bootOnly: !!def.bootOnly,
     };
   });
-  return NextResponse.json({ items, migrationNeeded });
+  return NextResponse.json({ items, migrationNeeded, subscriberStatus: getSubscriberStatus() });
 }
 
 /**
@@ -49,7 +54,10 @@ export async function GET(): Promise<NextResponse> {
  * ignored (DojoClaw pattern: re-submitting `••••••••` means "no change").
  * Boot-only keys are refused with 400.
  */
-export async function PUT(req: NextRequest): Promise<NextResponse> {
+export async function PUT(req: NextRequest): Promise<Response> {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = (await req.json()) as Record<string, unknown>;
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'body must be an object of key→value' }, { status: 400 });

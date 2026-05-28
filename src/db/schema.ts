@@ -11,3 +11,4 @@ export * from './schema/signals';
 export * from './schema/voice_examples';
 export * from './schema/llm_providers';
 export * from './schema/settings';
+export * from './schema/youtube_oauth_states';

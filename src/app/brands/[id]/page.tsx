@@ -3,6 +3,7 @@ import { YoutubeConnectionCard } from '@/components/brands/YoutubeConnectionCard
 import { AsyncActionButton } from '@/components/studio/buttons';
 import { db } from '@/db/client';
 import { brands, packages } from '@/db/schema';
+import { hydrateRuntimeSettingsForRoute } from '@/lib/settings';
 import { slugify } from '@/lib/url';
 import { renormalizeBrandSlug, updateBrandFromForm } from '@/server-actions/brands';
 import { youtubeConnectionStatus } from '@workers/integrations/youtube';
@@ -18,6 +19,8 @@ type Props = {
 };
 
 export default async function BrandDetailPage({ params, searchParams }: Props) {
+  await hydrateRuntimeSettingsForRoute('brand-detail');
+
   const { id } = await params;
   const sp = await searchParams;
   const [brand] = await db.select().from(brands).where(eq(brands.id, id)).limit(1);

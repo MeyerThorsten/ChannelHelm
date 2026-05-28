@@ -52,6 +52,7 @@ export default async function ShortEditorPage({ params }: { params: Params }) {
   const planPayload = (plan.payload ?? {}) as { clips?: Record<string, unknown>[] };
   const clip = planPayload.clips?.[clipIndex];
   if (!clip) notFound();
+  if (clip.deleted === true) notFound();
 
   // Try to find a corresponding rendered_short_clip row.
   const [rendered] = await db
@@ -79,8 +80,7 @@ export default async function ShortEditorPage({ params }: { params: Params }) {
   const sourceVideoUrl = source.localMediaPath
     ? mediaUrlFor(`${source.localMediaPath}/original.mp4`)
     : '';
-  const renderedLocalPath = (rendered?.payload as { local_path?: string } | undefined)
-    ?.local_path;
+  const renderedLocalPath = (rendered?.payload as { local_path?: string } | undefined)?.local_path;
   const renderedVideoUrl = renderedLocalPath ? mediaUrlFor(renderedLocalPath) : null;
 
   // Long-form companion link for the Short's description ("Watch the full

@@ -18,9 +18,9 @@ import { createReadStream, statSync } from 'node:fs';
 import { db } from '@/db/client';
 import { brands } from '@/db/schema';
 import { decryptSecret, encryptSecret } from '@/lib/secret-box';
-import { google, type youtube_v3 } from 'googleapis';
-import { type OAuth2Client } from 'google-auth-library';
 import { eq, sql } from 'drizzle-orm';
+import type { OAuth2Client } from 'google-auth-library';
+import { google, type youtube_v3 } from 'googleapis';
 
 const YT_SCOPES = [
   'https://www.googleapis.com/auth/youtube.upload',
@@ -45,7 +45,7 @@ function oauthClient(redirectUri: string): OAuth2Client {
 
 /**
  * Step 1 of the OAuth dance — return the Google consent URL with the
- * brand id encoded in `state` so the callback can map back.
+ * caller-provided nonce encoded in `state` so the callback can map back.
  *
  * `prompt: 'select_account consent'` is deliberate:
  *  - `select_account` ALWAYS shows the Google account chooser, even when the
@@ -59,17 +59,13 @@ function oauthClient(redirectUri: string): OAuth2Client {
  * `loginHint` (optional) pre-fills the email on the chooser — handy when the
  * operator knows which Google account owns the channel.
  */
-export function youtubeAuthUrl(
-  brandId: string,
-  redirectUri: string,
-  loginHint?: string,
-): string {
+export function youtubeAuthUrl(state: string, redirectUri: string, loginHint?: string): string {
   const client = oauthClient(redirectUri);
   return client.generateAuthUrl({
     access_type: 'offline', // required to receive a refresh_token
     prompt: 'select_account consent',
     scope: YT_SCOPES,
-    state: brandId,
+    state,
     include_granted_scopes: true,
     ...(loginHint ? { login_hint: loginHint } : {}),
   });
@@ -84,6 +80,7 @@ export async function youtubeOauthCallback(
   brandId: string,
   code: string,
   redirectUri: string,
+  expectedChannelId?: string | null,
 ): Promise<{ channelId: string | null; channelTitle: string | null }> {
   const client = oauthClient(redirectUri);
   const { tokens } = await client.getToken(code);
@@ -100,11 +97,30 @@ export async function youtubeOauthCallback(
   try {
     const yt = google.youtube({ version: 'v3', auth: client });
     const me = await yt.channels.list({ mine: true, part: ['id', 'snippet'] });
-    const item = me.data.items?.[0];
+    const items = me.data.items ?? [];
+    const item = expectedChannelId
+      ? (items.find((candidate) => candidate.id === expectedChannelId) ?? items[0])
+      : items[0];
     channelId = item?.id ?? null;
     channelTitle = item?.snippet?.title ?? null;
   } catch (err) {
+    if (expectedChannelId) {
+      throw new Error(
+        `Could not verify the connected YouTube channel against expected channel ${expectedChannelId}: ${(err as Error).message}`,
+      );
+    }
     console.warn('[youtube] channel lookup failed (continuing):', (err as Error).message);
+  }
+
+  if (expectedChannelId) {
+    if (!channelId) {
+      throw new Error(`Could not verify connected YouTube channel ${expectedChannelId}`);
+    }
+    if (channelId !== expectedChannelId) {
+      throw new Error(
+        `Connected Google account owns YouTube channel ${channelId}, but brand expects ${expectedChannelId}`,
+      );
+    }
   }
 
   const youtubeOauth = {
@@ -247,9 +263,12 @@ export async function uploadVideo(req: YoutubeUploadRequest): Promise<YoutubeUpl
  * Read-only helper for the brand UI: is this brand connected, and to which
  * channel? Doesn't return tokens — never serialized to the client.
  */
-export async function youtubeConnectionStatus(
-  brandId: string,
-): Promise<{ connected: boolean; channelId: string | null; channelTitle: string | null; connectedAt: string | null }> {
+export async function youtubeConnectionStatus(brandId: string): Promise<{
+  connected: boolean;
+  channelId: string | null;
+  channelTitle: string | null;
+  connectedAt: string | null;
+}> {
   const [row] = await db
     .select({ youtubeOauth: brands.youtubeOauth })
     .from(brands)

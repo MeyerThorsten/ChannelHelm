@@ -57,6 +57,13 @@
       "when": 1779867760593,
       "tag": "0007_archive_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779974400000,
+      "tag": "0008_youtube_oauth_states",
+      "breakpoints": true
     }
   ]
 }

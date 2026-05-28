@@ -2,14 +2,12 @@ import { createHash } from 'node:crypto';
 import { db } from '@/db/client';
 import { webhookEvents } from '@/db/schema';
 import { verifyHmac, webhookGate } from '@/lib/hmac';
+import { hydrateRuntimeSettingsForRoute } from '@/lib/settings';
 import { processWebhookEvent } from '@/lib/webhook-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const SIG_HEADER = process.env.ZERNIO_SIGNATURE_HEADER ?? 'x-zernio-signature';
-const SECRET = process.env.ZERNIO_WEBHOOK_SECRET;
-const ALLOW_UNSIGNED = process.env.ALLOW_UNSIGNED_WEBHOOKS === '1';
 let warnedUnverified = false;
 
 /**
@@ -24,14 +22,19 @@ let warnedUnverified = false;
  * warning so it's visible the path is unverified.
  */
 export async function POST(req: Request) {
+  await hydrateRuntimeSettingsForRoute('webhook:zernio');
+  const sigHeader = process.env.ZERNIO_SIGNATURE_HEADER ?? 'x-zernio-signature';
+  const secret = process.env.ZERNIO_WEBHOOK_SECRET;
+  const allowUnsigned = process.env.ALLOW_UNSIGNED_WEBHOOKS === '1';
+
   const raw = await req.text();
   const check = verifyHmac({
-    secret: SECRET,
-    headerName: SIG_HEADER,
-    headerValue: req.headers.get(SIG_HEADER),
+    secret,
+    headerName: sigHeader,
+    headerValue: req.headers.get(sigHeader),
     rawBody: raw,
   });
-  const gate = webhookGate(check, ALLOW_UNSIGNED);
+  const gate = webhookGate(check, allowUnsigned);
   if (!gate.accept) {
     return Response.json(gate.body, { status: gate.status });
   }

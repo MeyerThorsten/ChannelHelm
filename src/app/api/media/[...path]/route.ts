@@ -3,14 +3,10 @@ import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { contentTypeFor, resolveMediaPath } from '@/lib/media-path';
 import { verifyMediaSignature } from '@/lib/media-sign';
+import { hydrateRuntimeSettingsForRoute } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// §9.4: when serving media on a publicly reachable host, require signed URLs.
-// Set MEDIA_REQUIRE_SIGNATURE=1 in that deployment; local dev leaves it unset
-// so the studio's <video> can stream directly.
-const REQUIRE_SIGNATURE = process.env.MEDIA_REQUIRE_SIGNATURE === '1';
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
@@ -28,12 +24,15 @@ function unsatisfiable(total: number): Response {
  * by nginx behind the Cloudflare Tunnel; this route is the dev equivalent.
  */
 export async function GET(req: Request, { params }: Ctx) {
+  await hydrateRuntimeSettingsForRoute('media');
+  const requireSignature = process.env.MEDIA_REQUIRE_SIGNATURE === '1';
+
   const { path: segments } = await params;
   const rel = segments.map(decodeURIComponent).join('/');
   const abs = resolveMediaPath(rel);
   if (!abs) return new Response('forbidden', { status: 403 });
 
-  if (REQUIRE_SIGNATURE) {
+  if (requireSignature) {
     const url = new URL(req.url);
     const exp = Number.parseInt(url.searchParams.get('exp') ?? '', 10);
     const sig = url.searchParams.get('sig');

@@ -17,8 +17,8 @@
 
 import { db } from '@/db/client';
 import { settings } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import pg from 'pg';
-import { eq } from 'drizzle-orm';
 import { decryptSecret, encryptSecret, isEncrypted } from './secret-box';
 
 export type SettingKind = 'string' | 'number' | 'boolean';
@@ -38,38 +38,145 @@ export type SettingDef = {
  */
 export const SETTINGS_CATALOGUE: SettingDef[] = [
   // ── External integrations ─────────────────────────────────────────────────
-  { key: 'ZERNIO_API_KEY', sensitive: true, kind: 'string', help: 'Required for dispatch → Zernio (social/clip publishing).' },
-  { key: 'ZERNIO_WEBHOOK_SECRET', sensitive: true, kind: 'string', help: 'When set, /api/webhooks/zernio requires a matching x-zernio-signature header (HMAC SHA-256, fail-closed).' },
-  { key: 'DOJOCLAW_API_URL', sensitive: false, kind: 'string', help: 'LAN URL for DojoClaw, e.g. http://m4max.local:8788.' },
-  { key: 'DOJOCLAW_API_KEY', sensitive: true, kind: 'string', help: 'Required for dispatch → DojoClaw (article briefs).' },
-  { key: 'DOJOCLAW_WEBHOOK_SECRET', sensitive: true, kind: 'string', help: 'When set, /api/webhooks/dojoclaw requires a matching x-dojoclaw-signature header.' },
-  { key: 'HF_TOKEN', sensitive: true, kind: 'string', help: 'Enables ml/diarize.py speaker labels. Token must have pyannote model licenses accepted.' },
+  {
+    key: 'ZERNIO_API_KEY',
+    sensitive: true,
+    kind: 'string',
+    help: 'Required for dispatch → Zernio (social/clip publishing).',
+  },
+  {
+    key: 'ZERNIO_WEBHOOK_SECRET',
+    sensitive: true,
+    kind: 'string',
+    help: 'When set, /api/webhooks/zernio requires a matching x-zernio-signature header (HMAC SHA-256, fail-closed).',
+  },
+  {
+    key: 'DOJOCLAW_API_URL',
+    sensitive: false,
+    kind: 'string',
+    help: 'LAN URL for DojoClaw, e.g. http://m4max.local:8788.',
+  },
+  {
+    key: 'DOJOCLAW_API_KEY',
+    sensitive: true,
+    kind: 'string',
+    help: 'Required for dispatch → DojoClaw (article briefs).',
+  },
+  {
+    key: 'DOJOCLAW_WEBHOOK_SECRET',
+    sensitive: true,
+    kind: 'string',
+    help: 'When set, /api/webhooks/dojoclaw requires a matching x-dojoclaw-signature header.',
+  },
+  {
+    key: 'HF_TOKEN',
+    sensitive: true,
+    kind: 'string',
+    help: 'Enables ml/diarize.py speaker labels. Token must have pyannote model licenses accepted.',
+  },
   // ── Public exposure ──────────────────────────────────────────────────────
-  { key: 'CLOUDFLARE_TUNNEL_HOSTNAME', sensitive: false, kind: 'string', help: 'Public base URL for inbound webhooks + signed /media/* URLs (e.g. https://media.channelhelm.com).' },
-  { key: 'MEDIA_URL_SECRET', sensitive: true, kind: 'string', help: 'HMAC key for signed media URLs. Required when MEDIA_REQUIRE_SIGNATURE=1.' },
-  { key: 'MEDIA_REQUIRE_SIGNATURE', sensitive: false, kind: 'boolean', help: 'Reject unsigned /media/* requests. Turn on before exposing the tunnel.' },
-  { key: 'ALLOW_UNSIGNED_WEBHOOKS', sensitive: false, kind: 'boolean', help: 'Local-only escape hatch: accept inbound webhooks without HMAC. Use only for smoke tests.' },
-  { key: 'MAX_UPLOAD_BYTES', sensitive: false, kind: 'number', help: 'Hard cap on /api/uploads body size (bytes). Default 2 GiB.' },
+  {
+    key: 'CLOUDFLARE_TUNNEL_HOSTNAME',
+    sensitive: false,
+    kind: 'string',
+    help: 'Public base URL for inbound webhooks + signed /media/* URLs (e.g. https://media.channelhelm.com).',
+  },
+  {
+    key: 'MEDIA_URL_SECRET',
+    sensitive: true,
+    kind: 'string',
+    help: 'HMAC key for signed media URLs. Required when MEDIA_REQUIRE_SIGNATURE=1.',
+  },
+  {
+    key: 'MEDIA_REQUIRE_SIGNATURE',
+    sensitive: false,
+    kind: 'boolean',
+    help: 'Reject unsigned /media/* requests. Turn on before exposing the tunnel.',
+  },
+  {
+    key: 'ALLOW_UNSIGNED_WEBHOOKS',
+    sensitive: false,
+    kind: 'boolean',
+    help: 'Local-only escape hatch: accept inbound webhooks without HMAC. Use only for smoke tests.',
+  },
+  {
+    key: 'MAX_UPLOAD_BYTES',
+    sensitive: false,
+    kind: 'number',
+    help: 'Hard cap on /api/uploads body size (bytes). Default 2 GiB.',
+  },
 
   // ── YouTube Direct (Data API v3) ──────────────────────────────────────────
-  { key: 'GOOGLE_OAUTH_CLIENT_ID', sensitive: false, kind: 'string', help: 'OAuth 2.0 Client ID from Google Cloud Console (APIs & Services → Credentials). One client supports all brands. Required for /brands/[id] → Connect YouTube.' },
-  { key: 'GOOGLE_OAUTH_CLIENT_SECRET', sensitive: true, kind: 'string', help: 'OAuth 2.0 Client secret paired with GOOGLE_OAUTH_CLIENT_ID. Never sent to the browser; signed exchanges only.' },
+  {
+    key: 'GOOGLE_OAUTH_CLIENT_ID',
+    sensitive: false,
+    kind: 'string',
+    help: 'OAuth 2.0 Client ID from Google Cloud Console (APIs & Services → Credentials). One client supports all brands. Required for /brands/[id] → Connect YouTube.',
+  },
+  {
+    key: 'GOOGLE_OAUTH_CLIENT_SECRET',
+    sensitive: true,
+    kind: 'string',
+    help: 'OAuth 2.0 Client secret paired with GOOGLE_OAUTH_CLIENT_ID. Never sent to the browser; signed exchanges only.',
+  },
 
   // ── Storage lifecycle (Option B: post-publish archive) ───────────────────
   // When ARCHIVE_ROOT is unset, the recurring enqueuer skips archive_package
   // entirely — the feature is opt-in by virtue of providing an external path.
-  { key: 'ARCHIVE_AFTER_DAYS', sensitive: false, kind: 'number', help: 'Days since first dispatch before a package becomes eligible for archive. Default 14. Eligibility query: latest dispatch older than this AND archived_at IS NULL.' },
-  { key: 'ARCHIVE_DELETE_CLIPS', sensitive: false, kind: 'boolean', help: 'When true, archive_package DELETES rendered clip MP4s instead of moving them to ARCHIVE_ROOT. Source MP4 still moves either way (clip_render needs it for re-renders). Default false.' },
+  {
+    key: 'ARCHIVE_AFTER_DAYS',
+    sensitive: false,
+    kind: 'number',
+    help: 'Days since first dispatch before a package becomes eligible for archive. Default 14. Eligibility query: latest dispatch older than this AND archived_at IS NULL.',
+  },
+  {
+    key: 'ARCHIVE_DELETE_CLIPS',
+    sensitive: false,
+    kind: 'boolean',
+    help: 'When true, archive_package DELETES rendered clip MP4s instead of moving them to ARCHIVE_ROOT. Source MP4 still moves either way (clip_render needs it for re-renders). Default false.',
+  },
 
   // ── Boot-only (read-only in UI) ──────────────────────────────────────────
-  { key: 'DATABASE_URL', sensitive: true, kind: 'string', bootOnly: true, help: 'Postgres connection string. Boot-only — edit .env and restart.' },
-  { key: 'MEDIA_ROOT', sensitive: false, kind: 'string', bootOnly: true, help: 'Where ingest writes media. Boot-only — workers spawn subprocesses that resolve paths against this at startup.' },
-  { key: 'ARCHIVE_ROOT', sensitive: false, kind: 'string', bootOnly: true, help: 'External-drive path for the post-publish archive worker. Unset = archiving disabled. Boot-only — workers cache the absolute path at startup and refuse to operate when it suddenly changes mid-run (e.g. drive unmounted).' },
-  { key: 'LOCAL_BEARER_TOKEN', sensitive: true, kind: 'string', bootOnly: true, help: 'API bearer token. Boot-only — rotation invalidates every worker in flight. Use the Rotate button to mint, paste into .env, restart.' },
-  { key: 'PROVIDER_SECRET_KEY', sensitive: true, kind: 'string', bootOnly: true, help: 'AES-256-GCM key that wraps llm_providers.api_key. Boot-only — rotating it locks every saved provider key out until re-encryption.' },
+  {
+    key: 'DATABASE_URL',
+    sensitive: true,
+    kind: 'string',
+    bootOnly: true,
+    help: 'Postgres connection string. Boot-only — edit .env and restart.',
+  },
+  {
+    key: 'MEDIA_ROOT',
+    sensitive: false,
+    kind: 'string',
+    bootOnly: true,
+    help: 'Where ingest writes media. Boot-only — workers spawn subprocesses that resolve paths against this at startup.',
+  },
+  {
+    key: 'ARCHIVE_ROOT',
+    sensitive: false,
+    kind: 'string',
+    bootOnly: true,
+    help: 'External-drive path for the post-publish archive worker. Unset = archiving disabled. Boot-only — workers cache the absolute path at startup and refuse to operate when it suddenly changes mid-run (e.g. drive unmounted).',
+  },
+  {
+    key: 'LOCAL_BEARER_TOKEN',
+    sensitive: true,
+    kind: 'string',
+    bootOnly: true,
+    help: 'API bearer token. Boot-only — rotation invalidates every worker in flight. Use the Rotate button to mint, paste into .env, restart.',
+  },
+  {
+    key: 'PROVIDER_SECRET_KEY',
+    sensitive: true,
+    kind: 'string',
+    bootOnly: true,
+    help: 'AES-256-GCM key that wraps llm_providers.api_key. Boot-only — rotating it locks every saved provider key out until re-encryption.',
+  },
 ];
 
-const CATALOGUE_BY_KEY: Map<string, SettingDef> = new Map(SETTINGS_CATALOGUE.map((s) => [s.key, s]));
+const CATALOGUE_BY_KEY: Map<string, SettingDef> = new Map(
+  SETTINGS_CATALOGUE.map((s) => [s.key, s]),
+);
 
 export function getSettingDef(key: string): SettingDef | undefined {
   return CATALOGUE_BY_KEY.get(key);
@@ -201,13 +308,7 @@ export async function setSetting(key: string, value: string): Promise<void> {
 async function notifyPeers(key: string): Promise<void> {
   // pg_notify is fire-and-forget; payload is the key so peers refresh just
   // that one row instead of reloading the whole table.
-  await db.execute(/* sql */ `select pg_notify('chs_settings', ${escapeLiteral(key)})`);
-}
-
-function escapeLiteral(s: string): string {
-  // The key is from a known catalogue; this is belt-and-braces for the
-  // pg_notify payload literal. Single quotes only.
-  return `'${s.replace(/'/g, "''")}'`;
+  await db.execute(sql`select pg_notify('chs_settings', ${key})`);
 }
 
 // ── Live subscribe ─────────────────────────────────────────────────────────
@@ -294,6 +395,20 @@ export async function settingsTableExists(): Promise<boolean> {
   }
 }
 
+/**
+ * Route handlers run in the Next.js process and may be invoked before anyone
+ * has opened `/settings`. Runtime-editable routes call this at handler entry
+ * before reading `process.env` so DB-backed settings are visible on cold start.
+ */
+export async function hydrateRuntimeSettingsForRoute(route: string): Promise<void> {
+  if (!(await settingsTableExists())) return;
+  try {
+    await ensureHydrated();
+  } catch (err) {
+    console.warn(`[settings] lazy hydration failed for ${route}:`, (err as Error).message);
+  }
+}
+
 // ── UI-facing helpers ──────────────────────────────────────────────────────
 
 export const MASK = '••••••••';
@@ -309,7 +424,7 @@ export async function getEffectiveSetting(
 ): Promise<{ value: string | null; isSet: boolean; fromDb: boolean }> {
   const [row] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
   const envValue = process.env[key] ?? null;
-  const fromDb = !!(row && row.value);
+  const fromDb = !!row?.value;
   return { value: envValue, isSet: envValue != null && envValue !== '', fromDb };
 }
 

@@ -8,6 +8,7 @@ import { brands, packages, sources } from '@/db/schema';
 import { makeId } from '@/lib/ids';
 import { MEDIA_ROOT } from '@/lib/media-path';
 import { ProcessingProfile } from '@/lib/schemas';
+import { hydrateRuntimeSettingsForRoute } from '@/lib/settings';
 import { enqueue } from '@workers/queue';
 import { eq } from 'drizzle-orm';
 
@@ -15,9 +16,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const ALLOWED_EXT = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv']);
-// #15: hard upload cap (default 2 GB). Enforced from Content-Length AND while
-// streaming, so a lying/absent header can't bypass it.
-const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 2_000_000_000);
+
+function maxUploadBytes(): number {
+  const n = Number(process.env.MAX_UPLOAD_BYTES ?? 2_000_000_000);
+  return Number.isFinite(n) && n > 0 ? n : 2_000_000_000;
+}
 
 /**
  * #15 CSRF guard for the cookieless dashboard upload. A cross-origin page that
@@ -56,15 +59,15 @@ function authorizedUpload(req: Request): boolean {
  */
 export async function POST(req: Request) {
   {
+    await hydrateRuntimeSettingsForRoute('uploads');
+    const maxBytes = maxUploadBytes();
+
     if (!authorizedUpload(req)) {
       return Response.json({ error: 'unauthorized' }, { status: 401 });
     }
     const declared = Number(req.headers.get('content-length') ?? '');
-    if (Number.isFinite(declared) && declared > MAX_UPLOAD_BYTES) {
-      return Response.json(
-        { error: 'payload_too_large', maxBytes: MAX_UPLOAD_BYTES },
-        { status: 413 },
-      );
+    if (Number.isFinite(declared) && declared > maxBytes) {
+      return Response.json({ error: 'payload_too_large', maxBytes }, { status: 413 });
     }
 
     const url = new URL(req.url);
@@ -102,7 +105,7 @@ export async function POST(req: Request) {
     const limiter = new Transform({
       transform(chunk, _enc, cb) {
         received += chunk.length;
-        if (received > MAX_UPLOAD_BYTES) {
+        if (received > maxBytes) {
           cb(new Error('upload_too_large'));
           return;
         }
@@ -118,10 +121,7 @@ export async function POST(req: Request) {
     } catch (err) {
       await rm(outputDir, { recursive: true, force: true });
       if (err instanceof Error && err.message === 'upload_too_large') {
-        return Response.json(
-          { error: 'payload_too_large', maxBytes: MAX_UPLOAD_BYTES },
-          { status: 413 },
-        );
+        return Response.json({ error: 'payload_too_large', maxBytes }, { status: 413 });
       }
       console.error('[upload] stream failed', err);
       return Response.json({ error: 'upload_failed' }, { status: 500 });

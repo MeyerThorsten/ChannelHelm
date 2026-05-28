@@ -1,5 +1,5 @@
-import { SettingsEditor, type SettingItem } from '@/components/settings/SettingsEditor';
 import { TokenRotator } from '@/components/TokenRotator';
+import { type SettingItem, SettingsEditor } from '@/components/settings/SettingsEditor';
 import { Eyebrow } from '@/components/ui';
 import { SETTINGS_CATALOGUE, ensureHydrated, maskValue, settingsTableExists } from '@/lib/settings';
 import Link from 'next/link';
@@ -57,9 +57,9 @@ export default async function SettingsPage() {
       </h1>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 24px', maxWidth: 680 }}>
         Editable values persist in the <code>settings</code> table and propagate live across the
-        Next.js server and the worker fleet via Postgres <code>NOTIFY</code>. Boot-only values
-        (DB connection, media root, bearer token, encryption key) still live in <code>.env</code>{' '}
-        — changing them mid-flight is unsafe.
+        Next.js server and the worker fleet via Postgres <code>NOTIFY</code>. Boot-only values (DB
+        connection, media root, bearer token, encryption key) still live in <code>.env</code> —
+        changing them mid-flight is unsafe.
       </p>
 
       {/* ─── Infra banners ─────────────────────────────────────────────── */}
@@ -73,12 +73,19 @@ export default async function SettingsPage() {
             borderRadius: 10,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--status-failed)', marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--status-failed)',
+              marginBottom: 4,
+            }}
+          >
             Settings table not migrated yet
           </div>
           <p style={{ margin: '0 0 10px', fontSize: 12.5, color: 'var(--text-muted)' }}>
-            The <code>settings</code> table doesn&apos;t exist. Saves on this page will fail until you
-            apply <code>migrations/0005_settings.sql</code>.
+            The <code>settings</code> table doesn&apos;t exist. Saves on this page will fail until
+            you apply <code>migrations/0005_settings.sql</code>.
           </p>
           <pre
             style={{
@@ -97,9 +104,8 @@ export default async function SettingsPage() {
           </pre>
           <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--text-faint)' }}>
             After the migration completes, Ctrl-C <code>pnpm dev:all</code> and restart it once so
-            the boot hooks ({' '}
-            <code>loadSettingsIntoEnv</code> + <code>subscribeSettingsChanges</code>) fire on the
-            Next.js server and the worker fleet.
+            the boot hooks ( <code>loadSettingsIntoEnv</code> +{' '}
+            <code>subscribeSettingsChanges</code>) fire on the Next.js server and the worker fleet.
           </p>
         </section>
       )}
@@ -154,8 +160,8 @@ export default async function SettingsPage() {
           }}
         >
           Saved values overwrite <code>.env</code> at runtime. Secrets are stored encrypted
-          (AES-256-GCM) and never sent back to the browser — the mask placeholder means
-          &quot;keep saved&quot;.
+          (AES-256-GCM) and never sent back to the browser — the mask placeholder means &quot;keep
+          saved&quot;.
         </p>
         <SettingsEditor items={editable} subscriberLive={true} />
       </section>

@@ -53,6 +53,9 @@ When the contract and this file disagree, the contract wins. Update this file ra
 - **Idempotency keys are mandatory** for enqueued jobs of these kinds: `ingest`, `transcribe_audio`, `analyze_visual`, `fuse`, `analyze_intelligence`, `generate_asset`, `clip_render`, `dispatch`, `collect_signal`. Conventions are inline in the §4 schema comments.
 - **Webhook idempotency.** Inbound events must collide on `(source, source_event_id)` and be swallowed at INSERT.
 - **`*_plan` assets are never dispatched.** They are blueprints consumed by the `clip_render` worker, which produces `rendered_*` assets. Only `rendered_*` and text/editorial assets are dispatchable. Attempting to dispatch a `*_plan` is a programming error and the worker must throw.
+- **Rendered clip immutability.** Once a `rendered_short_clip` or `rendered_long_clip` asset reaches `dispatched` or `published`, re-rendering must not overwrite its bytes or payload. Create a new rendered asset path instead.
+- **Settings API auth.** `/api/settings` GET/PUT require `Authorization: Bearer $LOCAL_BEARER_TOKEN`. The dashboard saves settings through a Server Action; runtime routes hydrate DB settings before reading `process.env`.
+- **YouTube OAuth state.** OAuth `state` is an opaque, expiring, one-time nonce stored in Postgres, not a brand id. If the brand has `youtube_channel_id`, the connected channel must match before saving tokens.
 - **Python is isolated to `ml/`.** No Python code anywhere else in the repo. If a step needs Python and it's not one of the four ML scripts, that's a sign to reconsider rather than to expand the Python surface.
 
 ## Repo layout

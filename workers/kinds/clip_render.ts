@@ -53,6 +53,9 @@ export async function run(job: JobRow): Promise<void> {
   const payload = plan.payload as { clips?: Clip[] };
   const clip = payload.clips?.[clipIndex];
   if (!clip) throw new Error(`clip_render: plan ${planAssetId} has no clip at index ${clipIndex}`);
+  if (clip.deleted) {
+    throw new Error(`clip_render: plan ${planAssetId} clip ${clipIndex} has been deleted`);
+  }
 
   // Trace back to the source for the input video via the plan's package.
   // Also pull the package's intelligence so we can extract word timings
@@ -131,6 +134,42 @@ export async function run(job: JobRow): Promise<void> {
   const renderedType = isLong ? 'rendered_long_clip' : 'rendered_short_clip';
   const defaultPlatforms = isLong ? ['youtube'] : ['tiktok', 'instagram', 'youtube'];
 
+  // UPSERT target keyed by (plan_asset_id, clip_index). Check before doing
+  // any ffmpeg work so a duplicate/replay job cannot overwrite bytes for
+  // a rendered asset that has already been dispatched or published.
+  const [existing] = await db
+    .select({ id: assets.id, payload: assets.payload, status: assets.status })
+    .from(assets)
+    .where(
+      and(
+        eq(assets.packageId, plan.packageId),
+        eq(assets.type, renderedType),
+        sql`(${assets.payload} ->> 'plan_asset_id') = ${planAssetId}`,
+        sql`(${assets.payload} ->> 'clip_index')::int = ${clipIndex}`,
+      ),
+    )
+    .limit(1);
+
+  if (existing && isTerminalRenderedStatus(existing.status)) {
+    throw new Error(
+      `clip_render: refusing to overwrite ${existing.status} rendered asset ${existing.id}`,
+    );
+  }
+
+  if (existing) {
+    const existingRev =
+      Number((existing.payload as { render_rev?: number } | undefined)?.render_rev) || 0;
+    if (existingRev >= (clip.render_rev ?? 0) && existingRev > 0) {
+      console.log(
+        `[clip_render] skip ${existing.id} — existing render_rev=${existingRev} >= plan render_rev=${clip.render_rev ?? 0}`,
+      );
+      if (clip.pending_render) {
+        await clearPendingRender(planAssetId, payload, clipIndex);
+      }
+      return;
+    }
+  }
+
   // Subtitles. Three branches in priority order:
   //   1. operator picked a `styling` block → emit ASS with word-level overrides
   //   2. legacy clip.subtitles array (v1 plans) → emit VTT
@@ -205,45 +244,14 @@ export async function run(job: JobRow): Promise<void> {
     pending_render: false,
   };
 
-  // UPSERT keyed by (plan_asset_id, clip_index). One JSONB query — find
-  // any existing rendered row that points back to this plan + clip and
-  // update in place; insert otherwise. This keeps per-clip asset row ids
-  // stable across re-renders (publish history, dispatches, etc. stay
-  // bound to the same id).
-  const [existing] = await db
-    .select({ id: assets.id, payload: assets.payload, status: assets.status })
-    .from(assets)
-    .where(
-      and(
-        eq(assets.packageId, plan.packageId),
-        eq(assets.type, renderedType),
-        sql`(${assets.payload} ->> 'plan_asset_id') = ${planAssetId}`,
-        sql`(${assets.payload} ->> 'clip_index')::int = ${clipIndex}`,
-      ),
-    )
-    .limit(1);
-
   if (existing) {
-    // Idempotency: skip when the existing row already mirrors a render
-    // at our revision or newer (handles crash-recovery + duplicate jobs
-    // landing simultaneously under the same idempotency key).
-    const existingRev =
-      Number((existing.payload as { render_rev?: number } | undefined)?.render_rev) || 0;
-    if (existingRev >= (clip.render_rev ?? 0) && existingRev > 0) {
-      console.log(
-        `[clip_render] skip ${existing.id} — existing render_rev=${existingRev} >= plan render_rev=${clip.render_rev ?? 0}`,
-      );
-      return;
-    }
     await db
       .update(assets)
       .set({
         payload: renderedPayload,
         provenance,
-        // Re-rendering an asset that was already shipped: keep its existing
-        // status (e.g. dispatched / published) — the new bytes overwrite
-        // the file but the dispatch lifecycle isn't reset by a re-render.
-        // Only flip back to ready_for_review if it was in a working state.
+        // Only flip back to ready_for_review if it was approved but not yet
+        // dispatched. Terminal statuses are guarded before ffmpeg runs.
         status: existing.status === 'approved' ? 'ready_for_review' : existing.status,
         updatedAt: sql`now()`,
       })
@@ -268,13 +276,7 @@ export async function run(job: JobRow): Promise<void> {
   // Clear the pending_render flag on the plan's clip entry (operator-set
   // when they clicked "Render"; we own clearing it after success).
   if (clip.pending_render) {
-    const clips = (payload.clips ?? []).map((c, i) =>
-      i === clipIndex ? { ...c, pending_render: false } : c,
-    );
-    await db
-      .update(assets)
-      .set({ payload: { ...payload, clips }, updatedAt: sql`now()` })
-      .where(eq(assets.id, planAssetId));
+    await clearPendingRender(planAssetId, payload, clipIndex);
   }
 }
 
@@ -303,7 +305,26 @@ type Clip = {
   };
   render_rev?: number;
   pending_render?: boolean;
+  deleted?: boolean;
 };
+
+function isTerminalRenderedStatus(status: string): boolean {
+  return status === 'dispatched' || status === 'published';
+}
+
+async function clearPendingRender(
+  planAssetId: string,
+  payload: { clips?: Clip[] },
+  clipIndex: number,
+): Promise<void> {
+  const clips = (payload.clips ?? []).map((c, i) =>
+    i === clipIndex ? { ...c, pending_render: false } : c,
+  );
+  await db
+    .update(assets)
+    .set({ payload: { ...payload, clips }, updatedAt: sql`now()` })
+    .where(eq(assets.id, planAssetId));
+}
 
 function serializeVtt(subs: Subtitle[], clipStart: number): string {
   const fmt = (s: number) => {

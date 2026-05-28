@@ -1,5 +1,6 @@
 'use client';
 
+import { saveSettingValue } from '@/server-actions/settings';
 import { useState, useTransition } from 'react';
 
 const MASK = '••••••••';
@@ -20,9 +21,9 @@ export type SettingItem = {
  *  - boolean fields render as a toggle; numbers as `inputMode=numeric`
  *  - one Save button per row, with a transient "Saved" indicator
  *
- * On submit we PUT just the one key — fewer concurrent writes, clearer
- * error surfacing, and the pg_notify channel propagates the change to the
- * worker pool within the round-trip.
+ * On submit we save just the one key through a Server Action — fewer
+ * concurrent writes, clearer error surfacing, and the pg_notify channel
+ * propagates the change to the worker pool within the round-trip.
  *
  * `subscriberLive` controls the post-save phrasing: "propagated to workers"
  * when the LISTEN connection is up on this process, or a softer "saved —
@@ -61,21 +62,9 @@ function Row({ item, subscriberLive }: { item: SettingItem; subscriberLive: bool
     }
     startTransition(async () => {
       try {
-        const res = await fetch('/api/settings', {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ [item.key]: submitted }),
-        });
-        const body = await res.json();
-        if (!res.ok) {
-          setError(body?.errors?.[0]?.error ?? body?.error ?? 'save failed');
-          return;
-        }
-        const ourErr = (body.errors as { key: string; error: string }[] | undefined)?.find(
-          (e) => e.key === item.key,
-        );
-        if (ourErr) {
-          setError(ourErr.error);
+        const result = await saveSettingValue(item.key, submitted);
+        if (!result.ok) {
+          setError(result.error);
           return;
         }
         setSavedAt(Date.now());
@@ -116,9 +105,7 @@ function Row({ item, subscriberLive }: { item: SettingItem; subscriberLive: bool
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
           <code style={{ fontSize: 12, fontFamily: 'var(--font-mono)' }}>{item.key}</code>
-          {item.sensitive && (
-            <Tag label="secret" tone="amber" />
-          )}
+          {item.sensitive && <Tag label="secret" tone="amber" />}
           {item.bootOnly && <Tag label="boot only" tone="faint" />}
           {item.isSet ? <Tag label="set" tone="emerald" /> : <Tag label="unset" tone="faint" />}
         </div>
@@ -129,7 +116,14 @@ function Row({ item, subscriberLive }: { item: SettingItem; subscriberLive: bool
       {item.bootOnly ? (
         <BootOnlyDisplay value={item.value} isSet={item.isSet} sensitive={item.sensitive} />
       ) : item.kind === 'boolean' ? (
-        <BooleanInput value={value} onChange={(v) => { onValueChange(v); save(v); }} disabled={pending} />
+        <BooleanInput
+          value={value}
+          onChange={(v) => {
+            onValueChange(v);
+            save(v);
+          }}
+          disabled={pending}
+        />
       ) : (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input
@@ -170,7 +164,10 @@ function Row({ item, subscriberLive }: { item: SettingItem; subscriberLive: bool
               color: '#fff',
               border: '1px solid color-mix(in oklab, var(--accent) 75%, white)',
               cursor: pending ? 'wait' : 'pointer',
-              opacity: pending || (!touched && !(item.sensitive && value !== MASK && value !== '')) ? 0.5 : 1,
+              opacity:
+                pending || (!touched && !(item.sensitive && value !== MASK && value !== ''))
+                  ? 0.5
+                  : 1,
             }}
           >
             {pending ? 'Saving…' : 'Save'}
@@ -218,7 +215,9 @@ function BooleanInput({
         alignItems: 'center',
         gap: 8,
         padding: '6px 12px',
-        background: on ? 'color-mix(in oklab, var(--status-published) 14%, transparent)' : 'var(--bg-elev-2)',
+        background: on
+          ? 'color-mix(in oklab, var(--status-published) 14%, transparent)'
+          : 'var(--bg-elev-2)',
         border: `1px solid ${on ? 'color-mix(in oklab, var(--status-published) 28%, transparent)' : 'var(--border)'}`,
         borderRadius: 6,
         color: on ? 'var(--status-published)' : 'var(--text-faint)',
@@ -261,7 +260,13 @@ function BootOnlyDisplay({
         borderRadius: 6,
       }}
     >
-      <code style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: isSet ? 'var(--status-published)' : 'var(--text-faint)' }}>
+      <code
+        style={{
+          fontSize: 12,
+          fontFamily: 'var(--font-mono)',
+          color: isSet ? 'var(--status-published)' : 'var(--text-faint)',
+        }}
+      >
         {isSet ? (sensitive ? MASK : value) : '(unset)'}
       </code>
       <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-faint)' }}>

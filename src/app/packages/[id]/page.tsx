@@ -90,13 +90,9 @@ export default async function PackageDetailPage({ params }: PageProps) {
   // Public YouTube URL the operator pasted after manually uploading (stored
   // on package.intelligence.published.youtube). null until they set it.
   const published = (intelligence.published ?? {}) as Record<string, unknown>;
-  const ytRecord = (published.youtube ?? null) as
-    | { url?: string; video_id?: string }
-    | null;
+  const ytRecord = (published.youtube ?? null) as { url?: string; video_id?: string } | null;
   const youtubeLive =
-    ytRecord?.url && ytRecord.video_id
-      ? { url: ytRecord.url, videoId: ytRecord.video_id }
-      : null;
+    ytRecord?.url && ytRecord.video_id ? { url: ytRecord.url, videoId: ytRecord.video_id } : null;
 
   // Per-package YouTube publish options (privacy + optional schedule).
   // Persisted on intelligence.publish_options.youtube via the picker.
@@ -132,6 +128,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
     for (let i = 0; i < planClips.length; i++) {
       const planClip = planClips[i] as Record<string, unknown> | undefined;
       if (!planClip) continue;
+      if (planClip.deleted === true) continue;
       const rendered = renderedShorts.find((rc) => {
         const p = rc.payload as { plan_asset_id?: string; clip_index?: number };
         return p.plan_asset_id === plan.id && p.clip_index === i;
@@ -255,8 +252,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
   // panel hides those rows and shows them under the title_set's "bundles:"
   // subtitle so the operator isn't asked to dispatch them separately.
   const directConnected =
-    brand.youtubeDispatchTarget === 'youtube_direct' &&
-    !!brand.youtubeOauth?.refresh_token;
+    brand.youtubeDispatchTarget === 'youtube_direct' && !!brand.youtubeOauth?.refresh_token;
   const titleSetRow = rows.find((r) => r.type === 'youtube_title_set');
   const bundledIntoTitleSet = new Set<string>(
     directConnected && titleSetRow
