@@ -56,3 +56,6 @@ migrations/meta/*.json
 *.log
 tmp/
 .cache/
+
+# Marketing deploy credentials (all-inkl FTP) — never commit
+.deploy.env
