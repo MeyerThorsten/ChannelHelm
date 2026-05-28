@@ -1549,6 +1549,8 @@ tsx scripts/render-shorts.ts --dry-run</pre>
     <li><strong>"youtube: brand has no YouTube connection"</strong> — Connect on the brand page.</li>
     <li><strong>"quotaExceeded"</strong> — YouTube Data API daily limit hit (10k units = ~6 uploads/day). Wait until tomorrow UTC.</li>
   </ul>
+
+  <div class="callout win"><strong>After dispatch — the feedback loop</strong> Shipping isn't the end. The <code>/performance</code> dashboard gives one cross-surface view of how dispatched/published assets actually did (collected <code>signals</code> + title/thumbnail A/B results); <code>collect_signal</code> pulls YouTube + Zernio metrics, with a DojoClaw branch wired as a foundation (a no-op until DojoClaw exposes an analytics endpoint — GSC OAuth is still deferred). After a video is live, <strong>Mine comments</strong> in the Studio turns its top YouTube comments into <code>content_ideas</code> + <code>faq</code> assets for the next upload. Seed a brand's voice from day one at <code>/brands/[id]/voice</code> (paste samples or pull existing published assets into <code>voice_examples</code>). And in the Shorts editor you can translate a clip's subtitles into other languages — per-language SRT + ASS sidecar files (TTS dubbing and a burned-in per-language re-render are deferred).</div>
 </section>
 
 <!-- ─── 15 · PERFORMANCE ─────────────────────────────────────────── -->

@@ -233,14 +233,14 @@
 <section class="narrow" id="ideas">
   <div class="eyebrow">Ideas — unscheduled</div>
   <h2>Worth doing eventually.</h2>
-  <p class="ph">A themed backlog of candidates. Each is tagged <strong>grounded</strong> (scaffolding already exists in the codebase) or <strong>bet</strong> (a new product direction). <strong>✅ shipped</strong> marks items already built straight from this backlog (extended-network generation, long-clip planning, pinned comments).</p>
+  <p class="ph">A themed backlog of candidates. Each is tagged <strong>grounded</strong> (scaffolding already exists in the codebase) or <strong>bet</strong> (a new product direction). <strong>✅ shipped</strong> marks items already built straight from this backlog (extended-network generation, long-clip planning, pinned comments, the unified performance dashboard, DojoClaw article signals, comment mining, brand-voice bootstrap, multi-language subtitles).</p>
 
   <h3 class="idea-theme">Reach multipliers — more output from one video</h3>
   <table class="idea-table">
     <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
     <tr><td>Generate for the 8 un-wired networks</td><td><strong>✅ Shipped.</strong> Per-network post generation for Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord &amp; Google Business — gated by the brand's connected Zernio accounts so nothing un-shippable gets drafted.</td><td>✅ shipped</td><td>—</td></tr>
     <tr><td>Long-clip planning</td><td><strong>✅ Shipped.</strong> <code>long_clip_plan</code> generates horizontal highlight segments; the renderer produces <code>rendered_long_clip</code> and dispatch routes it to YouTube via Zernio.</td><td>✅ shipped</td><td>—</td></tr>
-    <tr><td>Multi-language clips</td><td>Translate captions/subtitles (optionally dub) per language; reuses the transcript + ASS pipeline.</td><td>bet</td><td>M–L</td></tr>
+    <tr><td>Multi-language subtitles</td><td><strong>✅ Shipped.</strong> Translate a Short's subtitles to other languages → per-language SRT + ASS sidecar files, reusing the transcript + ASS pipeline. TTS dubbing and a burned-in per-language re-render are deferred.</td><td>✅ shipped</td><td>—</td></tr>
     <tr><td>Quote cards / carousels</td><td>Turn the highest-retention lines into image quote-cards + carousels, reusing the image layer.</td><td>bet</td><td>M</td></tr>
     <tr><td>Per-platform Short captions</td><td>Tailored caption + hashtags per destination. Deferred — captions belong to clips, so better built as a <code>short_clip_plan</code> enhancement than standalone asset types.</td><td>bet</td><td>M</td></tr>
   </table>
@@ -248,10 +248,10 @@
   <h3 class="idea-theme">Deeper feedback loop — extend Helm Signal</h3>
   <table class="idea-table">
     <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
-    <tr><td>Comment mining → content loop</td><td>Top comments → next-video ideas, an FAQ, and a data-driven pinned comment. (<code>youtube_pinned_comment</code> now generates from the analysis; mining would make it audience-driven.)</td><td>bet + grounded</td><td>M</td></tr>
+    <tr><td>Comment mining → content loop</td><td><strong>✅ Shipped.</strong> Post-publish, on-demand: mine a video's top YouTube comments → <code>content_ideas</code> + <code>faq</code> assets, from the Studio's "Mine comments" panel. (<code>youtube_pinned_comment</code> already generates from the analysis; this makes follow-up content audience-driven.)</td><td>✅ shipped</td><td>—</td></tr>
     <tr><td>Best-time-to-post</td><td>Learn per-platform optimal windows from the signals already collected; pre-fill the scheduler.</td><td>bet</td><td>S–M</td></tr>
-    <tr><td>Unified performance dashboard</td><td>One cross-surface view of how every asset performed (YouTube + Zernio already in <code>signals</code>).</td><td>bet</td><td>M</td></tr>
-    <tr><td>DojoClaw + GSC article signals</td><td>No DojoClaw collector today; pull article + Search Console metrics into <code>signals</code>.</td><td>grounded</td><td>M</td></tr>
+    <tr><td>Unified performance dashboard</td><td><strong>✅ Shipped.</strong> A new <code>/performance</code> route — one cross-surface view of how dispatched/published assets performed (signals + A/B results).</td><td>✅ shipped</td><td>—</td></tr>
+    <tr><td>DojoClaw + GSC article signals</td><td><strong>✅ Shipped.</strong> <code>collect_signal</code> now has a DojoClaw branch (foundation — degrades to a no-op until DojoClaw exposes an analytics endpoint). GSC OAuth is still deferred.</td><td>✅ shipped</td><td>—</td></tr>
     <tr><td>Prompt-version A/B</td><td>A/B the prompt versions themselves — which prompt yields better-performing assets.</td><td>bet</td><td>M</td></tr>
   </table>
 
@@ -269,7 +269,7 @@
   <table class="idea-table">
     <tr><th>Idea</th><th>What it is</th><th>Type</th><th>Effort</th></tr>
     <tr><td>Cost tracking &amp; budgets</td><td>Per-package / per-brand spend (LLM + image + render) with optional caps.</td><td>bet</td><td>S–M</td></tr>
-    <tr><td>Brand-voice bootstrap</td><td>Seed <code>voice_examples</code> from existing posts, so voice is good from upload #1.</td><td>bet</td><td>M</td></tr>
+    <tr><td>Brand-voice bootstrap</td><td><strong>✅ Shipped.</strong> <code>/brands/[id]/voice</code> seeds <code>voice_examples</code> from pasted samples or the brand's existing published assets, so voice is good from upload #1.</td><td>✅ shipped</td><td>—</td></tr>
     <tr><td>Bulk / batch ingest</td><td>Drop a folder or paste N URLs → queue the whole backlog at once.</td><td>bet</td><td>S</td></tr>
     <tr><td>Auto-approve rules</td><td>Per-asset-type trust thresholds so high-confidence assets skip manual review.</td><td>bet</td><td>S</td></tr>
   </table>

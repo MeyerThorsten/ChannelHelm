@@ -77,7 +77,7 @@ Bigger structural moves once single-operator throughput is no longer the constra
 
 ## 💡 Ideas (unscheduled)
 
-A themed backlog of candidates. Each is tagged **grounded** (scaffolding already exists in the codebase — low-risk) or **bet** (a new product direction), with a rough effort (XS–L). **✅ shipped** marks items already built straight out of this backlog (extended-network generation, long-clip planning, pinned comments).
+A themed backlog of candidates. Each is tagged **grounded** (scaffolding already exists in the codebase — low-risk) or **bet** (a new product direction), with a rough effort (XS–L). **✅ shipped** marks items already built straight out of this backlog (extended-network generation, long-clip planning, pinned comments, the unified performance dashboard, DojoClaw article signals, comment mining, brand-voice bootstrap, multi-language subtitles).
 
 ### Reach multipliers — more output from one video
 
@@ -85,7 +85,7 @@ A themed backlog of candidates. Each is tagged **grounded** (scaffolding already
 |------|------------|------|--------|
 | **Generate for the 8 un-wired networks** | ✅ **Shipped.** Per-network post generation for Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord & Google Business — gated by the brand's connected Zernio accounts so we never draft a post that can't ship. | ✅ shipped | — |
 | **Long-clip planning** | ✅ **Shipped.** `long_clip_plan` now generates horizontal highlight segments; the existing renderer turns them into `rendered_long_clip` and dispatch routes them to YouTube via Zernio. | ✅ shipped | — |
-| **Multi-language clips** | Translate captions/subtitles (optionally TTS-dub) per language. Reuses the transcript + ASS subtitle pipeline. | bet | M–L |
+| **Multi-language subtitles** | ✅ **Shipped.** Translate a Short's subtitles to other languages → per-language SRT + ASS sidecar files, reusing the transcript + ASS subtitle pipeline. TTS dubbing and a burned-in per-language re-render are deferred. | ✅ shipped | — |
 | **Quote cards / carousels** | Turn the highest-retention lines into image quote-cards + carousels (LinkedIn/Instagram), reusing the image-provider layer built for thumbnails. | bet | M |
 | **Per-platform Short captions** | Tailored caption + hashtags per destination. *Deferred* — captions belong to clips, not the package, so this is better built as a `short_clip_plan` enhancement (per-clip caption variants + per-network dispatch) than as standalone asset types. | bet | M |
 
@@ -93,10 +93,10 @@ A themed backlog of candidates. Each is tagged **grounded** (scaffolding already
 
 | Idea | What it is | Type | Effort |
 |------|------------|------|--------|
-| **Comment mining → content loop** | Top comments on published videos → next-video ideas, an FAQ, and a data-driven pinned comment. (The `youtube_pinned_comment` asset now generates from the analysis; comment-mining would make it audience-driven.) | bet + grounded | M |
+| **Comment mining → content loop** | ✅ **Shipped.** Post-publish, on-demand: mine a video's top YouTube comments → `content_ideas` + `faq` assets, from the Studio's "Mine comments" panel. (The `youtube_pinned_comment` asset already generates from the analysis; this makes follow-up content audience-driven.) | ✅ shipped | — |
 | **Best-time-to-post** | Learn per-platform optimal windows from the `signals` already collected, and pre-fill the publish scheduler. | bet | S–M |
-| **Unified performance dashboard** | One cross-surface view of how every asset performed (YouTube + Zernio already in `signals`; + DojoClaw/GSC once wired). | bet | M |
-| **DojoClaw + GSC article signals** | `collect_signal` has no DojoClaw branch (`source_signal:'dojoclaw'` is unused). Pull article page metrics + Search Console position into `signals` to feed the editorial voice loop. | grounded | M |
+| **Unified performance dashboard** | ✅ **Shipped.** A new `/performance` route — one cross-surface view of how dispatched/published assets performed (signals + A/B results). | ✅ shipped | — |
+| **DojoClaw + GSC article signals** | ✅ **Shipped.** `collect_signal` now has a DojoClaw branch (foundation — degrades to a no-op until DojoClaw exposes an analytics endpoint). GSC OAuth is still deferred. | ✅ shipped | — |
 | **Prompt-version A/B** | Apply the A/B machinery to *prompt versions* (e.g. `youtube_title_set.v1` vs `.v2`) — measure which prompt yields better-performing assets. | bet | M |
 
 ### Quality & trust
@@ -114,7 +114,7 @@ A themed backlog of candidates. Each is tagged **grounded** (scaffolding already
 | Idea | What it is | Type | Effort |
 |------|------------|------|--------|
 | **Cost tracking & budgets** | Per-package / per-brand spend (LLM tokens + image gen + render time) with optional budget caps. | bet | S–M |
-| **Brand-voice bootstrap** | Seed `voice_examples` from a corpus of the brand's existing posts/transcripts, so voice quality is good from upload #1 instead of after the loop warms up. | bet | M |
+| **Brand-voice bootstrap** | ✅ **Shipped.** `/brands/[id]/voice` seeds `voice_examples` from pasted samples or the brand's existing published assets, so voice quality is good from upload #1 instead of after the loop warms up. | ✅ shipped | — |
 | **Bulk / batch ingest** | Drop a folder or paste N URLs → queue the whole backlog at once (pairs with the shipped Backlog Revival). | bet | S |
 | **Auto-approve rules** | Per-asset-type trust thresholds (e.g. auto-approve tags above score X) so high-confidence assets skip manual review. | bet | S |
 

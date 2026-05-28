@@ -71,6 +71,7 @@ The per-package review is where you live. Read scored options, edit inline, rege
 - **Pipeline you can see** — a four-layer progress indicator shows exactly what's done and what's still generating. Partially-ready is a first-class state.
 - **Provenance on everything** — every generated asset records the model, provider, prompt version, and inputs that produced it. Nothing is a black box.
 - **Backlog Revival** — a ♻ Revive button re-mines an existing source through the pipeline with your current prompts (defaults to the cheap `transcription_only` profile), so old videos benefit from newer analysis without re-downloading.
+- **Mine comments** — after a video is live, pull its top YouTube comments to generate audience-driven `content_ideas` + `faq` assets for the next upload.
 
 ## The Shorts editor
 
@@ -83,6 +84,7 @@ Each high-retention moment becomes a ready-to-ship vertical Short. The editor is
 - **Live subtitle preview** — see styling changes instantly as a DOM overlay on the preview video, with **no render** required.
 - **Auto-written descriptions** — an empty clip description is generated from the clip's transcript, title, and your brand voice.
 - **Per-clip publishing** — platform toggles, privacy, and scheduling; one post fans out to TikTok + Instagram + YouTube Shorts.
+- **Multi-language subtitles** — translate a clip's subtitles to other languages, emitting per-language SRT + ASS sidecar files (TTS dubbing and a burned-in per-language re-render are deferred).
 
 The `short_clip_plan` asset is the **editable source of truth**; `rendered_short_clip` is a build output that the `clip_render` worker UPSERTs (keyed by plan + clip index, idempotent via `render_rev`) — so re-renders never lose your edits.
 
@@ -112,6 +114,10 @@ flowchart TD
     Q -->|youtube title set| YT[(YouTube Data API v3<br/>per-brand OAuth)]
     Q -.->|short_clip_plan| X[never dispatched<br/>→ renders to rendered_short_clip]
 ```
+
+## Performance & feedback
+
+Dispatch isn't the end — `/performance` is a cross-surface dashboard of how dispatched/published assets actually did (collected `signals` + title/thumbnail A/B results), so the loop closes. `collect_signal` pulls YouTube + Zernio metrics today, with a DojoClaw branch wired as a foundation (a no-op until DojoClaw exposes an analytics endpoint; GSC OAuth is still deferred). And `/brands/[id]/voice` bootstraps a brand's `voice_examples` from pasted samples or its existing published assets, so voice quality is good from upload #1 instead of after the feedback loop warms up.
 
 ## Architecture
 
