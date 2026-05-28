@@ -12,6 +12,7 @@ import { uploadVideo as uploadYoutubeVideo } from '../integrations/youtube';
 import {
   type ZernioPlatformTarget,
   createPost,
+  isZernioDispatchable,
   resolveZernioPlatforms,
 } from '../integrations/zernio';
 import { recomputePackageDispatchState } from '../lib/lifecycle';
@@ -193,11 +194,7 @@ export async function run(job: JobRow): Promise<void> {
         .where(
           and(
             eq(assets.packageId, asset.packageId),
-            inArray(assets.type, [
-              'youtube_description',
-              'youtube_chapters',
-              'youtube_tags',
-            ]),
+            inArray(assets.type, ['youtube_description', 'youtube_chapters', 'youtube_tags']),
           ),
         );
     } else if (target === 'zernio') {
@@ -210,9 +207,8 @@ export async function run(job: JobRow): Promise<void> {
       // accounts. Empty selection = "all configured networks" (operator
       // didn't override).
       const clipPlatformToggles = (
-        (asset.payload as { publish_options?: { platforms?: Record<string, boolean> } } | undefined)
-          ?.publish_options?.platforms
-      ) as Record<string, boolean> | undefined;
+        asset.payload as { publish_options?: { platforms?: Record<string, boolean> } } | undefined
+      )?.publish_options?.platforms as Record<string, boolean> | undefined;
       if (clipPlatformToggles) {
         const enabled = Object.entries(clipPlatformToggles)
           .filter(([_, on]) => on)
@@ -236,9 +232,11 @@ export async function run(job: JobRow): Promise<void> {
       // createPost.scheduledFor. Other privacy values are platform-
       // controlled (Zernio's SDK doesn't expose per-platform privacy in
       // the current surface — operator manages on the platform side).
-      const publishOptions = (asset.payload as {
-        publish_options?: { privacy?: string; publish_at?: string };
-      })?.publish_options;
+      const publishOptions = (
+        asset.payload as {
+          publish_options?: { privacy?: string; publish_at?: string };
+        }
+      )?.publish_options;
       const scheduledFor =
         publishOptions?.privacy === 'schedule' && publishOptions.publish_at
           ? publishOptions.publish_at
@@ -451,11 +449,13 @@ async function loadYoutubeBundle(packageId: string): Promise<{
 
   // Title: respect the operator-selected index from the title_set payload.
   const titlePayload =
-    (titleAsset?.payload as
-      | { titles?: { text: string }[]; selectedIndex?: number }
-      | undefined) ?? {};
+    (titleAsset?.payload as { titles?: { text: string }[]; selectedIndex?: number } | undefined) ??
+    {};
   const titles = Array.isArray(titlePayload.titles) ? titlePayload.titles : [];
-  const idx = Math.min(Math.max(titlePayload.selectedIndex ?? 0, 0), Math.max(titles.length - 1, 0));
+  const idx = Math.min(
+    Math.max(titlePayload.selectedIndex ?? 0, 0),
+    Math.max(titles.length - 1, 0),
+  );
   const title = titles[idx]?.text?.trim() || 'Untitled video';
 
   const description =
@@ -496,15 +496,14 @@ async function loadYoutubeBundle(packageId: string): Promise<{
     }
   }
 
-  const thumbnailPath = (thumbAsset?.payload as { local_path?: string } | undefined)?.local_path
-    ?? null;
+  const thumbnailPath =
+    (thumbAsset?.payload as { local_path?: string } | undefined)?.local_path ?? null;
 
   // Per-package YouTube publish options. YouTube's API requires
   // privacyStatus='private' when publishAt is set — it auto-flips public at
   // the scheduled time. Normalize 'schedule' → ('private', publishAt) here
   // so the worker doesn't have to think about it.
-  const publishOpts =
-    ((pkg.intelligence ?? {}) as Record<string, unknown>).publish_options ?? {};
+  const publishOpts = ((pkg.intelligence ?? {}) as Record<string, unknown>).publish_options ?? {};
   const ytOpts = ((publishOpts as Record<string, unknown>).youtube ?? {}) as {
     privacy?: string;
     publish_at?: string;
@@ -521,19 +520,16 @@ async function loadYoutubeBundle(packageId: string): Promise<{
   return { title, description, tags, videoPath, thumbnailPath, privacyStatus, publishAt };
 }
 
-
 function pickTarget(
   type: string,
   ctx: { youtubeDispatchTarget: string; youtubeConnected: boolean },
 ): DispatchTarget {
   if (type === 'article_brief') return 'dojoclaw';
-  if (
-    type === 'linkedin_post' ||
-    type === 'x_post' ||
-    type === 'x_thread' ||
-    type === 'rendered_short_clip' ||
-    type === 'rendered_long_clip'
-  ) {
+  // Any asset type with a Zernio network mapping routes to Zernio — covers the
+  // core social posts, rendered clips, and the extended networks (facebook_post,
+  // threads_post, pinterest_pin, reddit_post, bluesky_post, telegram_post,
+  // discord_message, google_business_post). New networks auto-route.
+  if (isZernioDispatchable(type)) {
     return 'zernio';
   }
   // YouTube long-form: only the title_set asset triggers the upload — it's

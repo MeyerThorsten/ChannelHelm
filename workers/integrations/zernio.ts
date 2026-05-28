@@ -51,10 +51,16 @@ const NETWORK_BY_TYPE: Record<string, ZernioNetwork> = {
   bluesky_post: 'bluesky',
   telegram_post: 'telegram',
   discord_message: 'discord',
+  google_business_post: 'google_business',
 };
 
 export function networkFor(type: string): ZernioNetwork {
   return NETWORK_BY_TYPE[type] ?? 'x';
+}
+
+/** True when an asset type has a Zernio network mapping (so dispatch routes it to Zernio). */
+export function isZernioDispatchable(type: string): boolean {
+  return type in NETWORK_BY_TYPE;
 }
 
 /** A single platform target within a §9.3 posts.create request. */

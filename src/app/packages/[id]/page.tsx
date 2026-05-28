@@ -53,6 +53,14 @@ const TAB_ASSET_TYPES: Record<string, string[]> = {
   blog: ['article_brief', 'newsletter_summary'],
   x: ['x_post', 'x_thread'],
   linkedin: ['linkedin_post'],
+  facebook: ['facebook_post'],
+  pinterest: ['pinterest_pin'],
+  bluesky: ['bluesky_post'],
+  threads: ['threads_post'],
+  reddit: ['reddit_post'],
+  telegram: ['telegram_post'],
+  discord: ['discord_message'],
+  google_business: ['google_business_post'],
 };
 
 const READY = new Set(['ready_for_review', 'approved', 'dispatched', 'published']);

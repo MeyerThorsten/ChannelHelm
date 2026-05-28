@@ -35,11 +35,31 @@ const ASSET_TYPES = [
   // Pinned comment to seed discussion + a CTA. Dispatches via the manual
   // route (operator pastes + pins); the YouTube API doesn't expose pinning.
   'youtube_pinned_comment',
-  // §13 step 14: clip_render consumes this. Plans live under
+  // §13 step 14: clip_render consumes these. Plans live under
   // routing.internal and never dispatch — operator approves a plan to
-  // trigger one clip_render job per entry.
+  // trigger one clip_render job per entry. short_clip_plan → vertical
+  // rendered_short_clip; long_clip_plan → horizontal rendered_long_clip.
   'short_clip_plan',
+  'long_clip_plan',
 ] as const;
+
+/**
+ * Extended social networks. Unlike the always-on core types above, these
+ * generate ONLY when the brand has the matching Zernio account connected
+ * (`brands.zernio_accounts[network]`) — generating a post for a network the
+ * brand can't publish to is pure waste. Dispatch routing for these already
+ * exists in zernio.ts (NETWORK_BY_TYPE). Map: asset_type → zernio network.
+ */
+const NETWORK_ASSET_TYPES: Record<string, string> = {
+  facebook_post: 'facebook',
+  threads_post: 'threads',
+  pinterest_pin: 'pinterest',
+  reddit_post: 'reddit',
+  bluesky_post: 'bluesky',
+  telegram_post: 'telegram',
+  discord_message: 'discord',
+  google_business_post: 'google_business',
+};
 
 /**
  * §13 step 8. Reads packages.intelligence.scene_log, calls Qwen3 via LM
@@ -77,6 +97,24 @@ export async function run(job: JobRow): Promise<void> {
   // short_clip_plan). Plans remain non-dispatchable; approving a plan
   // enqueues clip_render per entry via the approveAsset server action.
   for (const assetType of ASSET_TYPES) {
+    await enqueue({
+      kind: 'generate_asset',
+      payload: { sourceId, packageId, assetType, processingProfile: profile },
+      idempotencyKey: `generate_asset:${packageId}:${assetType}`,
+    });
+  }
+
+  // Extended-network posts: generate only for networks the brand is actually
+  // connected to (zernio_accounts), so we never draft posts that can't ship.
+  const [pkgBrand] = await db
+    .select({ accounts: brands.zernioAccounts })
+    .from(packages)
+    .innerJoin(brands, eq(brands.id, packages.brandId))
+    .where(eq(packages.id, packageId))
+    .limit(1);
+  const accounts = pkgBrand?.accounts ?? {};
+  for (const [assetType, network] of Object.entries(NETWORK_ASSET_TYPES)) {
+    if (!accounts[network]) continue;
     await enqueue({
       kind: 'generate_asset',
       payload: { sourceId, packageId, assetType, processingProfile: profile },

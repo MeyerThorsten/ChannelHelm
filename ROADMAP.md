@@ -77,18 +77,17 @@ Bigger structural moves once single-operator throughput is no longer the constra
 
 ## 💡 Ideas (unscheduled)
 
-A themed backlog of candidates — not committed to a release. Each is tagged **grounded** (scaffolding already exists in the codebase — low-risk) or **bet** (a new product direction), with a rough effort (XS–L).
+A themed backlog of candidates. Each is tagged **grounded** (scaffolding already exists in the codebase — low-risk) or **bet** (a new product direction), with a rough effort (XS–L). **✅ shipped** marks items already built straight out of this backlog (extended-network generation, long-clip planning, pinned comments).
 
 ### Reach multipliers — more output from one video
 
 | Idea | What it is | Type | Effort |
 |------|------------|------|--------|
-| **Generate for the 8 un-wired networks** | Zernio already dispatches to Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord, Google Business — but ChannelHelm generates content for none. Add per-network prompts + `ASSET_TYPES` entries (repeats the `linkedin_post.v1.md` pattern). | grounded | S–M |
-| **Per-platform Short captions** | Tailored caption + hashtags per destination — `tiktok_caption` / `reels_caption` / `instagram_caption` are specified in the contract but have no prompts. | grounded | S |
-| **Long-clip planning** | `long_clip_plan` / `rendered_long_clip` are schema'd and renderable, but no generator/prompt exists — so long-form highlight cuts never get planned. | grounded | M |
-| **`short_clip_description` wiring** | `prompts/short_clip_description.v1.md` exists but no worker enqueues it — an orphaned, already-written asset. | grounded | XS |
+| **Generate for the 8 un-wired networks** | ✅ **Shipped.** Per-network post generation for Facebook, Pinterest, Bluesky, Threads, Reddit, Telegram, Discord & Google Business — gated by the brand's connected Zernio accounts so we never draft a post that can't ship. | ✅ shipped | — |
+| **Long-clip planning** | ✅ **Shipped.** `long_clip_plan` now generates horizontal highlight segments; the existing renderer turns them into `rendered_long_clip` and dispatch routes them to YouTube via Zernio. | ✅ shipped | — |
 | **Multi-language clips** | Translate captions/subtitles (optionally TTS-dub) per language. Reuses the transcript + ASS subtitle pipeline. | bet | M–L |
 | **Quote cards / carousels** | Turn the highest-retention lines into image quote-cards + carousels (LinkedIn/Instagram), reusing the image-provider layer built for thumbnails. | bet | M |
+| **Per-platform Short captions** | Tailored caption + hashtags per destination. *Deferred* — captions belong to clips, not the package, so this is better built as a `short_clip_plan` enhancement (per-clip caption variants + per-network dispatch) than as standalone asset types. | bet | M |
 
 ### Deeper feedback loop — extend Helm Signal
 

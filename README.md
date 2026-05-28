@@ -93,9 +93,9 @@ One ingest produces the whole kit — scored where it counts, editable everywher
 | Group | Assets |
 |-------|--------|
 | ▶ **YouTube** | Scored title options · full description with chapters + hashtags · scored tags · AI-generated thumbnails (Runware) — plain + headline-overlay variants — with ffmpeg frame-extraction as a zero-config fallback · a pinned comment to seed discussion · clean transcript |
-| ✂ **Clips & Shorts** | Short-clip plans cut from the highest-retention moments · rendered vertical clips · long-form highlight cuts |
+| ✂ **Clips & Shorts** | Short-clip plans cut from the highest-retention moments · rendered vertical clips · long-form highlight cuts (horizontal `long_clip_plan` → `rendered_long_clip`) |
 | 📄 **Editorial** | Article briefs and blog drafts · newsletter summaries · routed to your editorial service |
-| 𝕏 **Social** | Posts & threads tailored per network · drafted in your brand voice |
+| 𝕏 **Social** | LinkedIn posts · X posts & threads — plus per-network posts for Facebook, Threads, Bluesky, Reddit, Pinterest, Telegram, Discord & Google Business, drafted in your brand voice. Extended networks generate only for the accounts a brand has connected, so you never draft a post you can't ship. |
 
 **Publishes to:** YouTube · X · LinkedIn · Instagram · TikTok · Facebook · Threads · Pinterest · Reddit · Bluesky · Telegram · Snapchat · WhatsApp · Discord · Google Business.
 

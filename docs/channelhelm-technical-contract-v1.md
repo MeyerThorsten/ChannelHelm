@@ -379,9 +379,21 @@ This wrapper is non-negotiable: it is what makes Helm Signal possible. Every ass
 # x_thread
 {"tweets": [{"text": "...", "media_refs": [...]}, ...]}
 
+# facebook_post / threads_post / bluesky_post / reddit_post / pinterest_pin /
+#   telegram_post / discord_message / google_business_post  (added 2026)
+# Extended-network text posts, each dispatched to its Zernio network (see
+# NETWORK_BY_TYPE in workers/integrations/zernio.ts). GATED GENERATION: unlike
+# the always-on core social types, these are generated ONLY when the brand has
+# the matching account connected (brands.zernio_accounts[network]) — drafting a
+# post for a network the brand can't publish to is waste. Per-network length and
+# tone live in each prompts/<type>.v1.md. Dispatch reads payload.text.
+{"text": "..."}
+
 # tiktok_caption / reels_caption / instagram_caption
-# These are caption-only assets. The actual media is in a rendered_short_clip
-# referenced via media_refs. Dispatch combines caption + rendered clip into one Zernio post.
+# Caption-only assets — NOT generated in v1 (deferred; the clip-centric model
+# carries per-clip captions on short_clip_plan instead). The actual media is in
+# a rendered_short_clip referenced via media_refs. If generated later, dispatch
+# combines caption + rendered clip into one Zernio post.
 {"text": "...", "hashtags": [...], "media_refs": ["ast_rendered_short_clip_..."]}
 
 # article_brief — handed to DojoClaw, see Section 8
