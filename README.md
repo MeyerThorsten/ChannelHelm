@@ -209,6 +209,7 @@ The app also ships a set of illustrated, in-app guides (served from `public/`, o
 | `/visual-optimization-analysis.html` | The visual-phase performance work. |
 | `/storage-lifecycle.html` | What's temporary, archivable, and permanent. |
 | `/youtube-publish-options.html` | The three YouTube publishing paths. |
+| `/ab-testing-guide.html` | Self-run title/thumbnail A/B testing + the feedback loop. |
 
 ## Project layout
 
@@ -237,7 +238,7 @@ ChannelHelm v1 does **not** deploy to a cloud SaaS. It runs on your own machine 
 
 ## Roadmap
 
-See [`ROADMAP.md`](ROADMAP.md) for what's next — Backlog Revival (v1.1) has landed; the Helm Signal feedback loop (v1.5) and scale/identity work (v2) are ahead.
+See [`ROADMAP.md`](ROADMAP.md) for what's next — Backlog Revival (v1.1) shipped; the Helm Signal feedback loop (v1.5) is underway, with self-run **title/thumbnail A/B routing** the first slice to land ([guide](https://channelhelm.com/ab-testing-guide.html)); scale/identity work (v2) is ahead.
 
 ## Contributing
 

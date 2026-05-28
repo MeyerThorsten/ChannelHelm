@@ -6,7 +6,8 @@ import {
   StudioShell,
 } from '@/components/studio/StudioShell';
 import { db } from '@/db/client';
-import { assets, brands, packages, sources } from '@/db/schema';
+import { assets, brands, experiments, packages, sources } from '@/db/schema';
+import type { ExperimentVariant } from '@/db/schema/experiments';
 import { readScoredList } from '@/lib/asset-payload';
 import { mediaUrlFor } from '@/lib/media-path';
 import {
@@ -15,6 +16,7 @@ import {
   pipelineProgress,
   pipelineReadyToGenerate,
 } from '@/lib/pipeline';
+import { youtubeConnectionStatus } from '@workers/integrations/youtube';
 import { networkFor } from '@workers/integrations/zernio';
 import { asc, eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
@@ -247,6 +249,81 @@ export default async function PackageDetailPage({ params }: PageProps) {
     return null;
   }
 
+  // ─── A/B experiments ──────────────────────────────────────────────────────
+  // Detect whether this package has a published YouTube video id (same logic
+  // the createExperiment server action uses, done here so the panel can show
+  // the right empty/blocked state without a round-trip).
+  let hasPublishedVideo = false;
+  for (const r of rows) {
+    const d = (r.dispatch ?? {}) as { video_id?: string; external_id?: string; target?: string };
+    if (d.target === 'youtube_direct' && (d.video_id || d.external_id)) {
+      hasPublishedVideo = true;
+      break;
+    }
+  }
+  if (!hasPublishedVideo) {
+    const ytVid = (intelligence.youtube as { video_id?: string } | undefined)?.video_id;
+    if (ytVid) hasPublishedVideo = true;
+  }
+
+  // Analytics scope — needed to auto-decide winner after rotation.
+  const ytStatus = await youtubeConnectionStatus(brand.id);
+  const analyticsGranted = ytStatus.analytics;
+
+  // Load existing experiments for this package.
+  const expRows = await db
+    .select()
+    .from(experiments)
+    .where(eq(experiments.packageId, id))
+    .orderBy(asc(experiments.createdAt));
+
+  // Build title options from the already-loaded title asset.
+  const experimentTitleOptions = titles.map((t, i) => ({
+    index: i,
+    text: t.text,
+    score: t.score,
+  }));
+
+  // Build thumbnail options from the already-loaded thumbnail_concept assets.
+  const experimentThumbnailOptions = rows
+    .filter((r) => r.type === 'thumbnail_concept')
+    .map((r) => {
+      const p = r.payload as {
+        local_path?: string;
+        variant?: string;
+        headline?: string;
+        rank?: number;
+      };
+      return {
+        assetId: r.id,
+        mediaUrl: p.local_path ? mediaUrlFor(p.local_path) : null,
+        variant: (p.variant as 'plain' | 'headline' | 'frame') ?? 'frame',
+        headline: p.headline ?? null,
+        rank: typeof p.rank === 'number' ? p.rank : null,
+        localPath: p.local_path ?? null,
+      };
+    });
+
+  // Shape experiment rows for the panel — pick only the fields the component needs.
+  const experimentRows = expRows.map((e) => ({
+    id: e.id,
+    kind: e.kind,
+    status: e.status,
+    metric: e.metric,
+    videoId: e.videoId,
+    rotationHours: e.rotationHours,
+    rounds: e.rounds,
+    minViews: e.minViews,
+    currentVariant: e.currentVariant,
+    currentCycle: e.currentCycle,
+    winnerVariant: e.winnerVariant,
+    lastError: e.lastError,
+    startedAt: e.startedAt ? e.startedAt.toISOString() : null,
+    decidedAt: e.decidedAt ? e.decidedAt.toISOString() : null,
+    createdAt: e.createdAt.toISOString(),
+    variants: (e.variants ?? []) as ExperimentVariant[],
+  }));
+
   // Bundling: when youtube_direct is active for this brand, the title_set's
   // upload sweeps description/chapters/tags into the same YouTube video. The
   // panel hides those rows and shows them under the title_set's "bundles:"
@@ -320,6 +397,13 @@ export default async function PackageDetailPage({ params }: PageProps) {
       youtubeLive={youtubeLive}
       youtubeDirect={youtubeDirect}
       shorts={shortsRows}
+      experiments={{
+        rows: experimentRows,
+        hasPublishedVideo,
+        analyticsGranted,
+        titleOptions: experimentTitleOptions,
+        thumbnailOptions: experimentThumbnailOptions,
+      }}
     />
   );
 }

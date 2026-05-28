@@ -115,7 +115,8 @@ channelhelm/
 │   │   ├── clip_render.ts
 │   │   ├── dispatch.ts
 │   │   ├── collect_signal.ts
-│   │   └── archive_package.ts          ← Option B / storage lifecycle: post-publish move to ARCHIVE_ROOT
+│   │   ├── archive_package.ts          ← Option B / storage lifecycle: post-publish move to ARCHIVE_ROOT
+│   │   └── experiment_tick.ts          ← v1.5 Helm Signal: self-run title/thumbnail A/B rotation + winner decision
 │   └── integrations/
 │       ├── ml_subprocess.ts            ← spawn helper for ml/*.py
 │       ├── lm_studio.ts                ← openai client wrapper

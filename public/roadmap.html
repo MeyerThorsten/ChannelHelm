@@ -162,7 +162,7 @@
       <text class="node" x="580" y="36" text-anchor="middle" fill="#f4f4f5">v1.5</text>
       <text class="stat" x="580" y="86" text-anchor="middle" fill="#f59e0b">planned</text>
       <text class="theme" x="580" y="106" text-anchor="middle">Signal &amp; Intelligence</text>
-      <text class="chip" x="580" y="134" text-anchor="middle">title/thumb A/B</text>
+      <text class="chip" x="580" y="134" text-anchor="middle">✓ title/thumb A/B</text>
       <text class="chip" x="580" y="150" text-anchor="middle">retention calibration</text>
       <text class="chip" x="580" y="166" text-anchor="middle">copyright · sentiment</text>
 
@@ -218,11 +218,11 @@
 <section class="narrow" id="v15">
   <div class="rel mid">
     <span class="tag">🧭 PLANNED</span>
-    <h3>v1.5 — Signal &amp; Intelligence</h3>
-    <p class="theme">Close the Helm Signal feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation.</p>
+    <h3>v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(started)</span></h3>
+    <p class="theme">Close the Helm Signal feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. The first slice — self-run title/thumbnail A/B routing — has shipped.</p>
     <table class="rel-items">
       <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
-      <tr><td>Title/thumbnail A/B routing</td><td>Queue title + thumbnail options as a YouTube Studio split test; winner → positive voice example, loser → negative.</td><td>Schema already supports it.</td></tr>
+      <tr><td>Title/thumbnail A/B routing</td><td><strong>✅ Shipped.</strong> Self-run rotation — the <code>experiment_tick</code> worker rotates title + thumbnail variants on the live video, reads views / impressions / CTR from the YouTube Analytics API, and applies the winner (→ positive voice example, losers negative). Native "Test &amp; Compare" isn't in the Data API, so ChannelHelm runs the test itself.</td><td>Needs the <code>yt-analytics.readonly</code> scope — reconnect brands.</td></tr>
       <tr><td>Retention calibration model</td><td>Replace LLM-only retention prediction with a small model trained on real YouTube Studio retention curves.</td><td>Predicted scores become training signal.</td></tr>
       <tr><td>Music / copyright detection</td><td>Flag clips with copyrighted audio before YouTube Shorts syndication.</td><td>Matters once Shorts volume grows.</td></tr>
       <tr><td>Sentiment-over-time curves</td><td>Emotion curve from the scene log for emotion-aware clip selection.</td><td>Cheap; reuses existing data.</td></tr>

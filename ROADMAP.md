@@ -7,7 +7,7 @@ timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
     v1.1 — Backlog Revival (shipped) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening
-    v1.5 — Signal & Intelligence : Title/thumbnail A/B routing : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
+    v1.5 — Signal & Intelligence (started) : Title/thumbnail A/B routing ✅ : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```
 
@@ -45,13 +45,13 @@ The headline feature: **re-mine an existing back catalogue** with the current pi
 
 ---
 
-## 🧭 v1.5 — Signal & Intelligence
+## 🧭 v1.5 — Signal & Intelligence *(started)*
 
-Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation.
+Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. The first slice — self-run title/thumbnail A/B routing — has shipped.
 
 | Item | What it does | Notes |
 |------|--------------|-------|
-| **Title/thumbnail A/B routing** | Queue title + thumbnail options as a single YouTube Studio split test; the winner becomes a positive voice example, the loser a negative. | Schema already supports it. |
+| **Title/thumbnail A/B routing** | ✅ **Shipped.** Self-run rotation: the `experiment_tick` worker rotates title + thumbnail variants on the live video, reads views / impressions / CTR from the YouTube Analytics API, and applies the winner — which becomes a positive `voice_example` (losers negative). Native "Test & Compare" isn't in the Data API, so ChannelHelm runs the test itself. | Needs the `yt-analytics.readonly` scope — reconnect brands. |
 | **Retention calibration model** | Replace the LLM-only retention prediction with a small calibration model trained on real YouTube Studio retention curves. | Predicted-retention scores become training signal over time. |
 | **Music / copyright detection** | Flag clips containing copyrighted audio before syndicating to YouTube Shorts. | Important once Shorts volume grows. |
 | **Sentiment-over-time curves** | Emotion curve derived from the scene log (no extra inference) to drive emotion-aware clip selection. | Cheap; reuses existing data. |

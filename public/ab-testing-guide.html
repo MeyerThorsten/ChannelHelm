@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Title &amp; thumbnail A/B testing — ChannelHelm</title>
+<meta name="description" content="How ChannelHelm runs self-run title/thumbnail A/B tests on your live YouTube videos: rotate variants, read the YouTube Analytics API, apply the winner, and feed it back into generation." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --accent: #0ea5e9;
+    --accent-glow: rgba(14,165,233,0.18);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #a78bfa;
+    --bg: #0a0a0b;
+    --panel: #111114;
+    --panel-2: #16161a;
+    --border: #232329;
+    --border-strong: #2e2e36;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(rgba(255,255,255,0.04) 1px,transparent 1px) 0 0/24px 24px,var(--bg);
+    color:var(--text);font-family:var(--font-sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .narrow{max-width:820px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:500;color:var(--faint)}
+  code{background:var(--bg);padding:1px 6px;border-radius:3px;font-size:.92em;color:var(--text);font-family:var(--font-mono)}
+
+  header.nav{
+    position:sticky;top:0;z-index:40;height:52px;border-bottom:1px solid var(--border);
+    background:color-mix(in oklab,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{
+    width:24px;height:24px;border-radius:6px;background:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow);
+  }
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:64px 0 24px}
+  .hero h1{
+    font-family:var(--font-serif);font-weight:400;
+    font-size:clamp(36px,5.2vw,54px);line-height:1.04;letter-spacing:-.6px;margin:8px 0 14px;
+  }
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:17px;color:var(--muted);max-width:740px;margin:0}
+
+  section{padding:44px 0;border-top:1px solid var(--border)}
+  section:first-of-type{border-top:none}
+  h2{font-family:var(--font-serif);font-weight:400;font-size:clamp(24px,3.2vw,32px);letter-spacing:-.4px;margin:0 0 6px;line-height:1.1}
+  h3{font-size:16px;margin:24px 0 8px;font-weight:600}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px;max-width:780px}
+  ul.bullets{margin:10px 0;padding-left:18px}
+  ul.bullets li{margin:7px 0;color:var(--muted)}
+  ul.bullets li strong{color:var(--text)}
+
+  pre.cmd{
+    margin:8px 0 14px;padding:14px 16px;background:#0c0c0d;border:1px solid var(--border-strong);
+    border-radius:8px;font-family:var(--font-mono);font-size:12.5px;color:#dadce0;
+    line-height:1.65;overflow-x:auto;white-space:pre;
+  }
+  pre.cmd .c{color:#71717a}
+  pre.cmd .k{color:#0ea5e9}
+
+  .callout{margin:14px 0;padding:14px 18px;border-radius:10px;background:var(--panel);border:1px solid var(--border);font-size:14px;line-height:1.55}
+  .callout.tip{background:color-mix(in oklab,var(--accent) 6%,var(--panel));border-color:color-mix(in oklab,var(--accent) 28%,var(--border))}
+  .callout.warn{background:color-mix(in oklab,var(--amber) 7%,var(--panel));border-color:color-mix(in oklab,var(--amber) 28%,var(--border))}
+  .callout.win{background:color-mix(in oklab,var(--green) 7%,var(--panel));border-color:color-mix(in oklab,var(--green) 28%,var(--border))}
+  .callout strong{margin-right:6px}
+  .callout.tip strong{color:var(--accent)}
+  .callout.warn strong{color:var(--amber)}
+  .callout.win strong{color:var(--green)}
+
+  table.data{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  table.data th, table.data td{padding:11px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+  table.data th{color:var(--faint);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:var(--panel-2)}
+  table.data tr:last-child td{border-bottom:none}
+
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:14px 0}
+  ol.steps li{position:relative;padding:10px 0 10px 44px;border-bottom:1px solid var(--border);color:var(--muted)}
+  ol.steps li:last-child{border-bottom:none}
+  ol.steps li::before{
+    counter-increment:s;content:counter(s);position:absolute;left:0;top:9px;
+    width:28px;height:28px;border-radius:7px;background:var(--accent-soft,rgba(14,165,233,0.12));
+    color:var(--accent);font-family:var(--font-mono);font-size:13px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;border:1px solid color-mix(in oklab,var(--accent) 28%,var(--border));
+  }
+  ol.steps li strong{color:var(--text)}
+
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;font-family:var(--font-mono);font-size:12px}
+  .flow .node{padding:8px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text)}
+  .flow .node.win{border-color:color-mix(in oklab,var(--green) 40%,var(--border));color:var(--green)}
+  .flow .arr{color:var(--faint)}
+
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:30px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg>
+    </span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="#why">Why</a>
+    <a href="#how">How</a>
+    <a href="#setup">Setup</a>
+    <a href="#run">Run a test</a>
+    <a href="#loop">Feedback</a>
+    <a href="/youtube-publish-options.html">YouTube publishing</a>
+    <a href="/roadmap.html">Roadmap</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero narrow">
+  <div class="eyebrow">Title &amp; thumbnail A/B testing · Helm Signal (v1.5)</div>
+  <h1>Let the numbers <em>pick the packaging.</em></h1>
+  <p class="lede">
+    ChannelHelm already generates several scored title options and multiple AI thumbnail
+    concepts per video. A/B testing closes the loop: it rotates those variants on your
+    <em>live</em> YouTube video, reads each one&apos;s real performance from the YouTube
+    Analytics API, applies the winner permanently, and feeds the result back so the next
+    video&apos;s titles lean toward what actually works.
+  </p>
+</section>
+
+<!-- WHY SELF-RUN -->
+<section class="narrow" id="why">
+  <div class="eyebrow">Why self-run</div>
+  <h2>YouTube&apos;s native test isn&apos;t in the API.</h2>
+  <p class="sub">
+    YouTube Studio has a built-in &ldquo;Test &amp; compare&rdquo; for thumbnails (and, increasingly,
+    titles) that picks a winner by watch-time share. It is <strong>Studio-UI only</strong> — the
+    YouTube Data API exposes no way to create or read those tests. The API gives you exactly two
+    levers: <code>thumbnails.set</code> (one thumbnail) and <code>videos.update</code> (the title).
+  </p>
+  <p class="sub">
+    So ChannelHelm runs the test itself: it <strong>rotates</strong> the variants on a schedule and
+    decides the winner from the <strong>YouTube Analytics API</strong>. You trade YouTube&apos;s
+    watch-time-based winner selection for full automation and a result that flows straight back into
+    generation.
+  </p>
+  <div class="callout warn"><strong>Trade-off</strong> Self-run rotation is noisier than YouTube&apos;s native test (each variant sees a different slice of time rather than a randomized concurrent split), and YouTube Analytics has a 1–3 day data latency. Use generous rotation windows (the 48-hour default) and the <code>min_views</code> guardrail so a decision rests on enough data.</div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="narrow" id="how">
+  <div class="eyebrow">How it works</div>
+  <h2>One worker, one state machine.</h2>
+  <p class="sub">
+    A recurring <code>experiment_tick</code> job advances each running experiment. It only acts when
+    the current variant&apos;s window has elapsed, so ticking often is cheap.
+  </p>
+
+  <div class="flow">
+    <span class="node">apply variant A</span><span class="arr">→</span>
+    <span class="node">wait rotation_hours</span><span class="arr">→</span>
+    <span class="node">read Analytics</span><span class="arr">→</span>
+    <span class="node">rotate B…N</span><span class="arr">→</span>
+    <span class="node">repeat × rounds</span><span class="arr">→</span>
+    <span class="node win">apply winner ✓</span>
+  </div>
+
+  <ol class="steps">
+    <li><strong>Start.</strong> On launch, variant A&apos;s title and/or thumbnail goes live on the video.</li>
+    <li><strong>Run the window.</strong> The variant stays up for <code>rotation_hours</code> (default 48).</li>
+    <li><strong>Observe.</strong> When the window closes, ChannelHelm reads that window&apos;s <code>views</code>, watch time, and — when your channel reports them — <code>impressions</code> and <code>impressionClickThroughRate</code> from the Analytics API, and stores them on the variant.</li>
+    <li><strong>Rotate.</strong> The next variant goes live; repeat until every variant has run, for as many <code>rounds</code> as you set.</li>
+    <li><strong>Decide.</strong> Once every variant has completed its rounds <em>and</em> cleared <code>min_views</code>, the highest-scoring variant on your chosen metric wins (ties broken by total views).</li>
+    <li><strong>Apply &amp; learn.</strong> The winner is set permanently, and the result feeds <code>voice_examples</code> — see <a href="#loop">the feedback loop</a>.</li>
+  </ol>
+
+  <h3>The deciding metric</h3>
+  <table class="data">
+    <thead><tr><th>Metric</th><th>What it measures</th><th>When to use it</th></tr></thead>
+    <tbody>
+      <tr><td><code>views</code> <span class="mono" style="color:var(--faint)">(default)</span></td><td>Views per day in each window (normalized so uneven windows compare fairly).</td><td>Always available. The robust default.</td></tr>
+      <tr><td><code>impression_ctr</code></td><td>Impression-weighted click-through rate. Falls back to views/day if your channel doesn&apos;t report impressions.</td><td>The truest packaging signal — when available.</td></tr>
+      <tr><td><code>estimated_minutes_watched</code></td><td>Total watch time across the variant&apos;s windows.</td><td>When you care about retention, not just the click.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SETUP -->
+<section class="narrow" id="setup">
+  <div class="eyebrow">Setup</div>
+  <h2>Grant the Analytics scope.</h2>
+  <p class="sub">
+    Reading performance needs the YouTube Analytics scope, which is broader than the upload scope
+    used for publishing. ChannelHelm requests <code>yt-analytics.readonly</code> at connect time.
+  </p>
+  <pre class="cmd"><span class="c"># scopes ChannelHelm requests per brand</span>
+youtube.upload         <span class="c"># publish the video</span>
+youtube                <span class="c"># set thumbnail + update title (A/B rotation)</span>
+yt-analytics.readonly  <span class="c"># read impressions / CTR / views (A/B decision)</span></pre>
+  <div class="callout warn"><strong>Reconnect</strong> Brands connected before v1.5 don&apos;t have the analytics scope. The A/B panel shows an amber banner when a brand needs to reconnect — open the brand page, click <strong>Disconnect</strong>, then <strong>Connect YouTube</strong> again and accept the new permission. The connection status reports <code>analytics: true</code> once it&apos;s granted.</div>
+</section>
+
+<!-- RUN A TEST -->
+<section class="narrow" id="run">
+  <div class="eyebrow">Run a test</div>
+  <h2>From the package Studio.</h2>
+  <p class="sub">
+    A/B tests run against a video that&apos;s already <strong>published via YouTube Direct</strong> —
+    that&apos;s how ChannelHelm gets the video id to rotate. If the package isn&apos;t live yet, the
+    panel explains what to do first.
+  </p>
+  <ol class="steps">
+    <li><strong>Open the package</strong> and find the <strong>A/B Tests</strong> panel in the Studio.</li>
+    <li><strong>New A/B test.</strong> Pick what to test — Title, Thumbnail, or both.</li>
+    <li><strong>Assemble 2–3 variants.</strong> For each, choose one of the generated scored title options and/or one of the AI thumbnail concepts. Every variant must change something.</li>
+    <li><strong>Set the run.</strong> Deciding metric, rotation hours (default 48), rounds (default 1), and <code>min_views</code> (default 50).</li>
+    <li><strong>Launch.</strong> Variant A goes live immediately; the rest follow on the schedule. The panel shows each variant&apos;s accumulated numbers, the current live variant, and the winner once decided.</li>
+  </ol>
+  <div class="callout tip"><strong>Cost</strong> A/B testing adds no LLM or image spend — it reuses titles and thumbnails you already generated. The only cost is YouTube API quota (cheap: a few units per rotation + per analytics read).</div>
+</section>
+
+<!-- FEEDBACK LOOP -->
+<section class="narrow" id="loop">
+  <div class="eyebrow">The feedback loop</div>
+  <h2>Winners teach the next video.</h2>
+  <p class="sub">
+    When a title experiment decides, the winning title is written to <code>voice_examples</code> with
+    a high performance score, and the losing titles with a low one. Because <code>generate_asset</code>
+    pulls top-scored voice examples as few-shot exemplars, the next package&apos;s titles drift toward
+    the packaging your audience actually rewards — the core of the Helm Signal loop.
+  </p>
+  <div class="flow">
+    <span class="node">A/B winner</span><span class="arr">→</span>
+    <span class="node">voice_examples (+/−)</span><span class="arr">→</span>
+    <span class="node">generate_asset few-shot</span><span class="arr">→</span>
+    <span class="node win">better next title</span>
+  </div>
+  <div class="callout win"><strong>Compounding</strong> Every decided test makes the title generator a little sharper. Thumbnail-style learning (feeding the winning concept back into thumbnail prompts) is the next slice on the <a href="/roadmap.html">roadmap</a>.</div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · title &amp; thumbnail A/B testing</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> · <a href="/roadmap.html" style="color:var(--muted)">roadmap</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/handbook.html" style="color:var(--muted)">handbook</a> ·
+      <a href="/youtube-publish-options.html" style="color:var(--muted)">youtube publishing</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

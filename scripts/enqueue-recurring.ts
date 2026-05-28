@@ -32,7 +32,7 @@
  */
 import 'dotenv/config';
 import { db } from '@/db/client';
-import { assets, dispatches, packages, signals } from '@/db/schema';
+import { assets, dispatches, experiments, packages, signals } from '@/db/schema';
 import { loadSettingsIntoEnv } from '@/lib/settings';
 import { enqueue } from '@workers/queue';
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
@@ -158,6 +158,29 @@ async function main(): Promise<void> {
       );
     }
   }
+
+  // ─── experiment_tick — advance running/draft A/B experiments (hourly) ──────
+  // One tick per live experiment per hour; the tick itself decides whether the
+  // current rotation window has elapsed, so cheap ticks are fine.
+  const liveExperiments = await db
+    .select({ id: experiments.id })
+    .from(experiments)
+    .where(or(eq(experiments.status, 'running'), eq(experiments.status, 'draft')));
+  const hourBucket = new Date(Math.floor(now / 3_600_000) * 3_600_000).toISOString();
+  let expEnqueued = 0;
+  let expSkipped = 0;
+  for (const e of liveExperiments) {
+    const r = await enqueue({
+      kind: 'experiment_tick',
+      payload: { experimentId: e.id },
+      idempotencyKey: `experiment_tick:${e.id}:${hourBucket}`,
+    });
+    if (r.created) expEnqueued++;
+    else expSkipped++;
+  }
+  console.log(
+    `[enqueue-recurring] experiment_tick: ${expEnqueued} new, ${expSkipped} dedup (hour=${hourBucket})`,
+  );
 }
 
 main()

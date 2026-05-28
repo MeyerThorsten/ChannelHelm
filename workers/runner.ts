@@ -17,6 +17,7 @@ import { run as runArchivePackage } from './kinds/archive_package';
 import { run as runClipRender } from './kinds/clip_render';
 import { run as runCollectSignal } from './kinds/collect_signal';
 import { run as runDispatch } from './kinds/dispatch';
+import { run as runExperimentTick } from './kinds/experiment_tick';
 import { run as runFuse } from './kinds/fuse';
 import { run as runGenerateAsset } from './kinds/generate_asset';
 import { run as runIngest } from './kinds/ingest';
@@ -51,6 +52,7 @@ const HANDLERS: Record<string, Handler> = {
   collect_signal: runCollectSignal,
   promote_voice_examples: runPromoteVoiceExamples,
   archive_package: runArchivePackage,
+  experiment_tick: runExperimentTick,
 };
 
 function parseArgs(argv: string[]): {

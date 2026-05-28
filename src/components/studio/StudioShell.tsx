@@ -29,6 +29,12 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 import { YoutubeLinkPill } from './YoutubeLinkPill';
 import { YoutubePublishOptions } from './YoutubePublishOptions';
+import {
+  type ExperimentRow,
+  type ExperimentThumbnailOption,
+  type ExperimentTitleOption,
+  ExperimentsPanel,
+} from './experiments/ExperimentsPanel';
 import { ShortsList } from './shorts/ShortsList';
 
 export type GenericAsset = {
@@ -113,6 +119,14 @@ export type StudioData = {
   };
   /** Per-clip rows for the Shorts tab. See ShortClipRow above. */
   shorts: ShortClipRow[];
+  /** A/B experiments for the YouTube tab. */
+  experiments: {
+    rows: ExperimentRow[];
+    hasPublishedVideo: boolean;
+    analyticsGranted: boolean;
+    titleOptions: ExperimentTitleOption[];
+    thumbnailOptions: ExperimentThumbnailOption[];
+  };
 };
 
 const PLATFORM_GROUP: Record<string, 'video' | 'editorial' | 'social'> = {
@@ -628,9 +642,7 @@ function ApprovalPanel({ data }: { data: StudioData }) {
   // state, not bundled into another asset's upload).
   const ready = data.approval.filter(
     (a) =>
-      !a.blocked &&
-      !a.bundledInto &&
-      (a.status === 'ready_for_review' || a.status === 'approved'),
+      !a.blocked && !a.bundledInto && (a.status === 'ready_for_review' || a.status === 'approved'),
   );
   const approvedCount = data.approval.filter(
     (a) => a.status === 'approved' || published.has(a.id),
@@ -767,7 +779,7 @@ function ApprovalPanel({ data }: { data: StudioData }) {
         </div>
       </div>
 
-      <div style={{ padding: '10px 10px 0', }}>
+      <div style={{ padding: '10px 10px 0' }}>
         <YoutubePublishOptions
           packageId={data.packageId}
           initialPrivacy={data.youtubeDirect.privacy}
@@ -807,9 +819,9 @@ function ApprovalPanel({ data }: { data: StudioData }) {
                   blocked
                     ? (a.blocked ?? 'not dispatchable')
                     : interactive
-                      ? (checked
-                          ? 'Click to exclude from dispatch'
-                          : 'Click to include in dispatch')
+                      ? checked
+                        ? 'Click to exclude from dispatch'
+                        : 'Click to include in dispatch'
                       : `Status: ${a.status}`
                 }
                 style={{
@@ -837,17 +849,9 @@ function ApprovalPanel({ data }: { data: StudioData }) {
                     width: 18,
                     height: 18,
                     borderRadius: 4,
-                    background: blocked
-                      ? 'transparent'
-                      : checked
-                        ? 'var(--accent)'
-                        : 'transparent',
+                    background: blocked ? 'transparent' : checked ? 'var(--accent)' : 'transparent',
                     border: `1.5px solid ${
-                      blocked
-                        ? 'var(--border)'
-                        : checked
-                          ? 'var(--accent)'
-                          : 'var(--border-strong)'
+                      blocked ? 'var(--border)' : checked ? 'var(--accent)' : 'var(--border-strong)'
                     }`,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -888,8 +892,7 @@ function ApprovalPanel({ data }: { data: StudioData }) {
                   <span
                     style={{
                       fontSize: 10,
-                      color:
-                        a.status === 'failed' ? 'var(--status-failed)' : 'var(--text-faint)',
+                      color: a.status === 'failed' ? 'var(--status-failed)' : 'var(--text-faint)',
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
@@ -929,8 +932,7 @@ function ApprovalPanel({ data }: { data: StudioData }) {
                     fontSize: 11,
                     color: 'var(--status-failed)',
                     background: 'color-mix(in oklab, var(--status-failed) 8%, transparent)',
-                    border:
-                      '1px solid color-mix(in oklab, var(--status-failed) 28%, transparent)',
+                    border: '1px solid color-mix(in oklab, var(--status-failed) 28%, transparent)',
                     borderRadius: 5,
                     lineHeight: 1.45,
                   }}
@@ -1124,6 +1126,15 @@ function YoutubeStack({ data }: { data: StudioData }) {
       <DescriptionCard data={data} />
       <TagsCard data={data} />
       <TranscriptCard text={data.youtube.transcript} audioReady={data.progress.audio >= 1} />
+      <ExperimentsPanel
+        packageId={data.packageId}
+        brandSlug={data.brand.slug}
+        hasPublishedVideo={data.experiments.hasPublishedVideo}
+        analyticsGranted={data.experiments.analyticsGranted}
+        titleOptions={data.experiments.titleOptions}
+        thumbnailOptions={data.experiments.thumbnailOptions}
+        experiments={data.experiments.rows}
+      />
     </div>
   );
 }

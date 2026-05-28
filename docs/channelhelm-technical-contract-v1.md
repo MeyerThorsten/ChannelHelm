@@ -677,6 +677,42 @@ CREATE TABLE voice_examples (
 CREATE INDEX idx_voice_examples_brand_type_score
     ON voice_examples(brand_id, asset_type, performance_score DESC);
 
+-- ─── A/B experiments (Helm Signal; added in v1.5) ─────────────────
+-- Self-run title/thumbnail rotation on a PUBLISHED YouTube video. The
+-- experiment_tick worker applies one variant at a time (videos.update title +
+-- thumbnails.set), waits rotation_hours, reads the variant's performance from
+-- the YouTube Analytics API (yt-analytics.readonly scope), then decides a
+-- winner on `metric` once every variant has run `rounds` rotations and cleared
+-- `min_views`. The winner is applied permanently and fed into voice_examples.
+-- Native YouTube "Test & Compare" is NOT in the Data API — hence self-run.
+
+CREATE TABLE experiments (
+    id TEXT PRIMARY KEY,                          -- exp_<ulid>
+    brand_id TEXT NOT NULL REFERENCES brands(id),
+    package_id TEXT NOT NULL REFERENCES packages(id),
+    video_id TEXT NOT NULL,                       -- published YouTube video (rotation target)
+    kind TEXT NOT NULL,                           -- title | thumbnail | title_thumbnail
+    status TEXT NOT NULL DEFAULT 'draft',         -- draft | running | decided | cancelled | error
+    metric TEXT NOT NULL DEFAULT 'views',         -- views | impression_ctr | estimated_minutes_watched
+    variants JSONB NOT NULL DEFAULT '[]'::jsonb,  -- [{variant_index,label,title?,thumbnail_path?,observations[]}]
+    rotation_hours INTEGER NOT NULL DEFAULT 48,   -- how long each variant stays live per cycle
+    min_views INTEGER NOT NULL DEFAULT 50,        -- guardrail: each variant must clear this before deciding
+    rounds INTEGER NOT NULL DEFAULT 1,            -- full rotations before a decision is allowed
+    current_variant INTEGER,                      -- index currently applied to the video
+    current_cycle INTEGER NOT NULL DEFAULT 0,
+    current_variant_since TIMESTAMPTZ,
+    winner_variant INTEGER,
+    last_error TEXT,
+    started_at TIMESTAMPTZ,
+    decided_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_experiments_brand_status ON experiments(brand_id, status);
+CREATE INDEX idx_experiments_running      ON experiments(status) WHERE status = 'running';
+CREATE INDEX idx_experiments_package      ON experiments(package_id);
+
 -- ─── LLM + image providers (configurable; added after v1.3) ────────
 -- The provider system postdates the original §4 schema. ONE table holds both
 -- chat/LLM providers (category='text', the default) and text-to-image providers

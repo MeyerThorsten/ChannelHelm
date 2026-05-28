@@ -9,6 +9,7 @@ export * from './schema/dispatches';
 export * from './schema/webhook_events';
 export * from './schema/signals';
 export * from './schema/voice_examples';
+export * from './schema/experiments';
 export * from './schema/llm_providers';
 export * from './schema/settings';
 export * from './schema/youtube_oauth_states';

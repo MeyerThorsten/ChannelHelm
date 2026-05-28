@@ -7,8 +7,13 @@
  * upload endpoint.
  *
  * Scopes required:
- *   youtube.upload  — for videos.insert
- *   youtube         — for thumbnails.set (and listing the channel)
+ *   youtube.upload         — for videos.insert
+ *   youtube                — for thumbnails.set, videos.update (A/B rotation), channel listing
+ *   yt-analytics.readonly  — for the YouTube Analytics API (A/B winner decision)
+ *
+ * NOTE: yt-analytics.readonly was added in v1.5. Brands connected before then
+ * must reconnect to grant it; `youtubeConnectionStatus().analytics` reports
+ * whether the saved grant already covers it.
  *
  * Quota: each upload is 1,600 units; default 10,000/day = ~6 uploads. Bump
  * via the GCP console if you scale.
@@ -22,9 +27,11 @@ import { eq, sql } from 'drizzle-orm';
 import type { OAuth2Client } from 'google-auth-library';
 import { google, type youtube_v3 } from 'googleapis';
 
+const YT_ANALYTICS_SCOPE = 'https://www.googleapis.com/auth/yt-analytics.readonly';
 const YT_SCOPES = [
   'https://www.googleapis.com/auth/youtube.upload',
   'https://www.googleapis.com/auth/youtube',
+  YT_ANALYTICS_SCOPE,
 ];
 
 /** Get the Google OAuth client configured from /settings (env-hydrated). */
@@ -260,14 +267,129 @@ export async function uploadVideo(req: YoutubeUploadRequest): Promise<YoutubeUpl
 }
 
 /**
+ * Apply one A/B variant to a PUBLISHED video: swap the title (videos.update —
+ * the API requires the full snippet incl categoryId, so we fetch-then-patch)
+ * and/or the thumbnail (thumbnails.set). Either field is optional; a null/empty
+ * title leaves the title untouched. Used by the experiment_tick rotation worker.
+ */
+export async function applyVideoVariant(opts: {
+  brandId: string;
+  redirectUri: string;
+  videoId: string;
+  title?: string | null;
+  thumbnailPath?: string | null;
+}): Promise<void> {
+  const client = await clientFor(opts.brandId, opts.redirectUri);
+  if (!client) {
+    throw new Error(`youtube: brand ${opts.brandId} has no YouTube connection`);
+  }
+  const yt = google.youtube({ version: 'v3', auth: client });
+
+  if (opts.title?.trim()) {
+    const cur = await yt.videos.list({ id: [opts.videoId], part: ['snippet'] });
+    const snip = cur.data.items?.[0]?.snippet;
+    if (!snip) {
+      throw new Error(`youtube: video ${opts.videoId} not found (cannot update title)`);
+    }
+    await yt.videos.update({
+      part: ['snippet'],
+      requestBody: {
+        id: opts.videoId,
+        snippet: {
+          title: opts.title.slice(0, 100),
+          categoryId: snip.categoryId ?? '22', // categoryId is required on update
+          description: snip.description ?? undefined,
+          tags: snip.tags ?? undefined,
+          defaultLanguage: snip.defaultLanguage ?? undefined,
+        },
+      },
+    });
+  }
+
+  if (opts.thumbnailPath) {
+    await yt.thumbnails.set({
+      videoId: opts.videoId,
+      media: { body: createReadStream(opts.thumbnailPath) },
+    });
+  }
+}
+
+export type VideoAnalytics = {
+  views: number;
+  estimatedMinutesWatched: number | null;
+  averageViewPercentage: number | null;
+  impressions: number | null; // null when the channel/report doesn't expose it
+  impressionCtr: number | null; // 0..1, null when unavailable
+};
+
+/**
+ * Read a video's performance for a date window via the YouTube Analytics API.
+ * `views` + watch-time are always available; impressions + CTR are best-effort
+ * (only some channels/report types expose them) and come back null otherwise.
+ * Dates are inclusive `YYYY-MM-DD` in the channel's timezone.
+ */
+export async function fetchVideoAnalytics(opts: {
+  brandId: string;
+  redirectUri: string;
+  videoId: string;
+  startDate: string;
+  endDate: string;
+}): Promise<VideoAnalytics> {
+  const client = await clientFor(opts.brandId, opts.redirectUri);
+  if (!client) {
+    throw new Error(`youtube: brand ${opts.brandId} has no YouTube connection`);
+  }
+  const yta = google.youtubeAnalytics({ version: 'v2', auth: client });
+
+  const core = await yta.reports.query({
+    ids: 'channel==MINE',
+    startDate: opts.startDate,
+    endDate: opts.endDate,
+    metrics: 'views,estimatedMinutesWatched,averageViewPercentage',
+    filters: `video==${opts.videoId}`,
+  });
+  const row = (core.data.rows?.[0] as number[] | undefined) ?? [];
+  const views = Number(row[0] ?? 0) || 0;
+  const estimatedMinutesWatched = row[1] != null ? Number(row[1]) : null;
+  const averageViewPercentage = row[2] != null ? Number(row[2]) : null;
+
+  let impressions: number | null = null;
+  let impressionCtr: number | null = null;
+  try {
+    const imp = await yta.reports.query({
+      ids: 'channel==MINE',
+      startDate: opts.startDate,
+      endDate: opts.endDate,
+      metrics: 'impressions,impressionClickThroughRate',
+      filters: `video==${opts.videoId}`,
+    });
+    const r = imp.data.rows?.[0] as number[] | undefined;
+    if (r) {
+      impressions = Number(r[0] ?? 0);
+      // The API returns CTR as a percentage (e.g. 4.2); normalize to 0..1.
+      impressionCtr = r[1] != null ? Number(r[1]) / 100 : null;
+    }
+  } catch (err) {
+    console.warn(
+      `[youtube] impressions metrics unavailable for ${opts.videoId}: ${(err as Error).message}`,
+    );
+  }
+
+  return { views, estimatedMinutesWatched, averageViewPercentage, impressions, impressionCtr };
+}
+
+/**
  * Read-only helper for the brand UI: is this brand connected, and to which
- * channel? Doesn't return tokens — never serialized to the client.
+ * channel? Doesn't return tokens — never serialized to the client. `analytics`
+ * reports whether the saved grant covers the YouTube Analytics scope (needed
+ * for A/B experiments); pre-v1.5 connections won't have it until reconnect.
  */
 export async function youtubeConnectionStatus(brandId: string): Promise<{
   connected: boolean;
   channelId: string | null;
   channelTitle: string | null;
   connectedAt: string | null;
+  analytics: boolean;
 }> {
   const [row] = await db
     .select({ youtubeOauth: brands.youtubeOauth })
@@ -276,12 +398,19 @@ export async function youtubeConnectionStatus(brandId: string): Promise<{
     .limit(1);
   const o = row?.youtubeOauth;
   if (!o?.refresh_token) {
-    return { connected: false, channelId: null, channelTitle: null, connectedAt: null };
+    return {
+      connected: false,
+      channelId: null,
+      channelTitle: null,
+      connectedAt: null,
+      analytics: false,
+    };
   }
   return {
     connected: true,
     channelId: o.channel_id ?? null,
     channelTitle: o.channel_title ?? null,
     connectedAt: o.connected_at,
+    analytics: (o.scope ?? '').includes(YT_ANALYTICS_SCOPE),
   };
 }
