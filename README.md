@@ -189,7 +189,9 @@ ChannelHelm cleans up after itself:
 
 ## Documentation
 
-The app ships a set of illustrated, in-app guides (served from `public/`, open them at `http://localhost:3000/<page>`):
+📜 **The load-bearing spec** every component mirrors is the technical contract: [`docs/channelhelm-technical-contract-v1.md`](docs/channelhelm-technical-contract-v1.md). When the contract and the code disagree, the contract wins.
+
+The app also ships a set of illustrated, in-app guides (served from `public/`, open them at `http://localhost:3000/<page>`):
 
 | Page | What it covers |
 |------|----------------|
