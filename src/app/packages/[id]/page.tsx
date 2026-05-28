@@ -350,6 +350,29 @@ export default async function PackageDetailPage({ params }: PageProps) {
     variants: (e.variants ?? []) as ExperimentVariant[],
   }));
 
+  // ─── Comment mining (post-publish) ────────────────────────────────────────
+  // content_ideas + faq are on-demand, comment-driven reference assets (not in
+  // the pre-publish fan-out). Read whatever's already been mined; the panel
+  // itself triggers (re-)mining and gates on hasPublishedVideo.
+  const ideasAsset = byType('content_ideas');
+  const minedIdeas = (
+    Array.isArray((ideasAsset?.payload as { ideas?: unknown })?.ideas)
+      ? ((ideasAsset?.payload as { ideas: unknown[] }).ideas as Record<string, unknown>[])
+      : []
+  ).map((it) => ({
+    title: String(it.title ?? ''),
+    angle: String(it.angle ?? ''),
+  }));
+  const faqAsset = byType('faq');
+  const minedFaq = (
+    Array.isArray((faqAsset?.payload as { items?: unknown })?.items)
+      ? ((faqAsset?.payload as { items: unknown[] }).items as Record<string, unknown>[])
+      : []
+  ).map((it) => ({
+    question: String(it.question ?? ''),
+    answer: String(it.answer ?? ''),
+  }));
+
   // Bundling: when youtube_direct is active for this brand, the title_set's
   // upload sweeps description/chapters/tags into the same YouTube video. The
   // panel hides those rows and shows them under the title_set's "bundles:"
@@ -431,6 +454,11 @@ export default async function PackageDetailPage({ params }: PageProps) {
         analyticsGranted,
         titleOptions: experimentTitleOptions,
         thumbnailOptions: experimentThumbnailOptions,
+      }}
+      commentMining={{
+        hasPublishedVideo,
+        ideas: minedIdeas,
+        faq: minedFaq,
       }}
       sentimentCurve={sentimentCurve}
     />

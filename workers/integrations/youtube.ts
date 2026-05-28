@@ -378,6 +378,62 @@ export async function fetchVideoAnalytics(opts: {
   return { views, estimatedMinutesWatched, averageViewPercentage, impressions, impressionCtr };
 }
 
+export type TopComment = {
+  text: string;
+  likeCount: number;
+  author: string;
+};
+
+/**
+ * Fetch the top-level comments of a PUBLISHED video, ordered by relevance
+ * (YouTube's blend of likes + recency). Used by the post-publish "comment
+ * mining" loop to turn audience feedback into next-video ideas + a FAQ.
+ *
+ * Best-effort by design: comments are frequently disabled, and the API can
+ * 403 on held-for-review threads. We catch + warn and return `[]` rather than
+ * throwing, so the caller can surface a friendly "no comments yet" instead of
+ * a 500. `max` is clamped to the API's 1..100 per-page window (we read one page).
+ */
+export async function fetchTopComments(opts: {
+  brandId: string;
+  redirectUri: string;
+  videoId: string;
+  max?: number;
+}): Promise<TopComment[]> {
+  const client = await clientFor(opts.brandId, opts.redirectUri);
+  if (!client) {
+    console.warn(`[youtube] fetchTopComments: brand ${opts.brandId} has no YouTube connection`);
+    return [];
+  }
+  const maxResults = Math.max(1, Math.min(100, Math.round(opts.max ?? 50)));
+  try {
+    const yt = google.youtube({ version: 'v3', auth: client });
+    const res = await yt.commentThreads.list({
+      videoId: opts.videoId,
+      part: ['snippet'],
+      order: 'relevance',
+      maxResults,
+    });
+    const out: TopComment[] = [];
+    for (const thread of res.data.items ?? []) {
+      const snip = thread.snippet?.topLevelComment?.snippet;
+      const text = (snip?.textDisplay ?? snip?.textOriginal ?? '').trim();
+      if (!text) continue;
+      out.push({
+        text,
+        likeCount: Number(snip?.likeCount ?? 0) || 0,
+        author: snip?.authorDisplayName ?? 'unknown',
+      });
+    }
+    return out;
+  } catch (err) {
+    console.warn(
+      `[youtube] fetchTopComments unavailable for ${opts.videoId} (comments disabled or API error): ${(err as Error).message}`,
+    );
+    return [];
+  }
+}
+
 /**
  * Read-only helper for the brand UI: is this brand connected, and to which
  * channel? Doesn't return tokens — never serialized to the client. `analytics`

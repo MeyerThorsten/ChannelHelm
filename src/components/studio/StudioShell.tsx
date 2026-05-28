@@ -28,6 +28,7 @@ import {
 } from '@/server-actions/studio';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
+import { CommentMiningPanel, type ContentIdea, type FaqItem } from './CommentMiningPanel';
 import { SentimentSparkline } from './SentimentSparkline';
 import { YoutubeLinkPill } from './YoutubeLinkPill';
 import { YoutubePublishOptions } from './YoutubePublishOptions';
@@ -130,6 +131,12 @@ export type StudioData = {
     analyticsGranted: boolean;
     titleOptions: ExperimentTitleOption[];
     thumbnailOptions: ExperimentThumbnailOption[];
+  };
+  /** Post-publish comment-mining results (content ideas + viewer FAQ). */
+  commentMining: {
+    hasPublishedVideo: boolean;
+    ideas: ContentIdea[];
+    faq: FaqItem[];
   };
   /**
    * Emotion-intensity curve produced by the fuse worker. Absent on packages
@@ -1155,6 +1162,14 @@ function YoutubeStack({ data }: { data: StudioData }) {
         thumbnailOptions={data.experiments.thumbnailOptions}
         experiments={data.experiments.rows}
       />
+      {data.commentMining.hasPublishedVideo && (
+        <CommentMiningPanel
+          packageId={data.packageId}
+          hasPublishedVideo={data.commentMining.hasPublishedVideo}
+          ideas={data.commentMining.ideas}
+          faq={data.commentMining.faq}
+        />
+      )}
     </div>
   );
 }
