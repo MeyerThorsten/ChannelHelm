@@ -255,9 +255,9 @@ async function insertThumb(opts: {
 
 /**
  * Parse the LLM's concept array. Tolerates ```json fences and leading prose;
- * extracts the first JSON array in the response.
+ * extracts the first JSON array in the response. Exported for tests.
  */
-function parseConcepts(text: string): { visual_prompt: string; headline?: string }[] {
+export function parseConcepts(text: string): { visual_prompt: string; headline?: string }[] {
   const stripped = text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')

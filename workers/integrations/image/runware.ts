@@ -20,12 +20,13 @@ const BILLING_PATTERNS = [
   /credits/i,
 ];
 
-/** Runware requires width/height to be multiples of 64. */
-function roundTo64(n: number): number {
+/** Runware requires width/height to be multiples of 64. Exported for tests. */
+export function roundTo64(n: number): number {
   return Math.max(64, Math.round(n / 64) * 64);
 }
 
-function isBillingError(message: string): boolean {
+/** True when an error message indicates a billing/credit problem (never retried). Exported for tests. */
+export function isBillingError(message: string): boolean {
   return BILLING_PATTERNS.some((p) => p.test(message));
 }
 
