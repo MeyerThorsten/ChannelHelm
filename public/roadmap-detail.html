@@ -100,7 +100,7 @@
 
 <!-- v1.5 -->
 <section class="narrow" id="v15">
-  <div class="eyebrow">v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(mostly shipped)</span></div>
+  <div class="eyebrow">v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(shipped)</span></div>
   <h2>Close the Helm Signal loop.</h2>
   <p class="ph">Stop generating-and-forgetting: measure what performs and feed it back into generation. A/B routing was the first slice; these are the rest.</p>
 
@@ -145,17 +145,6 @@
       <dt>How it'd work</dt><dd>Add the column to the schema + <code>/providers</code> editor; the provider resolver holds a per-provider semaphore so in-flight requests never exceed the cap, independent of total worker slots.</dd>
       <dt>Effort</dt><dd>Quick — one column, one semaphore.</dd>
       <dt>Unlocks</dt><dd>Safely cranking worker concurrency without tripping provider limits.</dd>
-    </dl>
-  </div>
-
-  <div class="feat">
-    <div class="feat-head"><span class="feat-ico">🎵</span><h3>Music / copyright detection</h3><span class="badge b-plan">Planned</span><span class="effort">~ medium</span></div>
-    <dl>
-      <dt>What it is</dt><dd>Flag clips that contain copyrighted audio <strong>before</strong> they syndicate to YouTube Shorts and other networks.</dd>
-      <dt>Why it matters</dt><dd>Becomes important as Shorts volume grows — a claimed or blocked clip wastes a slot and can hurt the channel.</dd>
-      <dt>How it'd work</dt><dd>An audio-fingerprint pass over each rendered clip; surface a warning in the Shorts editor / dispatch gate when a match is likely.</dd>
-      <dt>Effort</dt><dd>Medium — needs a fingerprinting source and a per-clip check in the pipeline.</dd>
-      <dt>Unlocks</dt><dd>Confidence that syndicated clips won't get claimed or muted.</dd>
     </dl>
   </div>
 </section>
@@ -229,6 +218,24 @@
       <dt>How it'd work</dt><dd>Auth + per-user attribution + review assignment, scoped by brand, without breaking the local-first posture.</dd>
       <dt>Effort</dt><dd>Large — touches auth, the review flow, and provenance.</dd>
       <dt>Unlocks</dt><dd>More than one person running the command center.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ideas -->
+<section class="narrow" id="ideas">
+  <div class="eyebrow">Ideas — unscheduled</div>
+  <h2>Worth doing eventually.</h2>
+  <p class="ph">Not committed to a release — parked until the trade-off is clearly worth it.</p>
+
+  <div class="feat">
+    <div class="feat-head"><span class="feat-ico">🎵</span><h3>Music / copyright detection</h3><span class="badge b-v2">Idea</span><span class="effort">~ medium</span></div>
+    <dl>
+      <dt>What it is</dt><dd>Flag clips that likely contain copyrighted audio before they syndicate to TikTok / Instagram — and as early warning before a render + dispatch slot is spent (most useful on ingested third-party source like podcasts/webinars).</dd>
+      <dt>Why it's only an idea</dt><dd>It can only ever be a <strong>risk predictor, not a verdict.</strong> The authoritative judge is YouTube Content ID / each platform's fingerprinting, and none is queryable before publishing.</dd>
+      <dt>Accuracy ceiling</dt><dd>A fully-local build can detect <em>music presence</em> well (~90%) but not copyright status. Genuine identification needs an opt-in commercial fingerprint API (e.g. ACRCloud, Audible Magic) — accurate (~95%+ on catalog music) but an external-cloud dependency that breaks local-first, and still misses long-tail rights while over-flagging royalty-free.</dd>
+      <dt>Already covered</dt><dd>For the YouTube destination, YouTube's own pre-publish <strong>Checks</strong> run Content ID for free — so the value is narrow (non-YouTube syndication + early warning).</dd>
+      <dt>If built</dt><dd>Local music-presence flag by default (advisory "⚠ music at 0:12–0:34"), with an optional fingerprint provider for real identification. Always a risk score, never a green light.</dd>
     </dl>
   </div>
 </section>

@@ -221,9 +221,9 @@
 <!-- ─── v1.5 ─────────────────────────────────────────────────────────── -->
 <section class="narrow" id="v15">
   <div class="rel mid">
-    <span class="tag">🧭 MOSTLY SHIPPED</span>
-    <h3>v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(mostly shipped)</span></h3>
-    <p class="theme">Close the Helm Signal feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. Most of v1.5 has shipped; only music/copyright detection remains.</p>
+    <span class="tag">✅ SHIPPED</span>
+    <h3>v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(shipped)</span></h3>
+    <p class="theme">Close the Helm Signal feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. All of v1.5 has shipped.</p>
     <table class="rel-items">
       <tr><th>Item</th><th>What it does</th><th>Notes</th></tr>
       <tr><td>Title/thumbnail A/B routing</td><td><strong>✅ Shipped.</strong> Self-run rotation — the <code>experiment_tick</code> worker rotates title + thumbnail variants on the live video, reads views / impressions / CTR from the YouTube Analytics API, and applies the winner (→ positive voice example, losers negative). Native "Test &amp; Compare" isn't in the Data API, so ChannelHelm runs the test itself.</td><td>Needs the <code>yt-analytics.readonly</code> scope — reconnect brands.</td></tr>
@@ -231,7 +231,6 @@
       <tr><td>Sentiment-over-time curves</td><td><strong>✅ Shipped.</strong> Lexicon emotion curve over the scene log (no extra inference) — the clip planner favours high-arousal peaks and the Studio shows a sparkline.</td><td>Cheap; reuses existing data.</td></tr>
       <tr><td>Retention calibration model</td><td><strong>✅ Shipped.</strong> Least-squares calibration of predicted engaging-fraction → measured average view %, fit per brand from YouTube Analytics pulls; applied in <code>analyze_intelligence</code> (identity until enough samples).</td><td>Improves as data accumulates.</td></tr>
       <tr><td>Per-provider concurrency limits</td><td><strong>✅ Shipped.</strong> A <code>max_concurrent</code> column on <code>llm_providers</code> + a per-provider semaphore so a rate-limited provider isn't hammered by N worker slots.</td><td>Set it in <code>/providers</code>.</td></tr>
-      <tr><td>Music / copyright detection</td><td>Flag clips with copyrighted audio before YouTube Shorts syndication.</td><td>The remaining v1.5 item.</td></tr>
     </table>
   </div>
 </section>
@@ -251,6 +250,19 @@
       <tr><td>GSC article signals</td><td>Pull Search Console position + page metrics for DojoClaw articles into <code>signals</code>.</td><td>Completes cross-surface performance data.</td></tr>
       <tr><td>Multi-operator / teams</td><td>Team accounts atop the local-first single-operator model.</td><td>Only if content-ops headcount grows.</td></tr>
       <tr><td>Higher dispatch-volume path</td><td>Documented upgrade path if dispatch outgrows local bandwidth.</td><td>Choose when needed.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ─── IDEAS ────────────────────────────────────────────────────────── -->
+<section class="narrow" id="ideas">
+  <div class="rel far">
+    <span class="tag">💡 IDEA</span>
+    <h3>Ideas — unscheduled</h3>
+    <p class="theme">Worth doing eventually, not yet committed to a release.</p>
+    <table class="rel-items">
+      <tr><th>Idea</th><th>What it is</th><th>Why it's only an idea</th></tr>
+      <tr><td>Music / copyright detection</td><td>Flag clips that likely contain copyrighted audio before they syndicate to TikTok / Instagram (and as early warning before render/dispatch).</td><td>Can only ever be a <strong>risk predictor, not a verdict</strong> — the real judge is YouTube Content ID / platform fingerprinting, not queryable pre-publish. Fully-local detects music <em>presence</em> (~90%) but not copyright status; real identification needs an opt-in commercial fingerprint API (e.g. ACRCloud), breaking local-first. And YouTube's own pre-publish Checks already cover the YouTube destination for free.</td></tr>
     </table>
   </div>
 </section>

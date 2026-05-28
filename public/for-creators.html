@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What ChannelHelm does for creators — and what just shipped</title>
+<meta name="description" content="Drop a video, get a complete publishing kit for every platform — on your own machine. And with v1.5, ChannelHelm now learns from what actually performs. A plain-English guide for creators." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root{
+    --accent:#0ea5e9;--accent-glow:rgba(14,165,233,0.18);--accent-soft:rgba(14,165,233,0.12);
+    --green:#10b981;--amber:#f59e0b;--purple:#a78bfa;
+    --bg:#0a0a0b;--panel:#111114;--panel-2:#16161a;--border:#232329;--border-strong:#2e2e36;
+    --text:#f4f4f5;--muted:#a1a1aa;--faint:#71717a;
+    --font-sans:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --font-serif:"Instrument Serif",ui-serif,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(rgba(255,255,255,0.04) 1px,transparent 1px) 0 0/24px 24px,var(--bg);color:var(--text);font-family:var(--font-sans);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .narrow{max-width:760px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--font-mono)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:600;color:var(--accent)}
+
+  header.nav{position:sticky;top:0;z-index:40;height:52px;border-bottom:1px solid var(--border);background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--text)}
+  .logo-mark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 50%,white),0 4px 16px var(--accent-glow)}
+  .nav-links{margin-left:auto;display:flex;gap:4px}
+  .nav-links a{padding:6px 12px;font-size:13px;color:var(--muted);border-radius:7px}
+  .nav-links a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+
+  .hero{padding:60px 0 8px}
+  .hero h1{font-family:var(--font-serif);font-weight:400;font-size:clamp(34px,5vw,52px);line-height:1.05;letter-spacing:-.6px;margin:10px 0 16px}
+  .hero h1 em{font-style:italic;color:var(--faint)}
+  .lede{font-size:19px;color:var(--muted);margin:0}
+  .byline{margin:18px 0 0;font-size:13px;color:var(--faint);font-family:var(--font-mono)}
+
+  article{padding:36px 0 8px}
+  article h2{font-family:var(--font-serif);font-weight:400;font-size:clamp(24px,3.2vw,30px);letter-spacing:-.3px;margin:40px 0 8px;line-height:1.15}
+  article h3{font-size:18px;margin:26px 0 6px;font-weight:600}
+  article p{margin:14px 0;color:#d4d4d8}
+  article strong{color:var(--text)}
+  article ul{margin:14px 0;padding-left:20px}
+  article li{margin:9px 0;color:#d4d4d8}
+  article li strong{color:var(--text)}
+
+  .pull{font-family:var(--font-serif);font-size:24px;line-height:1.35;color:var(--text);border-left:3px solid var(--accent);padding:6px 0 6px 20px;margin:28px 0}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .card p{margin:6px 0 0;font-size:14.5px;color:var(--muted)}
+  .card .tag{font-family:var(--font-mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--green)}
+
+  .cta{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 10px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:9px;font-size:14px;font-weight:600}
+  .btn-primary{background:var(--accent);color:#04121b}
+  .btn-primary:hover{text-decoration:none;filter:brightness(1.06)}
+  .btn-ghost{border:1px solid var(--border-strong);color:var(--text)}
+  .btn-ghost:hover{text-decoration:none;background:var(--panel-2)}
+
+  hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+  footer{border-top:1px solid var(--border);padding:30px 0;color:var(--faint);font-size:13px;margin-top:24px}
+  .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="/">
+    <span class="logo-mark"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12 L2 4 L5 4 L8 7 L11 4 L14 4 L14 12 L11 12 L11 8 L8 11 L5 8 L5 12 Z" fill="white"/></svg></span>
+    ChannelHelm
+  </a>
+  <nav class="nav-links">
+    <a href="/how-it-works.html">How it works</a>
+    <a href="/roadmap.html">Roadmap</a>
+    <a href="/">Open the app</a>
+  </nav>
+</header>
+
+<section class="hero narrow">
+  <div class="eyebrow">For creators · v1.5 release</div>
+  <h1>One upload in. <em>A whole channel's worth of content out.</em></h1>
+  <p class="lede">
+    ChannelHelm turns a single video into everything you need to publish it everywhere — and with the
+    v1.5 release, it now <strong>learns from what actually performs</strong> and gets better with every upload.
+  </p>
+  <p class="byline">A plain-English guide · no technical background needed</p>
+</section>
+
+<article class="narrow">
+  <h2>The problem every creator knows</h2>
+  <p>
+    You finish one video. Now the real work starts. YouTube needs a title, a description with chapters,
+    tags, and a thumbnail. You want three or four short clips for TikTok, Reels, and Shorts — each
+    trimmed, captioned, and sized vertically. There's a blog post or newsletter in there somewhere. And
+    a different post for X, LinkedIn, Instagram, Facebook, Threads… each one supposed to sound like
+    <em>you</em>, each one different.
+  </p>
+  <p>
+    That's hours of repetitive packaging for every single upload. Most creators either burn the time, hire
+    it out, or simply skip platforms — and leave reach on the table.
+  </p>
+
+  <div class="pull">ChannelHelm does the first draft of all of it, from one video, in a single pass — on your own computer.</div>
+
+  <h2>What ChannelHelm actually does</h2>
+  <p>
+    Drop in a video — an uploaded file, a YouTube link, a podcast, a webinar. ChannelHelm <strong>watches
+    and listens to it</strong>: what's said, what's on screen, and what actually matters. Then it drafts
+    your whole publishing kit:
+  </p>
+  <ul>
+    <li><strong>YouTube package</strong> — scored title options, a full description with chapters and hashtags, tags, and AI-generated thumbnails (with the headline already on them).</li>
+    <li><strong>Short clips</strong> — your highest-energy moments cut into ready-to-post vertical videos, with animated captions burned in. Trim them on whole words; preview instantly.</li>
+    <li><strong>Written pieces</strong> — article and blog drafts, newsletter summaries.</li>
+    <li><strong>Social posts</strong> — tailored for each network, written in your brand's voice.</li>
+  </ul>
+  <p>
+    You stay in control: everything is a draft you review, tweak, approve, and publish. Don't like a title?
+    Regenerate just that one. Nothing goes out without you.
+  </p>
+
+  <h3>And it runs on your machine</h3>
+  <p>
+    There's no monthly per-seat SaaS bill and no uploading your raw footage to someone else's cloud.
+    Your videos, transcripts, and drafts stay on your own computer. The only thing that leaves is the
+    finished post you choose to publish. <strong>Your content — and your data — stay yours.</strong>
+  </p>
+
+  <hr />
+
+  <h2>What's new: v1.5 — your content learns from itself</h2>
+  <p>
+    Until now, ChannelHelm was a brilliant <em>drafting</em> assistant. With v1.5, it becomes a
+    <strong>learning</strong> one. Instead of generating content and forgetting about it, it watches how
+    your posts perform and feeds that back into the next batch. Five upgrades, all shipped:
+  </p>
+
+  <div class="card">
+    <span class="tag">✓ Shipped</span>
+    <h3>It A/B-tests your titles and thumbnails — automatically</h3>
+    <p>Packaging decides whether anyone clicks. ChannelHelm now quietly rotates different title and thumbnail options on your live video, watches which one earns more views and watch-time, and keeps the winner — no spreadsheets, no manual tests.</p>
+  </div>
+
+  <div class="card">
+    <span class="tag">✓ Shipped</span>
+    <h3>Winning thumbnails make the next ones better</h3>
+    <p>When a thumbnail wins, ChannelHelm remembers what made it work and leans future thumbnails toward that style. Your packaging compounds instead of starting from scratch each time.</p>
+  </div>
+
+  <div class="card">
+    <span class="tag">✓ Shipped</span>
+    <h3>It finds your most exciting moments for Shorts</h3>
+    <p>ChannelHelm now maps the emotional energy across your video and favours the peaks when picking clips — so your Shorts lead with the moments most likely to travel, not a random 60 seconds.</p>
+  </div>
+
+  <div class="card">
+    <span class="tag">✓ Shipped</span>
+    <h3>Retention predictions grounded in your real numbers</h3>
+    <p>Instead of guessing how well a moment will hold attention, ChannelHelm checks its predictions against your channel's actual audience-retention data and corrects itself — getting sharper the more you publish.</p>
+  </div>
+
+  <div class="card">
+    <span class="tag">✓ Shipped</span>
+    <h3>Faster, steadier generation at scale</h3>
+    <p>Behind the scenes, ChannelHelm now paces its AI requests so it can run more work in parallel without hitting provider limits — meaning more videos turned around, more reliably.</p>
+  </div>
+
+  <div class="pull">Every post that gets measured makes the next one better. That's the whole idea behind v1.5.</div>
+
+  <h2>Why it matters for your business</h2>
+  <ul>
+    <li><strong>More output, less busywork.</strong> The packaging that ate your afternoons is a review-and-approve loop now.</li>
+    <li><strong>Show up everywhere.</strong> One video becomes on-brand content for every platform, so you stop choosing which networks to skip.</li>
+    <li><strong>Quality that compounds.</strong> The feedback loop means your titles, thumbnails, and clips keep improving on their own.</li>
+    <li><strong>Own your stack.</strong> Local-first means no per-seat fees and no handing your library to a third party.</li>
+  </ul>
+
+  <h2>Where it's headed</h2>
+  <p>
+    v1.5 closes the core learning loop. Next up are bigger moves — direct Shorts publishing, automatic
+    b-roll, and richer cross-platform performance signals. See the
+    <a href="/roadmap.html">roadmap</a> for the full picture, or the
+    <a href="/roadmap-detail.html">detailed breakdown</a> of what's coming.
+  </p>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="/">Open ChannelHelm →</a>
+    <a class="btn btn-ghost" href="/how-it-works.html">See how it works</a>
+    <a class="btn btn-ghost" href="https://github.com/MeyerThorsten/ChannelHelm">View on GitHub</a>
+  </div>
+</article>
+
+<footer>
+  <div class="wrap foot-inner">
+    <span class="mono">ChannelHelm · for creators</span>
+    <span>
+      <a href="/" style="color:var(--muted)">app</a> · <a href="/roadmap.html" style="color:var(--muted)">roadmap</a> ·
+      <a href="/how-it-works.html" style="color:var(--muted)">how it works</a> ·
+      <a href="/handbook.html" style="color:var(--muted)">handbook</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

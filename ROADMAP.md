@@ -7,7 +7,7 @@ timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
     v1.1 — Backlog Revival (shipped) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening
-    v1.5 — Signal & Intelligence (mostly shipped) : Title/thumbnail A/B routing ✅ : Thumbnail feedback loop ✅ : Sentiment-over-time curves ✅ : Retention calibration ✅ : Per-provider concurrency ✅ : Music / copyright detection
+    v1.5 — Signal & Intelligence ✅ Shipped : Title/thumbnail A/B routing : Thumbnail feedback loop : Sentiment-over-time curves : Retention calibration : Per-provider concurrency
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```
 
@@ -45,9 +45,9 @@ The headline feature: **re-mine an existing back catalogue** with the current pi
 
 ---
 
-## 🧭 v1.5 — Signal & Intelligence *(mostly shipped)*
+## ✅ v1.5 — Signal & Intelligence *(shipped)*
 
-Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. Most of v1.5 has shipped; only music/copyright detection remains.
+Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. All of v1.5 has shipped.
 
 | Item | What it does | Notes |
 |------|--------------|-------|
@@ -56,7 +56,6 @@ Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe
 | **Sentiment-over-time curves** | ✅ **Shipped.** Lexicon emotion curve over the scene log (no extra inference), stored on `intelligence.sentiment_curve`; the clip planner favours high-arousal peaks and the Studio shows a sparkline. | Cheap; reuses existing data. |
 | **Retention calibration model** | ✅ **Shipped.** Least-squares calibration of the predicted engaging-fraction → measured average view %, fit per brand from `collect_signal`'s YouTube Analytics pulls; `analyze_intelligence` applies it (identity until enough samples accrue). | Predicted-retention scores improve as data accumulates. |
 | **Per-provider concurrency limits** | ✅ **Shipped.** A `max_concurrent` column on `llm_providers` + a per-provider semaphore so a rate-limited provider isn't hammered by N worker slots. | Set it in `/providers`. |
-| **Music / copyright detection** | Flag clips containing copyrighted audio before syndicating to YouTube Shorts. | The remaining v1.5 item — important once Shorts volume grows. |
 
 ---
 
@@ -73,6 +72,16 @@ Bigger structural moves once single-operator throughput is no longer the constra
 | **GSC article signals** | Pull Search Console position + page metrics for DojoClaw-published articles into the `signals` table. | Completes cross-surface performance data. |
 | **Multi-operator / teams** | Team accounts on top of the local-first single-operator model. | Only if content-ops headcount grows. |
 | **Higher dispatch-volume path** | The documented upgrade path if dispatch volume outgrows local bandwidth. | Choose when needed. |
+
+---
+
+## 💡 Ideas (unscheduled)
+
+Things worth doing eventually, not yet committed to a release.
+
+| Idea | What it is | Why it's only an idea |
+|------|------------|-----------------------|
+| **Music / copyright detection** | Flag clips that likely contain copyrighted audio before they syndicate to TikTok / Instagram (and as early warning before render/dispatch). | It can only ever be a **risk predictor, not a verdict** — the authoritative judge is YouTube Content ID / platform fingerprinting, which isn't queryable pre-publish. A fully-local build can accurately detect *music presence* (~90%) but not *copyright status*; genuine identification needs an opt-in commercial fingerprint API (e.g. ACRCloud), breaking local-first. And for the YouTube destination, YouTube's own pre-publish **Checks** already cover it for free. So the value is narrow (non-YouTube syndication) and the accuracy ceiling is real — parked until that trade-off is worth it. |
 
 ---
 
