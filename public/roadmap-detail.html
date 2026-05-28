@@ -92,20 +92,20 @@
   <p class="lede">
     The <a href="/roadmap.html">roadmap overview</a> gives you the one-line version. This page is the
     deep dive: for each upcoming item — what it is, why it matters, how it would work, the rough
-    effort, and what it unlocks. <strong class="mono" style="font-weight:600">NEXT UP</strong> marks
-    the strongest candidates to build immediately after the self-run A/B routing that just shipped.
+    effort, and what it unlocks. <strong class="mono" style="font-weight:600">✓ SHIPPED</strong> marks
+    what has landed — the whole v1.5 feedback-loop set except music/copyright detection.
   </p>
   <div class="callout win"><strong>Just shipped</strong> Self-run title/thumbnail A/B routing — see the <a href="/ab-testing-guide.html">A/B testing guide</a>. Several items below build directly on the analytics + feedback plumbing it introduced.</div>
 </section>
 
 <!-- v1.5 -->
 <section class="narrow" id="v15">
-  <div class="eyebrow">v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(in progress)</span></div>
+  <div class="eyebrow">v1.5 — Signal &amp; Intelligence <span style="opacity:.7">(mostly shipped)</span></div>
   <h2>Close the Helm Signal loop.</h2>
   <p class="ph">Stop generating-and-forgetting: measure what performs and feed it back into generation. A/B routing was the first slice; these are the rest.</p>
 
   <div class="feat">
-    <div class="feat-head"><span class="feat-ico">🖼️</span><h3>Thumbnail feedback loop</h3><span class="badge b-next">Next up</span><span class="effort">~ hours</span></div>
+    <div class="feat-head"><span class="feat-ico">🖼️</span><h3>Thumbnail feedback loop</h3><span class="badge b-next">✓ Shipped</span><span class="effort">~ hours</span></div>
     <dl>
       <dt>What it is</dt><dd>Extends the A/B work to <strong>thumbnails</strong>. Today, when a <em>title</em> experiment decides, the winner is written to <code>voice_examples</code> so future titles drift toward what won. Thumbnails currently record nothing.</dd>
       <dt>Why it matters</dt><dd>The thumbnail is half the click decision. Without this, thumbnail experiments tell you a winner but don't make the <em>next</em> video's thumbnails any better.</dd>
@@ -116,7 +116,7 @@
   </div>
 
   <div class="feat">
-    <div class="feat-head"><span class="feat-ico">📈</span><h3>Sentiment-over-time curves</h3><span class="badge b-next">Next up</span><span class="effort">~ low</span></div>
+    <div class="feat-head"><span class="feat-ico">📈</span><h3>Sentiment-over-time curves</h3><span class="badge b-next">✓ Shipped</span><span class="effort">~ low</span></div>
     <dl>
       <dt>What it is</dt><dd>An <strong>emotion curve</strong> across the video, derived from the fused scene log (the timestamped text + visual descriptions ChannelHelm already produces) — no new model inference.</dd>
       <dt>Why it matters</dt><dd>The best Shorts come from emotional spikes, not arbitrary timestamps. An explicit curve makes "where's the energy" a first-class signal.</dd>
@@ -127,7 +127,7 @@
   </div>
 
   <div class="feat">
-    <div class="feat-head"><span class="feat-ico">🎯</span><h3>Retention calibration model</h3><span class="badge b-next">Next up</span><span class="effort">~ days</span></div>
+    <div class="feat-head"><span class="feat-ico">🎯</span><h3>Retention calibration model</h3><span class="badge b-next">✓ Shipped</span><span class="effort">~ days</span></div>
     <dl>
       <dt>What it is</dt><dd>Replaces the current <strong>LLM-only retention guess</strong> with a small model calibrated against your channel's <em>real</em> retention curves.</dd>
       <dt>Why it matters</dt><dd>Hook scoring and clip selection lean on predicted retention. Grounding those predictions in actual audience behavior makes every downstream choice sharper — and it improves as more videos accrue.</dd>
@@ -138,7 +138,7 @@
   </div>
 
   <div class="feat">
-    <div class="feat-head"><span class="feat-ico">⚙️</span><h3>Per-provider concurrency limits</h3><span class="badge b-next">Next up</span><span class="effort">~ quick</span></div>
+    <div class="feat-head"><span class="feat-ico">⚙️</span><h3>Per-provider concurrency limits</h3><span class="badge b-next">✓ Shipped</span><span class="effort">~ quick</span></div>
     <dl>
       <dt>What it is</dt><dd>A <code>max_concurrent</code> cap per row in <code>llm_providers</code>, enforced by the worker pool.</dd>
       <dt>Why it matters</dt><dd>The queue runs N slots against whatever provider a job resolves to. A rate-limited provider (OpenAI/OpenRouter tiers) gets hammered and 429s when you raise <code>WORKER_CONCURRENCY</code>.</dd>

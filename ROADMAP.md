@@ -7,7 +7,7 @@ timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
     v1.1 — Backlog Revival (shipped) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening
-    v1.5 — Signal & Intelligence (started) : Title/thumbnail A/B routing ✅ : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
+    v1.5 — Signal & Intelligence (mostly shipped) : Title/thumbnail A/B routing ✅ : Thumbnail feedback loop ✅ : Sentiment-over-time curves ✅ : Retention calibration ✅ : Per-provider concurrency ✅ : Music / copyright detection
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```
 
@@ -45,17 +45,18 @@ The headline feature: **re-mine an existing back catalogue** with the current pi
 
 ---
 
-## 🧭 v1.5 — Signal & Intelligence *(started)*
+## 🧭 v1.5 — Signal & Intelligence *(mostly shipped)*
 
-Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. The first slice — self-run title/thumbnail A/B routing — has shipped.
+Close the **Helm Signal** feedback loop: stop generating-and-forgetting; observe what performs and feed it back into generation. Most of v1.5 has shipped; only music/copyright detection remains.
 
 | Item | What it does | Notes |
 |------|--------------|-------|
 | **Title/thumbnail A/B routing** | ✅ **Shipped.** Self-run rotation: the `experiment_tick` worker rotates title + thumbnail variants on the live video, reads views / impressions / CTR from the YouTube Analytics API, and applies the winner — which becomes a positive `voice_example` (losers negative). Native "Test & Compare" isn't in the Data API, so ChannelHelm runs the test itself. | Needs the `yt-analytics.readonly` scope — reconnect brands. |
-| **Retention calibration model** | Replace the LLM-only retention prediction with a small calibration model trained on real YouTube Studio retention curves. | Predicted-retention scores become training signal over time. |
-| **Music / copyright detection** | Flag clips containing copyrighted audio before syndicating to YouTube Shorts. | Important once Shorts volume grows. |
-| **Sentiment-over-time curves** | Emotion curve derived from the scene log (no extra inference) to drive emotion-aware clip selection. | Cheap; reuses existing data. |
-| **Per-provider concurrency limits** | A `max_concurrent` column on `llm_providers` so a rate-limited provider isn't hammered by N worker slots. | From the worker-concurrency notes. |
+| **Thumbnail feedback loop** | ✅ **Shipped.** A decided thumbnail experiment writes the winning concept's `visual_prompt` to `voice_examples`; the `thumbnail_concepts` worker biases new concepts toward past winners. | Closes the thumbnail half of the A/B loop. |
+| **Sentiment-over-time curves** | ✅ **Shipped.** Lexicon emotion curve over the scene log (no extra inference), stored on `intelligence.sentiment_curve`; the clip planner favours high-arousal peaks and the Studio shows a sparkline. | Cheap; reuses existing data. |
+| **Retention calibration model** | ✅ **Shipped.** Least-squares calibration of the predicted engaging-fraction → measured average view %, fit per brand from `collect_signal`'s YouTube Analytics pulls; `analyze_intelligence` applies it (identity until enough samples accrue). | Predicted-retention scores improve as data accumulates. |
+| **Per-provider concurrency limits** | ✅ **Shipped.** A `max_concurrent` column on `llm_providers` + a per-provider semaphore so a rate-limited provider isn't hammered by N worker slots. | Set it in `/providers`. |
+| **Music / copyright detection** | Flag clips containing copyrighted audio before syndicating to YouTube Shorts. | The remaining v1.5 item — important once Shorts volume grows. |
 
 ---
 

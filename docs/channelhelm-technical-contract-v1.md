@@ -737,6 +737,7 @@ CREATE TABLE llm_providers (
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     purpose TEXT NOT NULL DEFAULT 'all',        -- 'all' | a processing profile (per-purpose routing)
+    max_concurrent INTEGER NOT NULL DEFAULT 0,  -- v1.5: 0 = unlimited; caps in-flight requests per provider (semaphore in the resolver)
     max_tokens INTEGER NOT NULL DEFAULT 2048,
     temperature DOUBLE PRECISION NOT NULL DEFAULT 0.5,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
