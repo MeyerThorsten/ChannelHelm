@@ -215,6 +215,21 @@ export async function extractFrameAt(opts: {
 const DEFAULT_THUMBNAIL_FONT = '/System/Library/Fonts/Supplemental/Arial Bold.ttf';
 
 /**
+ * Cached probe: does this ffmpeg build expose the `drawtext` filter? The
+ * minimal Homebrew `ffmpeg` formula ships without libfreetype (drawtext) and
+ * libass (subtitles); the full build is `ffmpeg-full`. Probed once per process.
+ */
+let drawtextProbe: Promise<boolean> | undefined;
+export function hasDrawtextFilter(): Promise<boolean> {
+  if (!drawtextProbe) {
+    drawtextProbe = runProc('ffmpeg', ['-hide_banner', '-filters'], { allowNonZeroExit: true })
+      .then((r) => /\bdrawtext\b/.test(r.stdout))
+      .catch(() => false);
+  }
+  return drawtextProbe;
+}
+
+/**
  * Render a finished thumbnail from a generated image: scale/crop to the target
  * size (default 1280×720, YouTube's ratio) and — when a `headline` is given —
  * burn a centered, boxed headline near the bottom via the `drawtext` filter.
@@ -239,6 +254,14 @@ export async function renderThumbnail(opts: {
   let textfilePath: string | undefined;
   const headline = opts.headline?.trim();
   if (headline) {
+    // Fail fast + clear when the build can't draw text, instead of letting
+    // ffmpeg dump a "No such filter: 'drawtext'" stack. Callers catch this and
+    // keep the plain variant.
+    if (!(await hasDrawtextFilter())) {
+      throw new Error(
+        'ffmpeg has no drawtext filter (build lacks libfreetype) — install ffmpeg-full for headline overlays',
+      );
+    }
     const font = opts.fontPath ?? process.env.THUMBNAIL_FONT ?? DEFAULT_THUMBNAIL_FONT;
     textfilePath = join(dirname(opts.outputPath), `.headline_${Date.now()}.txt`);
     await writeFile(textfilePath, headline, 'utf8');
