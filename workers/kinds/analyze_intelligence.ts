@@ -32,6 +32,9 @@ const ASSET_TYPES = [
   'x_thread',
   'article_brief',
   'newsletter_summary',
+  // Pinned comment to seed discussion + a CTA. Dispatches via the manual
+  // route (operator pastes + pins); the YouTube API doesn't expose pinning.
+  'youtube_pinned_comment',
   // §13 step 14: clip_render consumes this. Plans live under
   // routing.internal and never dispatch — operator approves a plan to
   // trigger one clip_render job per entry.

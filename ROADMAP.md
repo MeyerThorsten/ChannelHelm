@@ -94,7 +94,7 @@ A themed backlog of candidates — not committed to a release. Each is tagged **
 
 | Idea | What it is | Type | Effort |
 |------|------------|------|--------|
-| **Comment mining → content loop** | Top comments on published videos → next-video ideas, an FAQ, and a generated pinned comment (also fills the schema'd-but-unbuilt `youtube_pinned_comment`). | bet + grounded | M |
+| **Comment mining → content loop** | Top comments on published videos → next-video ideas, an FAQ, and a data-driven pinned comment. (The `youtube_pinned_comment` asset now generates from the analysis; comment-mining would make it audience-driven.) | bet + grounded | M |
 | **Best-time-to-post** | Learn per-platform optimal windows from the `signals` already collected, and pre-fill the publish scheduler. | bet | S–M |
 | **Unified performance dashboard** | One cross-surface view of how every asset performed (YouTube + Zernio already in `signals`; + DojoClaw/GSC once wired). | bet | M |
 | **DojoClaw + GSC article signals** | `collect_signal` has no DojoClaw branch (`source_signal:'dojoclaw'` is unused). Pull article page metrics + Search Console position into `signals` to feed the editorial voice loop. | grounded | M |

@@ -186,6 +186,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
   const description = ((descAsset?.payload as { text?: string })?.text ?? '') as string;
   const tagsAsset = byType('youtube_tags');
   const tags = readScoredList((tagsAsset?.payload as { tags?: unknown })?.tags);
+  const pinnedCommentAsset = byType('youtube_pinned_comment');
+  const pinnedComment = ((pinnedCommentAsset?.payload as { text?: string })?.text ?? '') as string;
 
   const thumbnails = rows
     .filter((r) => r.type === 'thumbnail_concept')
@@ -404,6 +406,8 @@ export default async function PackageDetailPage({ params }: PageProps) {
         description,
         tagsAssetId: tagsAsset?.id ?? null,
         tags,
+        pinnedCommentAssetId: pinnedCommentAsset?.id ?? null,
+        pinnedComment,
         transcript,
         thumbnails,
       }}

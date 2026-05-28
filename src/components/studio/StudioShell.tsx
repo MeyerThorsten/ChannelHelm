@@ -105,6 +105,8 @@ export type StudioData = {
     description: string;
     tagsAssetId: string | null;
     tags: ScoredItem[];
+    pinnedCommentAssetId: string | null;
+    pinnedComment: string;
     transcript: string;
     thumbnails: { id: string; url: string | null; score: number | null }[];
   };
@@ -621,7 +623,7 @@ function PlatformRail({
 function completionFor(data: StudioData, key: string): number {
   if (key === 'youtube') {
     const y = data.youtube;
-    const parts = [y.titlesAssetId, y.descriptionAssetId, y.tagsAssetId];
+    const parts = [y.titlesAssetId, y.descriptionAssetId, y.tagsAssetId, y.pinnedCommentAssetId];
     const have = parts.filter(Boolean).length;
     return have === 0 ? 0 : have === parts.length ? 1 : 0.5;
   }
@@ -1142,6 +1144,7 @@ function YoutubeStack({ data }: { data: StudioData }) {
       <TitlesCard data={data} />
       <DescriptionCard data={data} />
       <TagsCard data={data} />
+      <PinnedCommentCard data={data} />
       <TranscriptCard text={data.youtube.transcript} audioReady={data.progress.audio >= 1} />
       <ExperimentsPanel
         packageId={data.packageId}
@@ -1612,6 +1615,128 @@ function TagsCard({ data }: { data: StudioData }) {
   );
 }
 
+function PinnedCommentCard({ data }: { data: StudioData }) {
+  const router = useRouter();
+  const id = data.youtube.pinnedCommentAssetId;
+  const [text, setText] = useState(data.youtube.pinnedComment);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(text);
+  const [pending, start] = useTransition();
+
+  if (!id) {
+    return (
+      <AssetCard title="Pinned comment" icon="✎">
+        <GenerateInline
+          label="pinned comment"
+          onGenerate={() => generateSection(data.packageId, 'youtube_pinned_comment')}
+          pipelineRunning={!data.analysisReady}
+        />
+      </AssetCard>
+    );
+  }
+
+  return (
+    <AssetCard
+      title="Pinned comment"
+      icon="✎"
+      toolbar={
+        <>
+          <GhostBtn
+            size="sm"
+            icon="✦"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                await regenerateAsset(id);
+                router.refresh();
+              })
+            }
+          >
+            Regenerate
+          </GhostBtn>
+          <GhostBtn size="sm" icon="⎘" onClick={() => navigator.clipboard.writeText(text)}>
+            Copy
+          </GhostBtn>
+          <GhostBtn
+            size="sm"
+            icon={editing ? '✓' : '✎'}
+            onClick={() => {
+              if (editing) {
+                setText(draft);
+                start(async () => {
+                  await saveAssetPayload(id, { text: draft });
+                });
+              } else {
+                setDraft(text);
+              }
+              setEditing((e) => !e);
+            }}
+          >
+            {editing ? 'Done' : 'Edit'}
+          </GhostBtn>
+        </>
+      }
+    >
+      <div
+        style={{
+          marginBottom: 8,
+          fontSize: 11,
+          color: 'var(--text-faint)',
+          fontStyle: 'italic',
+        }}
+      >
+        Seeds discussion + a CTA — paste &amp; pin it on YouTube after publishing.
+      </div>
+      {editing ? (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          style={{
+            width: '100%',
+            minHeight: 160,
+            background: 'var(--bg)',
+            border: '1px solid var(--accent)',
+            borderRadius: 6,
+            padding: 10,
+            fontSize: 13,
+            lineHeight: 1.6,
+            outline: 'none',
+            color: 'var(--text)',
+            resize: 'vertical',
+            fontFamily: 'var(--font-sans)',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            fontSize: 13,
+            lineHeight: 1.65,
+            color: 'var(--text-muted)',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {text}
+        </div>
+      )}
+      <div
+        style={{
+          marginTop: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontSize: 11,
+          color: 'var(--text-faint)',
+          fontFamily: 'var(--font-mono)',
+        }}
+      >
+        <span>{(editing ? draft : text).length} chars</span>
+        <span>·</span>
+        <span>{(editing ? draft : text).split(/\s+/).filter(Boolean).length} words</span>
+      </div>
+    </AssetCard>
+  );
+}
+
 function TranscriptCard({ text, audioReady }: { text: string; audioReady: boolean }) {
   const [open, setOpen] = useState(false);
   if (!text) {
@@ -1854,6 +1979,11 @@ function EditorLayout({
           { key: 'title', name: 'title.txt', ready: !!data.youtube.titlesAssetId },
           { key: 'description', name: 'description.md', ready: !!data.youtube.descriptionAssetId },
           { key: 'tags', name: 'tags.json', ready: !!data.youtube.tagsAssetId },
+          {
+            key: 'pinned_comment',
+            name: 'pinned_comment.txt',
+            ready: !!data.youtube.pinnedCommentAssetId,
+          },
         ],
       };
     }
@@ -2014,6 +2144,12 @@ function EditorLayout({
             <div style={{ maxWidth: 760 }}>
               <Eyebrow style={{ marginBottom: 10 }}>YouTube · tags</Eyebrow>
               <TagsCard data={data} />
+            </div>
+          )}
+          {activePlatform === 'youtube' && asset === 'pinned_comment' && (
+            <div style={{ maxWidth: 760 }}>
+              <Eyebrow style={{ marginBottom: 10 }}>YouTube · pinned comment</Eyebrow>
+              <PinnedCommentCard data={data} />
             </div>
           )}
           {activePlatform !== 'youtube' && (

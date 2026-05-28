@@ -92,7 +92,7 @@ One ingest produces the whole kit — scored where it counts, editable everywher
 
 | Group | Assets |
 |-------|--------|
-| ▶ **YouTube** | Scored title options · full description with chapters + hashtags · scored tags · AI-generated thumbnails (Runware) — plain + headline-overlay variants — with ffmpeg frame-extraction as a zero-config fallback · clean transcript |
+| ▶ **YouTube** | Scored title options · full description with chapters + hashtags · scored tags · AI-generated thumbnails (Runware) — plain + headline-overlay variants — with ffmpeg frame-extraction as a zero-config fallback · a pinned comment to seed discussion · clean transcript |
 | ✂ **Clips & Shorts** | Short-clip plans cut from the highest-retention moments · rendered vertical clips · long-form highlight cuts |
 | 📄 **Editorial** | Article briefs and blog drafts · newsletter summaries · routed to your editorial service |
 | 𝕏 **Social** | Posts & threads tailored per network · drafted in your brand voice |
