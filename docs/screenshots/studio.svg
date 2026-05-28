@@ -1,0 +1,291 @@
+<svg width="1200" height="750" viewBox="0 0 1200 750" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ChannelHelm Studio — per-package review console with platform rail, asset cards, and approval panel">
+  <defs>
+    <linearGradient id="vthumb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#082F49"/><stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="hgrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0ea5e9" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1200" height="750" fill="#0a0a0b"/>
+
+  <!-- ════ TOP NAV ════ -->
+  <rect x="0" y="0" width="1200" height="48" fill="#0d0d0f"/>
+  <line x1="0" y1="48" x2="1200" y2="48" stroke="#232329"/>
+  <rect x="24" y="12" width="24" height="24" rx="6" fill="#0ea5e9"/>
+  <path d="M31 32 L31 24 L34 24 L37 27 L40 24 L43 24 L43 32 L40 32 L40 28 L37 31 L34 28 L34 32 Z" fill="#ffffff"/>
+  <text x="58" y="29" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#f4f4f5" letter-spacing="-0.2">ChannelHelm</text>
+  <rect x="1066" y="10" width="110" height="28" rx="8" fill="#16161a" stroke="#232329"/>
+  <text x="1080" y="28" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#71717a">Search…</text>
+  <text x="1162" y="28" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">⌘K</text>
+
+  <!-- ════ COLUMN GUIDES ════ -->
+  <!-- platform rail bg -->
+  <rect x="0" y="48" width="228" height="702" fill="#111114"/>
+  <line x1="228" y1="48" x2="228" y2="750" stroke="#232329"/>
+  <!-- approval bg -->
+  <rect x="860" y="48" width="340" height="702" fill="#111114"/>
+  <line x1="860" y1="48" x2="860" y2="750" stroke="#232329"/>
+
+  <!-- ════ PLATFORM RAIL (left, 228) ════ -->
+  <text x="18" y="80" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.4">VIDEO</text>
+  <!-- YouTube (active) -->
+  <rect x="-2" y="92" width="2" height="22" rx="1" fill="#0ea5e9"/>
+  <rect x="10" y="90" width="208" height="28" rx="6" fill="#16161a"/>
+  <rect x="20" y="96" width="18" height="18" rx="4" fill="#FF0033" fill-opacity="0.22" stroke="#FF0033" stroke-opacity="0.4"/>
+  <text x="29" y="109" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#FF0033">▶</text>
+  <text x="46" y="109" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="500" fill="#f4f4f5">YouTube</text>
+  <circle cx="206" cy="104" r="3" fill="#10b981"/>
+  <!-- Shorts -->
+  <rect x="20" y="125" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="138" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#a1a1aa">✂</text>
+  <text x="46" y="138" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Shorts</text>
+  <circle cx="206" cy="133" r="3" fill="#14b8a6"/>
+  <!-- Clips -->
+  <rect x="20" y="153" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="166" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#a1a1aa">▦</text>
+  <text x="46" y="166" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Clips</text>
+  <circle cx="206" cy="161" r="3" fill="#10b981"/>
+
+  <text x="18" y="200" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.4">EDITORIAL</text>
+  <!-- Blog / Article -->
+  <rect x="20" y="210" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="223" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#a1a1aa">📄</text>
+  <text x="46" y="223" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Article</text>
+  <circle cx="206" cy="218" r="3" fill="#10b981"/>
+
+  <text x="18" y="258" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.4">SOCIAL · 6</text>
+  <!-- X -->
+  <rect x="20" y="268" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="281" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">𝕏</text>
+  <text x="46" y="281" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">X</text>
+  <circle cx="206" cy="276" r="3" fill="#10b981"/>
+  <!-- LinkedIn -->
+  <rect x="20" y="296" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="309" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" fill="#a1a1aa">in</text>
+  <text x="46" y="309" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">LinkedIn</text>
+  <circle cx="206" cy="304" r="3" fill="#10b981"/>
+  <!-- Instagram -->
+  <rect x="20" y="324" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="337" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#a1a1aa">◎</text>
+  <text x="46" y="337" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Instagram</text>
+  <circle cx="206" cy="332" r="3" fill="#14b8a6"/>
+  <!-- TikTok -->
+  <rect x="20" y="352" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="365" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#a1a1aa">♪</text>
+  <text x="46" y="365" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">TikTok</text>
+  <circle cx="206" cy="360" r="3" fill="#2e2e36"/>
+  <!-- Threads -->
+  <rect x="20" y="380" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="393" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">@</text>
+  <text x="46" y="393" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Threads</text>
+  <circle cx="206" cy="388" r="3" fill="#10b981"/>
+  <!-- Bluesky -->
+  <rect x="20" y="408" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+  <text x="29" y="421" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#a1a1aa">☁</text>
+  <text x="46" y="421" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">Bluesky</text>
+  <circle cx="206" cy="416" r="3" fill="#2e2e36"/>
+
+  <!-- ════ CENTER PANE (228 → 860) ════ -->
+  <!-- header -->
+  <rect x="228" y="48" width="632" height="92" fill="url(#hgrad)"/>
+  <text x="252" y="74" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">← All packages</text>
+  <text x="356" y="74" font-family="ui-monospace, monospace" font-size="10" fill="#52525b">/ pkg_01HF8Z…K2</text>
+  <text x="844" y="74" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#52525b">updated 4m ago</text>
+  <text x="252" y="104" font-family="Georgia, serif" font-size="25" fill="#f4f4f5" letter-spacing="-0.3">How transformers actually work</text>
+  <!-- meta row -->
+  <rect x="252" y="118" width="18" height="18" rx="4" fill="#0ea5e9" fill-opacity="0.22" stroke="#0ea5e9" stroke-opacity="0.4"/>
+  <text x="261" y="131" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" font-weight="600" fill="#0ea5e9">AC</text>
+  <text x="278" y="131" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">Acme Media</text>
+  <text x="356" y="131" font-family="ui-monospace, monospace" font-size="11" fill="#71717a">premium multimodal · 18:42</text>
+  <rect x="558" y="120" width="64" height="18" rx="9" fill="#f59e0b" fill-opacity="0.12" stroke="#f59e0b" stroke-opacity="0.24"/>
+  <circle cx="570" cy="129" r="3" fill="#f59e0b"/>
+  <text x="578" y="132.5" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="500" fill="#f59e0b">Ready</text>
+  <line x1="228" y1="140" x2="860" y2="140" stroke="#232329"/>
+
+  <!-- video preview + pipeline (grid 1.4 / 1) -->
+  <!-- video player -->
+  <rect x="252" y="156" width="350" height="200" rx="10" fill="#111114" stroke="#232329"/>
+  <rect x="262" y="166" width="330" height="158" rx="7" fill="url(#vthumb)"/>
+  <path d="M268 250 Q345 230 422 250 T580 250" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1" fill="none"/>
+  <path d="M268 230 Q345 210 422 230 T580 230" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" fill="none"/>
+  <circle cx="427" cy="245" r="22" fill="#000000" fill-opacity="0.42"/>
+  <path d="M421 236 L441 245 L421 254 Z" fill="#ffffff"/>
+  <rect x="262" y="306" width="40" height="14" rx="3" fill="#000000" fill-opacity="0.6"/>
+  <text x="282" y="316" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" fill="#ffffff">00:00</text>
+  <rect x="262" y="334" width="330" height="14" rx="3" fill="#16161a"/>
+  <rect x="262" y="338" width="118" height="6" rx="3" fill="#0ea5e9"/>
+
+  <!-- pipeline panel -->
+  <rect x="616" y="156" width="220" height="200" rx="10" fill="#111114" stroke="#232329"/>
+  <text x="630" y="178" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.2">PIPELINE</text>
+  <text x="822" y="178" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">4/4 layers</text>
+  <!-- layer rows -->
+  <g font-family="Inter, system-ui, sans-serif">
+    <rect x="630" y="190" width="20" height="20" rx="4" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-opacity="0.3"/>
+    <text x="640" y="204" text-anchor="middle" font-size="11" fill="#10b981">✓</text>
+    <text x="658" y="200" font-size="11" font-weight="500" fill="#f4f4f5">Audio</text>
+    <text x="658" y="212" font-family="ui-monospace, monospace" font-size="9" fill="#71717a">transcript · 4,212 words</text>
+
+    <rect x="630" y="222" width="20" height="20" rx="4" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-opacity="0.3"/>
+    <text x="640" y="236" text-anchor="middle" font-size="11" fill="#10b981">✓</text>
+    <text x="658" y="232" font-size="11" font-weight="500" fill="#f4f4f5">Visual</text>
+    <text x="658" y="244" font-family="ui-monospace, monospace" font-size="9" fill="#71717a">28 scenes · OCR + VLM</text>
+
+    <rect x="630" y="254" width="20" height="20" rx="4" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-opacity="0.3"/>
+    <text x="640" y="268" text-anchor="middle" font-size="11" fill="#10b981">✓</text>
+    <text x="658" y="264" font-size="11" font-weight="500" fill="#f4f4f5">Fusion</text>
+    <text x="658" y="276" font-family="ui-monospace, monospace" font-size="9" fill="#71717a">scene log aligned</text>
+
+    <rect x="630" y="286" width="20" height="20" rx="4" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-opacity="0.3"/>
+    <text x="640" y="300" text-anchor="middle" font-size="11" fill="#10b981">✓</text>
+    <text x="658" y="296" font-size="11" font-weight="500" fill="#f4f4f5">Intelligence</text>
+    <text x="658" y="308" font-family="ui-monospace, monospace" font-size="9" fill="#71717a">8 hooks · topics ready</text>
+  </g>
+  <line x1="630" y1="322" x2="822" y2="322" stroke="#232329"/>
+  <text x="630" y="338" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#71717a">READY</text>
+  <text x="630" y="350" font-family="ui-monospace, monospace" font-size="14" fill="#10b981">21</text>
+  <text x="700" y="338" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#71717a">PENDING</text>
+  <text x="700" y="350" font-family="ui-monospace, monospace" font-size="14" fill="#14b8a6">1</text>
+  <text x="770" y="338" font-family="Inter, system-ui, sans-serif" font-size="9" fill="#71717a">FAILED</text>
+  <text x="770" y="350" font-family="ui-monospace, monospace" font-size="14" fill="#52525b">0</text>
+
+  <!-- ── ASSET CARD: Titles (scored) ── -->
+  <rect x="252" y="372" width="584" height="138" rx="10" fill="#111114" stroke="#232329"/>
+  <rect x="252" y="372" width="584" height="38" rx="10" fill="#16161a"/>
+  <rect x="252" y="400" width="584" height="10" fill="#16161a"/>
+  <rect x="264" y="380" width="22" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+  <text x="275" y="395" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#a1a1aa">✎</text>
+  <text x="296" y="396" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Titles</text>
+  <rect x="342" y="384" width="18" height="14" rx="3" fill="#16161a" stroke="#232329"/>
+  <text x="351" y="394" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" fill="#71717a">5</text>
+  <rect x="690" y="382" width="78" height="20" rx="6" fill="#16161a" stroke="#232329"/>
+  <text x="729" y="395" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">✦ Regenerate</text>
+  <rect x="774" y="382" width="50" height="20" rx="6" fill="#16161a" stroke="#232329"/>
+  <text x="799" y="395" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">⎘ Copy</text>
+  <!-- title option 1 (selected) -->
+  <rect x="262" y="418" width="564" height="26" rx="7" fill="#0ea5e9" fill-opacity="0.06" stroke="#0ea5e9" stroke-opacity="0.3"/>
+  <circle cx="278" cy="431" r="6" fill="#0ea5e9"/>
+  <circle cx="278" cy="431" r="2.5" fill="#ffffff"/>
+  <text x="294" y="435" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#f4f4f5">How Transformers Actually Work (The Intuition Nobody Explains)</text>
+  <text x="724" y="435" font-family="ui-monospace, monospace" font-size="11" fill="#71717a">61/70</text>
+  <rect x="768" y="423" width="42" height="16" rx="4" fill="#0ea5e9" fill-opacity="0.14"/>
+  <text x="789" y="435" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#0ea5e9">94/100</text>
+  <!-- title option 2 -->
+  <circle cx="278" cy="461" r="6" fill="none" stroke="#2e2e36" stroke-width="1.5"/>
+  <text x="294" y="465" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#a1a1aa">Attention Is All You Need — Visually Explained</text>
+  <text x="724" y="465" font-family="ui-monospace, monospace" font-size="11" fill="#71717a">45/70</text>
+  <rect x="768" y="453" width="42" height="16" rx="4" fill="#14b8a6" fill-opacity="0.14"/>
+  <text x="789" y="465" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#14b8a6">88/100</text>
+  <!-- title option 3 -->
+  <circle cx="278" cy="491" r="6" fill="none" stroke="#2e2e36" stroke-width="1.5"/>
+  <text x="294" y="495" font-family="Inter, system-ui, sans-serif" font-size="13" fill="#a1a1aa">The Transformer Architecture, From Scratch</text>
+  <text x="724" y="495" font-family="ui-monospace, monospace" font-size="11" fill="#71717a">42/70</text>
+  <rect x="768" y="483" width="42" height="16" rx="4" fill="#f59e0b" fill-opacity="0.14"/>
+  <text x="789" y="495" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#f59e0b">79/100</text>
+
+  <!-- ── ASSET CARD: Description ── -->
+  <rect x="252" y="524" width="584" height="106" rx="10" fill="#111114" stroke="#232329"/>
+  <rect x="252" y="524" width="584" height="38" rx="10" fill="#16161a"/>
+  <rect x="252" y="552" width="584" height="10" fill="#16161a"/>
+  <rect x="264" y="532" width="22" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+  <text x="275" y="547" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#a1a1aa">¶</text>
+  <text x="296" y="548" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Description</text>
+  <rect x="734" y="534" width="44" height="20" rx="6" fill="#16161a" stroke="#232329"/>
+  <text x="756" y="547" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">⎘ Copy</text>
+  <rect x="784" y="534" width="40" height="20" rx="6" fill="#16161a" stroke="#232329"/>
+  <text x="804" y="547" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">✎ Edit</text>
+  <text x="264" y="578" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">A visual, intuition-first walkthrough of the transformer architecture — attention, embeddings,</text>
+  <text x="264" y="595" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#a1a1aa">and why it scales. Chapters and timestamps built in.</text>
+  <text x="264" y="612" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#0ea5e9">00:00 Intro · 02:14 Attention · 07:40 Embeddings · 12:08 Scaling   #ai #transformers #ml</text>
+  <text x="264" y="625" font-family="ui-monospace, monospace" font-size="10" fill="#52525b">1,284 chars · 198 words</text>
+
+  <!-- ── TAGS row (small) ── -->
+  <rect x="252" y="644" width="584" height="44" rx="10" fill="#111114" stroke="#232329"/>
+  <rect x="264" y="652" width="22" height="22" rx="5" fill="#16161a" stroke="#232329"/>
+  <text x="275" y="667" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#a1a1aa">#</text>
+  <text x="296" y="668" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Tags</text>
+  <g font-family="Inter, system-ui, sans-serif" font-size="11">
+    <rect x="346" y="654" width="92" height="20" rx="10" fill="#16161a" stroke="#232329"/>
+    <text x="356" y="668" fill="#f4f4f5">transformers</text>
+    <rect x="430" y="660" width="0" height="0"/>
+    <rect x="446" y="654" width="76" height="20" rx="10" fill="#16161a" stroke="#232329"/>
+    <text x="456" y="668" fill="#f4f4f5">attention</text>
+    <rect x="530" y="654" width="64" height="20" rx="10" fill="#16161a" stroke="#232329"/>
+    <text x="540" y="668" fill="#f4f4f5">deep ml</text>
+    <rect x="602" y="654" width="62" height="20" rx="10" fill="#16161a" stroke="#232329"/>
+    <text x="612" y="668" fill="#f4f4f5">neural</text>
+    <rect x="672" y="654" width="80" height="20" rx="10" fill="#16161a" stroke="#232329"/>
+    <text x="682" y="668" fill="#f4f4f5">explainer</text>
+  </g>
+
+  <!-- ════ APPROVAL PANEL (right, 860 → 1200) ════ -->
+  <text x="878" y="74" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.2">APPROVE &amp; PUBLISH</text>
+  <text x="878" y="102" font-family="ui-monospace, monospace" font-size="26" fill="#f4f4f5" letter-spacing="-0.5">14</text>
+  <text x="906" y="102" font-family="ui-monospace, monospace" font-size="14" fill="#52525b">/ 22</text>
+  <text x="954" y="100" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">assets approved</text>
+  <!-- progress bar -->
+  <rect x="878" y="112" width="304" height="4" rx="2" fill="#16161a"/>
+  <rect x="878" y="112" width="194" height="4" rx="2" fill="#0ea5e9"/>
+  <line x1="860" y1="130" x2="1200" y2="130" stroke="#232329"/>
+
+  <!-- asset rows -->
+  <g font-family="Inter, system-ui, sans-serif">
+    <!-- row 1 selected -->
+    <rect x="878" y="142" width="18" height="18" rx="4" fill="#0ea5e9" stroke="#0ea5e9"/>
+    <text x="887" y="155" text-anchor="middle" font-size="11" fill="#ffffff">✓</text>
+    <text x="906" y="151" font-size="12" font-weight="500" fill="#f4f4f5">YouTube title set</text>
+    <text x="906" y="164" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">bundles: description · tags</text>
+
+    <!-- row 2 selected -->
+    <rect x="878" y="178" width="18" height="18" rx="4" fill="#0ea5e9" stroke="#0ea5e9"/>
+    <text x="887" y="191" text-anchor="middle" font-size="11" fill="#ffffff">✓</text>
+    <text x="906" y="187" font-size="12" font-weight="500" fill="#f4f4f5">LinkedIn post</text>
+    <text x="906" y="200" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">ready_for_review · 1,180 chars</text>
+
+    <!-- row 3 selected -->
+    <rect x="878" y="214" width="18" height="18" rx="4" fill="#0ea5e9" stroke="#0ea5e9"/>
+    <text x="887" y="227" text-anchor="middle" font-size="11" fill="#ffffff">✓</text>
+    <text x="906" y="223" font-size="12" font-weight="500" fill="#f4f4f5">X thread</text>
+    <text x="906" y="236" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">ready_for_review · 6 posts</text>
+
+    <!-- row 4 unchecked -->
+    <rect x="878" y="250" width="18" height="18" rx="4" fill="none" stroke="#2e2e36" stroke-width="1.5"/>
+    <text x="906" y="259" font-size="12" font-weight="500" fill="#f4f4f5">Article brief</text>
+    <text x="906" y="272" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">ready_for_review · → DojoClaw</text>
+
+    <!-- row 5 published -->
+    <rect x="878" y="286" width="18" height="18" rx="4" fill="#0ea5e9" stroke="#0ea5e9"/>
+    <text x="887" y="299" text-anchor="middle" font-size="11" fill="#ffffff">✓</text>
+    <text x="906" y="295" font-size="12" font-weight="500" fill="#a1a1aa">Instagram caption</text>
+    <text x="906" y="308" font-family="ui-monospace, monospace" font-size="10" fill="#10b981">published</text>
+
+    <!-- row 6 locked (plan) -->
+    <rect x="878" y="322" width="18" height="18" rx="4" fill="none" stroke="#232329"/>
+    <text x="887" y="335" text-anchor="middle" font-size="11" fill="#71717a">⊘</text>
+    <text x="906" y="331" font-size="12" font-weight="500" fill="#a1a1aa">Short clip plan</text>
+    <text x="906" y="344" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">blueprint — render to dispatch</text>
+    <text x="1182" y="335" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">locked</text>
+  </g>
+  <line x1="860" y1="362" x2="1200" y2="362" stroke="#232329"/>
+
+  <!-- PROVENANCE block -->
+  <text x="878" y="384" font-family="ui-monospace, monospace" font-size="10" font-weight="500" fill="#71717a" letter-spacing="1.2">PROVENANCE · TITLE SET</text>
+  <rect x="878" y="392" width="304" height="86" rx="8" fill="#16161a" stroke="#232329"/>
+  <text x="892" y="412" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">provider</text>
+  <text x="1170" y="412" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">anthropic</text>
+  <text x="892" y="430" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">model</text>
+  <text x="1170" y="430" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">claude-opus-4</text>
+  <text x="892" y="448" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">prompt</text>
+  <text x="1170" y="448" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">youtube_title_set.v2</text>
+  <text x="892" y="466" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">host · profile</text>
+  <text x="1170" y="466" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#a1a1aa">m4max · premium</text>
+
+  <!-- approve & dispatch CTA -->
+  <rect x="878" y="664" width="304" height="40" rx="8" fill="#0ea5e9" stroke="#3bb6ee"/>
+  <text x="1030" y="688" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">↗  Approve &amp; dispatch · 3</text>
+  <text x="878" y="724" font-family="ui-monospace, monospace" font-size="10" fill="#52525b">targets: YouTube · social via Zernio · editorial: DojoClaw</text>
+</svg>

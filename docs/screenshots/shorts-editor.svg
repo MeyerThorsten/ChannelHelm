@@ -1,0 +1,232 @@
+<svg width="1200" height="750" viewBox="0 0 1200 750" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ChannelHelm Shorts editor — 9:16 preview with live captions, word-snap trim, and per-clip publishing panels">
+  <defs>
+    <linearGradient id="phone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E1065"/><stop offset="0.55" stop-color="#0EA5E9"/><stop offset="1" stop-color="#082F49"/>
+    </linearGradient>
+    <linearGradient id="capShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1200" height="750" fill="#0a0a0b"/>
+
+  <!-- ════ TOP NAV ════ -->
+  <rect x="0" y="0" width="1200" height="48" fill="#0d0d0f"/>
+  <line x1="0" y1="48" x2="1200" y2="48" stroke="#232329"/>
+  <rect x="24" y="12" width="24" height="24" rx="6" fill="#0ea5e9"/>
+  <path d="M31 32 L31 24 L34 24 L37 27 L40 24 L43 24 L43 32 L40 32 L40 28 L37 31 L34 28 L34 32 Z" fill="#ffffff"/>
+  <text x="58" y="29" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#f4f4f5" letter-spacing="-0.2">ChannelHelm</text>
+
+  <!-- ════ EDITOR HEADER BAR ════ -->
+  <rect x="24" y="64" width="1152" height="48" rx="10" fill="#16161a" stroke="#232329"/>
+  <rect x="36" y="78" width="28" height="20" rx="5" fill="#0a0a0b" stroke="#2e2e36"/>
+  <text x="50" y="92" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#a1a1aa">←</text>
+  <text x="76" y="84" font-family="ui-monospace, monospace" font-size="10" fill="#71717a" letter-spacing="1.2">HOW TRANSFORMERS ACTUALLY WORK · CLIP 3</text>
+  <text x="76" y="100" font-family="Georgia, serif" font-size="16" fill="#f4f4f5">Short editor</text>
+  <!-- saved + actions -->
+  <text x="918" y="93" font-family="ui-monospace, monospace" font-size="11" fill="#10b981">✓ saved</text>
+  <rect x="1000" y="76" width="78" height="24" rx="6" fill="#0a0a0b" stroke="#2e2e36"/>
+  <text x="1039" y="92" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#a1a1aa">↺ Render</text>
+  <rect x="1086" y="76" width="80" height="24" rx="6" fill="#0ea5e9" stroke="#3bb6ee"/>
+  <text x="1126" y="92" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" font-weight="600" fill="#ffffff">↗ Publish</text>
+
+  <!-- ═══════════ LEFT COLUMN — PREVIEW RIG ═══════════ -->
+  <!-- preview frame -->
+  <rect x="24" y="124" width="560" height="438" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="40" y="148" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#71717a">Preview · 9:16 + live subtitle overlay</text>
+
+  <!-- 9:16 phone (240 wide x 426 -> fit) centered -->
+  <rect x="222" y="158" width="164" height="392" rx="14" fill="url(#phone)"/>
+  <path d="M228 320 Q304 296 380 320 T532 320" stroke="#ffffff" stroke-opacity="0.14" stroke-width="1" fill="none"/>
+  <path d="M228 360 Q304 336 380 360 T532 360" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1" fill="none"/>
+  <!-- caption shade at bottom -->
+  <rect x="222" y="470" width="164" height="80" rx="14" fill="url(#capShade)"/>
+  <!-- burned-in caption: word_highlight -->
+  <text x="240" y="500" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="800" fill="#ffffff">it</text>
+  <rect x="256" y="484" width="58" height="24" rx="5" fill="#39FF14"/>
+  <text x="285" y="502" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="800" fill="#000000">scales</text>
+  <text x="320" y="500" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="800" fill="#ffffff">to</text>
+  <text x="246" y="525" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="800" fill="#ffffff">millions</text>
+  <!-- live preview tag -->
+  <rect x="226" y="162" width="84" height="16" rx="4" fill="#000000" fill-opacity="0.6"/>
+  <text x="268" y="174" text-anchor="middle" font-family="ui-monospace, monospace" font-size="9" fill="#a1a1aa">live preview · 14 words</text>
+  <!-- play control -->
+  <circle cx="304" cy="354" r="26" fill="#000000" fill-opacity="0.38"/>
+  <path d="M297 343 L320 354 L297 365 Z" fill="#ffffff"/>
+
+  <!-- TRIM TIMELINE -->
+  <rect x="24" y="574" width="560" height="64" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="40" y="596" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#71717a">Timeline · drag to trim · snaps to words</text>
+  <rect x="40" y="604" width="528" height="22" rx="5" fill="#16161a" stroke="#2e2e36"/>
+  <!-- selected region -->
+  <rect x="148" y="604" width="292" height="22" rx="4" fill="#0ea5e9" fill-opacity="0.12" stroke="#0ea5e9" stroke-opacity="0.4"/>
+  <!-- waveform hint inside -->
+  <g stroke="#0ea5e9" stroke-opacity="0.45" stroke-width="1.5">
+    <line x1="166" y1="609" x2="166" y2="621"/><line x1="182" y1="611" x2="182" y2="619"/>
+    <line x1="198" y1="607" x2="198" y2="623"/><line x1="214" y1="610" x2="214" y2="620"/>
+    <line x1="230" y1="608" x2="230" y2="622"/><line x1="246" y1="612" x2="246" y2="618"/>
+    <line x1="262" y1="607" x2="262" y2="623"/><line x1="278" y1="610" x2="278" y2="620"/>
+    <line x1="294" y1="609" x2="294" y2="621"/><line x1="310" y1="606" x2="310" y2="624"/>
+    <line x1="326" y1="611" x2="326" y2="619"/><line x1="342" y1="608" x2="342" y2="622"/>
+    <line x1="358" y1="610" x2="358" y2="620"/><line x1="374" y1="607" x2="374" y2="623"/>
+    <line x1="390" y1="612" x2="390" y2="618"/><line x1="406" y1="609" x2="406" y2="621"/>
+    <line x1="422" y1="608" x2="422" y2="622"/>
+  </g>
+  <!-- drag handles -->
+  <rect x="143" y="601" width="9" height="28" rx="2" fill="#0ea5e9"/>
+  <rect x="436" y="601" width="9" height="28" rx="2" fill="#0ea5e9"/>
+  <text x="40" y="635" font-family="ui-monospace, monospace" font-size="9" fill="#52525b">00:04.2</text>
+  <text x="568" y="635" text-anchor="end" font-family="ui-monospace, monospace" font-size="9" fill="#52525b">00:34.6</text>
+
+  <!-- TRANSCRIPT STRIP -->
+  <rect x="24" y="650" width="560" height="76" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="40" y="672" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#71717a">Transcript · in-trim words highlighted · click to seek</text>
+  <g font-family="ui-monospace, monospace" font-size="11.5">
+    <text x="40" y="696" fill="#52525b">…the</text>
+    <text x="72" y="696" fill="#52525b">key</text>
+    <text x="102" y="696" fill="#52525b">idea</text>
+    <text x="136" y="696" fill="#52525b">is</text>
+    <!-- in-trim highlighted region -->
+    <text x="156" y="696" fill="#f4f4f5">that</text>
+    <text x="192" y="696" fill="#f4f4f5">attention</text>
+    <text x="262" y="696" fill="#f4f4f5">lets</text>
+    <text x="294" y="696" fill="#f4f4f5">the</text>
+    <text x="318" y="696" fill="#f4f4f5">model</text>
+    <text x="362" y="696" fill="#0ea5e9">weigh</text>
+    <text x="406" y="696" fill="#f4f4f5">every</text>
+    <text x="448" y="696" fill="#52525b">token…</text>
+  </g>
+  <!-- highlight underline for in-trim -->
+  <rect x="154" y="700" width="294" height="2" rx="1" fill="#0ea5e9" fill-opacity="0.5"/>
+  <text x="40" y="718" font-family="ui-monospace, monospace" font-size="9.5" fill="#52525b">word-snap active · trims commit on whole-word boundaries</text>
+
+  <!-- ═══════════ RIGHT COLUMN — METADATA RAIL ═══════════ -->
+  <!-- Panel: Title & Caption -->
+  <rect x="600" y="124" width="576" height="78" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="616" y="146" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Title &amp; Caption</text>
+  <rect x="616" y="156" width="544" height="16" rx="4" fill="#16161a" stroke="#2e2e36"/>
+  <text x="624" y="168" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">How transformers scale to millions of tokens</text>
+  <rect x="616" y="178" width="544" height="16" rx="4" fill="#16161a" stroke="#2e2e36"/>
+  <text x="624" y="190" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#71717a">Caption Title (on-screen overlay) — “it scales to millions”</text>
+
+  <!-- Panel: Subtitles -->
+  <rect x="600" y="212" width="576" height="226" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="616" y="234" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Subtitles</text>
+  <text x="660" y="234" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">font · animation · colours · X/Y · size</text>
+  <!-- font picker -->
+  <text x="616" y="254" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a" letter-spacing="0.6">FONT</text>
+  <g font-family="Inter, system-ui, sans-serif" font-size="11">
+    <rect x="616" y="260" width="172" height="22" rx="6" fill="#0ea5e9" fill-opacity="0.10" stroke="#0ea5e9" stroke-opacity="0.35"/>
+    <text x="702" y="275" text-anchor="middle" fill="#0ea5e9">Montserrat</text>
+    <rect x="794" y="260" width="172" height="22" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="880" y="275" text-anchor="middle" fill="#f4f4f5">Poppins</text>
+    <rect x="972" y="260" width="172" height="22" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="1058" y="275" text-anchor="middle" fill="#f4f4f5">Roboto</text>
+  </g>
+  <!-- animation chips: 6 -->
+  <text x="616" y="300" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a" letter-spacing="0.6">ANIMATION</text>
+  <g font-family="Inter, system-ui, sans-serif">
+    <!-- Word Highlight (active) -->
+    <rect x="616" y="306" width="172" height="32" rx="6" fill="#0ea5e9" fill-opacity="0.10" stroke="#0ea5e9" stroke-opacity="0.35"/>
+    <text x="626" y="320" font-size="12" font-weight="600" fill="#0ea5e9">Word Highlight</text>
+    <text x="626" y="332" font-size="9.5" fill="#71717a">word-by-word highlight</text>
+    <!-- Pop new -->
+    <rect x="794" y="306" width="172" height="32" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="804" y="320" font-size="12" font-weight="600" fill="#f4f4f5">Pop</text>
+    <rect x="828" y="311" width="28" height="12" rx="4" fill="#0ea5e9" fill-opacity="0.18" stroke="#0ea5e9" stroke-opacity="0.3"/>
+    <text x="842" y="320" text-anchor="middle" font-size="8" fill="#0ea5e9">new</text>
+    <text x="804" y="332" font-size="9.5" fill="#71717a">scale-up rotation effect</text>
+    <!-- Single Word -->
+    <rect x="972" y="306" width="172" height="32" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="982" y="320" font-size="12" font-weight="600" fill="#f4f4f5">Single Word</text>
+    <text x="982" y="332" font-size="9.5" fill="#71717a">one big word at a time</text>
+    <!-- Typewriter new -->
+    <rect x="616" y="344" width="172" height="32" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="626" y="358" font-size="12" font-weight="600" fill="#f4f4f5">Typewriter</text>
+    <rect x="704" y="349" width="28" height="12" rx="4" fill="#0ea5e9" fill-opacity="0.18" stroke="#0ea5e9" stroke-opacity="0.3"/>
+    <text x="718" y="358" text-anchor="middle" font-size="8" fill="#0ea5e9">new</text>
+    <text x="626" y="370" font-size="9.5" fill="#71717a">fills in letter by letter</text>
+    <!-- Motion new -->
+    <rect x="794" y="344" width="172" height="32" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="804" y="358" font-size="12" font-weight="600" fill="#f4f4f5">Motion</text>
+    <rect x="848" y="349" width="28" height="12" rx="4" fill="#0ea5e9" fill-opacity="0.18" stroke="#0ea5e9" stroke-opacity="0.3"/>
+    <text x="862" y="358" text-anchor="middle" font-size="8" fill="#0ea5e9">new</text>
+    <text x="804" y="370" font-size="9.5" fill="#71717a">word pairs with movement</text>
+    <!-- Banner -->
+    <rect x="972" y="344" width="172" height="32" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="982" y="358" font-size="12" font-weight="600" fill="#f4f4f5">Banner</text>
+    <text x="982" y="370" font-size="9.5" fill="#71717a">words on colored background</text>
+  </g>
+  <!-- colour swatches + sliders -->
+  <text x="616" y="398" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a" letter-spacing="0.6">FONT</text>
+  <rect x="616" y="404" width="24" height="22" rx="5" fill="#ffffff" stroke="#2e2e36"/>
+  <rect x="646" y="404" width="110" height="22" rx="5" fill="#16161a" stroke="#2e2e36"/>
+  <text x="656" y="419" font-family="ui-monospace, monospace" font-size="11" fill="#f4f4f5">#FFFFFF</text>
+  <text x="794" y="398" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a" letter-spacing="0.6">HIGHLIGHT</text>
+  <rect x="794" y="404" width="24" height="22" rx="5" fill="#39FF14" stroke="#2e2e36"/>
+  <rect x="824" y="404" width="110" height="22" rx="5" fill="#16161a" stroke="#2e2e36"/>
+  <text x="834" y="419" font-family="ui-monospace, monospace" font-size="11" fill="#f4f4f5">#39FF14</text>
+  <!-- a size slider -->
+  <text x="972" y="410" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">Size</text>
+  <rect x="1008" y="412" width="100" height="4" rx="2" fill="#2e2e36"/>
+  <rect x="1008" y="412" width="56" height="4" rx="2" fill="#0ea5e9"/>
+  <circle cx="1064" cy="414" r="6" fill="#0ea5e9"/>
+  <text x="1144" y="418" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">70px</text>
+
+  <!-- Panel: Description & Tags -->
+  <rect x="600" y="448" width="576" height="156" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="616" y="470" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Description &amp; Tags</text>
+  <text x="744" y="470" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#0ea5e9">✨ auto-generated</text>
+  <text x="616" y="490" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a">Description (post body for TikTok / Reels / Shorts)</text>
+  <rect x="616" y="496" width="544" height="50" rx="6" fill="#16161a" stroke="#2e2e36"/>
+  <text x="626" y="513" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">The one idea behind transformers: attention weighs every token at once —</text>
+  <text x="626" y="529" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#a1a1aa">that's why it scales. Full breakdown linked below. 👇</text>
+  <text x="626" y="540" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#0ea5e9">#ai #transformers #machinelearning</text>
+  <!-- tags row -->
+  <text x="616" y="566" font-family="ui-monospace, monospace" font-size="9.5" fill="#71717a">Tags (comma-separated)</text>
+  <rect x="616" y="572" width="544" height="20" rx="5" fill="#16161a" stroke="#2e2e36"/>
+  <text x="626" y="585" font-family="ui-monospace, monospace" font-size="10.5" fill="#a1a1aa">transformers, attention, deep learning, ai explained, neural nets</text>
+
+  <!-- Panel: Publish options -->
+  <rect x="600" y="614" width="576" height="112" rx="11" fill="#111114" stroke="#232329"/>
+  <text x="616" y="636" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#f4f4f5">Publish options</text>
+  <text x="730" y="636" font-family="ui-monospace, monospace" font-size="10" fill="#71717a">platforms · privacy · schedule</text>
+  <!-- platform toggles -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="11.5">
+    <!-- YouTube on -->
+    <rect x="616" y="648" width="170" height="30" rx="7" fill="#0ea5e9" fill-opacity="0.08" stroke="#0ea5e9" stroke-opacity="0.35"/>
+    <rect x="626" y="656" width="18" height="18" rx="4" fill="#FF0033" fill-opacity="0.22" stroke="#FF0033" stroke-opacity="0.4"/>
+    <text x="635" y="669" text-anchor="middle" font-size="10" fill="#FF0033">▶</text>
+    <text x="652" y="668" fill="#f4f4f5">YouTube Shorts</text>
+    <rect x="754" y="657" width="24" height="14" rx="7" fill="#0ea5e9"/>
+    <circle cx="771" cy="664" r="5" fill="#ffffff"/>
+    <!-- TikTok on -->
+    <rect x="794" y="648" width="170" height="30" rx="7" fill="#0ea5e9" fill-opacity="0.08" stroke="#0ea5e9" stroke-opacity="0.35"/>
+    <rect x="804" y="656" width="18" height="18" rx="4" fill="#69C9D0" fill-opacity="0.22" stroke="#69C9D0" stroke-opacity="0.4"/>
+    <text x="813" y="669" text-anchor="middle" font-size="10" fill="#69C9D0">♪</text>
+    <text x="830" y="668" fill="#f4f4f5">TikTok</text>
+    <rect x="932" y="657" width="24" height="14" rx="7" fill="#0ea5e9"/>
+    <circle cx="949" cy="664" r="5" fill="#ffffff"/>
+    <!-- Instagram off -->
+    <rect x="972" y="648" width="172" height="30" rx="7" fill="#16161a" stroke="#232329"/>
+    <rect x="982" y="656" width="18" height="18" rx="4" fill="#16161a" stroke="#232329"/>
+    <text x="991" y="669" text-anchor="middle" font-size="10" fill="#a1a1aa">◎</text>
+    <text x="1008" y="668" fill="#a1a1aa">Instagram Reels</text>
+    <rect x="1112" y="657" width="24" height="14" rx="7" fill="#2e2e36"/>
+    <circle cx="1119" cy="664" r="5" fill="#71717a"/>
+  </g>
+  <!-- privacy row -->
+  <g font-family="Inter, system-ui, sans-serif" font-size="11">
+    <rect x="616" y="688" width="84" height="26" rx="6" fill="#a855f7" fill-opacity="0.12" stroke="#a855f7" stroke-opacity="0.3"/>
+    <text x="658" y="704" text-anchor="middle" fill="#a855f7">⏰ Schedule</text>
+    <rect x="710" y="688" width="74" height="26" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="747" y="704" text-anchor="middle" fill="#a1a1aa">Public</text>
+    <rect x="794" y="688" width="74" height="26" rx="6" fill="#16161a" stroke="#232329"/>
+    <text x="831" y="704" text-anchor="middle" fill="#a1a1aa">Private</text>
+    <!-- publish now -->
+    <rect x="980" y="688" width="164" height="26" rx="6" fill="#0ea5e9" stroke="#3bb6ee"/>
+    <text x="1062" y="705" text-anchor="middle" font-weight="600" fill="#ffffff">↗ Publish now · 2</text>
+  </g>
+</svg>
