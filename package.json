@@ -21,7 +21,8 @@
     "db:studio": "drizzle-kit studio",
     "smoke:schema": "tsx scripts/smoke-schema.ts",
     "worker": "tsx workers/runner.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "RUN_INTEGRATION=1 vitest run tests/integration"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
