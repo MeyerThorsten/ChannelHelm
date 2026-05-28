@@ -374,13 +374,18 @@ brew services start postgresql@16
 createdb channelhelm
 
 <span class="c"># Python for the ML CLIs (uv manages a venv in ml/)</span>
-cd ml &amp;&amp; uv sync &amp;&amp; cd ..</pre>
+cd ml &amp;&amp; uv sync &amp;&amp; cd ..
+
+<span class="c"># Headline thumbnails (drawtext) + burned-in Shorts captions (ass) need an</span>
+<span class="c"># ffmpeg built with libfreetype + libass. If `ffmpeg -filters | grep drawtext`</span>
+<span class="c"># is empty, switch to the full build:</span>
+brew install <span class="k">ffmpeg-full</span> &amp;&amp; brew unlink ffmpeg &amp;&amp; brew link --force --overwrite ffmpeg-full</pre>
 
   <h3>What does what</h3>
   <ul class="bullets">
     <li><code>node@22</code> + <code>pnpm</code> — the runtime + package manager for the Next.js app and worker fleet</li>
     <li><code>postgresql@16</code> — single Postgres instance holds everything (brands, packages, assets, jobs, settings, providers, OAuth tokens)</li>
-    <li><code>ffmpeg</code> — audio extraction, scene-cut detection, clip rendering</li>
+    <li><code>ffmpeg</code> — audio extraction, scene-cut detection, clip rendering. The headline-overlay thumbnails (<code>drawtext</code>) and burned-in Shorts captions (<code>ass</code>) need a build with <strong>libfreetype + libass</strong> — use <code>ffmpeg-full</code> if your <code>ffmpeg</code> lacks them.</li>
     <li><code>yt-dlp</code> — pulls YouTube videos into <code>MEDIA_ROOT</code></li>
     <li><code>uv</code> — Python venv/runtime for the four ML CLIs (Whisper, mlx-vlm, OCR, diarization)</li>
   </ul>

@@ -405,6 +405,10 @@ createdb channelhelm
 <span class="c"># 4. Install Python deps for the ML CLIs</span>
 cd ml &amp;&amp; uv sync &amp;&amp; cd ..
 
+<span class="c"># 4b. Headline thumbnails (drawtext) + burned-in captions (ass) need libfreetype</span>
+<span class="c">#     + libass. If `ffmpeg -filters | grep drawtext` is empty, use the full build:</span>
+brew install <span class="k">ffmpeg-full</span> &amp;&amp; brew unlink ffmpeg &amp;&amp; brew link --force --overwrite ffmpeg-full
+
 <span class="c"># 5. Install the app + apply migrations</span>
 pnpm install
 cp .env.example .env
@@ -430,7 +434,7 @@ pnpm dev:all</pre>
     <tbody>
       <tr><td><code>node@22</code> + <code>pnpm</code></td><td>Runtime + package manager for the Next.js app and the worker fleet.</td></tr>
       <tr><td><code>postgresql@16</code></td><td>Single Postgres instance holds everything: brands, packages, assets, jobs, settings, providers, OAuth tokens. No Redis, no separate queue server.</td></tr>
-      <tr><td><code>ffmpeg</code></td><td>Audio extraction, scene-cut detection, frame sampling, clip rendering.</td></tr>
+      <tr><td><code>ffmpeg</code></td><td>Audio extraction, scene-cut detection, frame sampling, clip rendering. Headline-overlay thumbnails (<code>drawtext</code>) and burned-in Shorts captions (<code>ass</code>) need a build with <strong>libfreetype + libass</strong> — install <code>ffmpeg-full</code> if your <code>ffmpeg</code> lacks them.</td></tr>
       <tr><td><code>yt-dlp</code></td><td>Pulls YouTube videos when you paste a URL into the dashboard.</td></tr>
       <tr><td><code>uv</code></td><td>Python venv/runtime manager for the four ML CLIs in <code>ml/</code> (Whisper, mlx-vlm, OCR, diarization).</td></tr>
     </tbody>
@@ -1751,7 +1755,7 @@ KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
   <div class="ch-num">Chapter 17</div>
   <div class="chap-divider"><span class="num">17</span><span class="line"></span></div>
   <h2>Troubleshooting.</h2>
-  <p class="intro">The eight problems you&apos;re most likely to hit and the exact fix for each.</p>
+  <p class="intro">The nine problems you&apos;re most likely to hit and the exact fix for each.</p>
 
   <h3>1. "Settings table not migrated yet"</h3>
   <p><strong>Symptom</strong>: Red banner on <code>/settings</code>; saves fail.<br/>
@@ -1792,6 +1796,11 @@ KEEP_PIPELINE_ARTIFACTS=<span class="n">1</span> pnpm dev:all</pre>
   <p><strong>Symptom</strong>: Worker log: <code>tokens to keep &gt; context length</code> (LM Studio) or similar from another provider.<br/>
   <strong>Cause</strong>: Your model&apos;s context window is too small for the prompt + scene log + response. Common with Qwen3-32B loaded at 4096-token default.<br/>
   <strong>Fix</strong>: For LM Studio: <code>lms load &lt;model&gt; --context-length 16384</code>. For cloud providers: switch to a longer-context model (most cloud models default to 200k+ tokens).</p>
+
+  <h3>9. "No such filter: 'drawtext'" or Shorts captions don&apos;t burn in</h3>
+  <p><strong>Symptom</strong>: <code>thumbnail_concepts</code> fails the headline overlay with <code>No such filter: 'drawtext'</code>, or <code>clip_render</code> produces an MP4 with no burned-in captions.<br/>
+  <strong>Cause</strong>: Your <code>ffmpeg</code> was built without <strong>libfreetype</strong> (drawtext) and/or <strong>libass</strong> (ass/subtitles). A minimal Homebrew <code>ffmpeg</code> can lack both.<br/>
+  <strong>Fix</strong>: <code>brew install ffmpeg-full &amp;&amp; brew unlink ffmpeg &amp;&amp; brew link --force --overwrite ffmpeg-full</code>. Verify with <code>ffmpeg -filters | grep -E 'drawtext|ass'</code>. The plain AI thumbnail (no headline) and frame-extraction fallback work either way; only the overlay + caption burn-in need these filters.</p>
 </section>
 
 <!-- ─── 18 · GLOSSARY ────────────────────────────────────────────── -->

@@ -298,12 +298,31 @@ This wrapper is non-negotiable: it is what makes Helm Signal possible. Every ass
 # youtube_pinned_comment
 {"text": "..."}
 
-# thumbnail_concept
-{"concepts": [
-    {"frame_timestamp": 47.2, "frame_path": "/var/.../thumb_01.jpg",
-     "headline_overlay": "...", "style_notes": "..."},
-    ...  # 3 concepts
-]}
+# thumbnail_concept — ONE asset per variant (not a wrapped array).
+# Two production paths, distinguished by `generated` + `variant` + provenance.provider:
+#
+# (a) AI image generation (provenance.provider = "runware" etc.; generated = true).
+#     Emitted as a plain image PLUS, when a headline exists, a headline-overlay
+#     variant (text composited via ffmpeg drawtext). The operator picks one.
+{"rank": 1,
+ "variant": "plain",                       # "plain" | "headline"
+ "local_path": "/var/.../thumbs/concept_01.jpg",
+ "public_url": null,
+ "headline": "SILENT AI RIG",              # null on the plain variant
+ "visual_prompt": "...",                   # the LLM-built image prompt
+ "generated": true,
+ "cost_usd": 0.0013}                        # counted once on the plain variant
+#
+# (b) ffmpeg frame-extraction fallback when no image provider is configured
+#     (provenance.provider = "ffmpeg"; generated = false). One asset per hook.
+{"rank": 1,
+ "variant": "frame",
+ "timestamp": 47.2,
+ "local_path": "/var/.../thumbs/concept_01.jpg",
+ "public_url": null,
+ "hook_reason": "...",
+ "hook_score": 0.92,
+ "generated": false}
 
 # short_clip_plan — blueprint asset, NOT dispatchable.
 # Consumed by the clip_render worker, which produces one rendered_short_clip per entry.
@@ -755,7 +774,20 @@ The VLM step is the bottleneck. Two knobs to turn if it gets tight: drop frame s
 
 ### 5.5 Processing profiles
 
-A profile controls which pipeline layers run and which models are used. Every package is processed under exactly one profile, recorded on `intelligence.profile` and propagated into every generated artifact's `provenance.profile`. The profile is selected per-source at ingest time, defaulting to the brand's `default_processing_profile`. Three profiles are defined for v1:
+A profile controls which pipeline layers run and which models are used. Every package is processed under exactly one profile, recorded on `intelligence.profile` and propagated into every generated artifact's `provenance.profile`. The profile is selected per-source at ingest time, defaulting to the brand's `default_processing_profile`. Four profiles are defined (cheapest to richest); `transcription_only` was added in v1.1 to make Backlog Revival inexpensive:
+
+**`transcription_only`** *(v1.1)* — the cheapest profile. Audio transcription only: no visual phase, no diarization, no thumbnail generation. The engine behind Backlog Revival's in-place re-mining of an existing back catalogue under today's prompts.
+
+| Layer            | Runs?    | Model / tool                                  |
+|------------------|----------|-----------------------------------------------|
+| ingest           | yes      | yt-dlp + ffmpeg audio extract                 |
+| transcribe_audio | yes      | MLX Whisper large-v3                          |
+| diarize          | **no**   | skipped                                       |
+| analyze_visual   | **no**   | skipped                                       |
+| fuse             | yes      | audio-only scene log (visual fields empty)    |
+| analyze_intelligence | yes  | Qwen3 32B                                     |
+| generate_asset   | yes      | all text assets; no thumbnail_concept (audio-only profiles skip thumbnails) |
+| Wall time (30 min source)  | ~1-2 min |                                   |
 
 **`fast_audio_only`** — audio-only pipeline for low-stakes throughput or content where visuals don't matter (audio-only podcasts, voice memos, draft passes on hero content for a fast turn).
 
@@ -798,7 +830,7 @@ A profile controls which pipeline layers run and which models are used. Every pa
 
 **Operator selection.** The dashboard's source-creation form exposes the profile as a select with the brand default pre-selected. Operators can change it per package without changing the brand default. The chosen profile is stored on the `packages` row (see Section 4 — add `processing_profile TEXT NOT NULL`) and read by every worker in the chain.
 
-**Why three and not more.** v1 deliberately constrains to three profiles to keep prompt versions and asset payload shapes tractable. Adding a fourth means another row of voice-example calibration and another performance budget to maintain. v1.5 may add a `transcription_only` profile if Backlog Revival needs cheap re-mining of old videos.
+**Why four and not more.** v1 launched with three profiles to keep prompt versions and asset payload shapes tractable; v1.1 added `transcription_only` because Backlog Revival needed cheap re-mining of old videos, and it reuses the existing audio-only path without a new prompt set or voice-example calibration. Further profiles each cost another performance budget to maintain, so the bar for a fifth is high.
 
 ### 5.6 Node ↔ Python ML CLI contract
 

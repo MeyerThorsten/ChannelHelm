@@ -6,7 +6,7 @@ This roadmap reflects the milestones already defined in ChannelHelm's technical 
 timeline
     title ChannelHelm release roadmap
     v1.0 — Shipped : Four-layer pipeline : Studio review (3 layouts) : Shorts editor + live captions : Storage lifecycle (A+B) : YouTube Direct + Zernio dispatch : MIT open source
-    v1.1 — Backlog Revival (landing) : Backlog Revival re-mine : transcription_only profile : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening (in progress)
+    v1.1 — Backlog Revival (landing) : Backlog Revival re-mine : transcription_only profile : AI thumbnail generation (Runware) : Hard-delete sources (Option C) : Modal focus trap : YouTube Direct hardening (in progress)
     v1.5 — Signal & Intelligence : Title/thumbnail A/B routing : Retention calibration model : Music / copyright detection : Sentiment-over-time curves : Per-provider concurrency limits
     v2 — Scale & Identity : YouTube Direct for Shorts : B-roll insertion : Object storage (S3/R2) : Speaker ID by name : GSC article signals : Multi-operator / teams
 ```

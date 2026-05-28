@@ -150,6 +150,8 @@ flowchart TD
 ## Quickstart
 
 > Requires **Node ≥ 20**, **pnpm**, **PostgreSQL 16**, and (for the ML layer on Apple Silicon) **`uv`** + **ffmpeg** + **yt-dlp**.
+>
+> ℹ️ The headline-overlay thumbnails (`drawtext`) and burned-in Shorts captions (`ass`/`subtitles`) need an ffmpeg built with **libfreetype + libass**. If `ffmpeg -filters | grep drawtext` comes up empty, install the full build: `brew install ffmpeg-full && brew unlink ffmpeg && brew link --force --overwrite ffmpeg-full`. The `clip_render` and thumbnail workers probe for these filters and fail with a clear message if they're missing.
 
 ```sh
 git clone https://github.com/MeyerThorsten/ChannelHelm.git
@@ -174,6 +176,8 @@ Open <http://localhost:3000>, add a video, and watch the pipeline fill the Studi
 | `pnpm worker -- --kinds ingest,transcribe_audio,… --concurrency 3` | Worker daemon only. |
 | `pnpm db:generate` / `pnpm db:migrate` | Generate / apply Drizzle migrations. |
 | `pnpm typecheck` · `pnpm lint` · `pnpm test` | `tsc --noEmit` · Biome · Vitest. |
+| `pnpm test:integration` | Vitest integration suite against a real Postgres (Testcontainers). |
+| `pnpm smoke:runware` | End-to-end AI-thumbnail check: generate via the configured image provider → download → render plain + headline. |
 
 ## Configuration
 
