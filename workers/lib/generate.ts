@@ -50,7 +50,12 @@ export async function generateAssetContent(opts: {
   const sceneLogSummary = summarizeSceneLog(intelligence.scene_log);
   const user = render(prompt, {
     brand,
-    intelligence: { ...intelligence, scene_log_summary: sceneLogSummary },
+    intelligence: {
+      ...intelligence,
+      scene_log_summary: sceneLogSummary,
+      // F2: compact emotion peaks so the clip planner can favour high-energy moments.
+      sentiment_peaks: summarizeSentimentPeaks(intelligence.sentiment_curve),
+    },
     voice_examples: examples.length > 0 ? examples : 'No prior voice examples for this type.',
   });
 
@@ -82,6 +87,30 @@ export function summarizeSceneLog(sceneLog: unknown): unknown {
     end: w.end,
     text: w.text.length > 200 ? `${w.text.slice(0, 200)}…` : w.text,
   }));
+}
+
+/**
+ * F2: compact the sentiment curve to its emotional peaks (timestamp + valence/
+ * arousal) so the clip planner can lean toward high-energy moments without the
+ * full per-window curve bloating the prompt. Returns a short hint string.
+ */
+export function summarizeSentimentPeaks(curve: unknown): string {
+  if (!curve || typeof curve !== 'object') return 'No emotion curve available.';
+  const c = curve as {
+    points?: { index: number; start: number; end: number; valence: number; arousal: number }[];
+    peak_window_indices?: number[];
+  };
+  const peaks = c.peak_window_indices ?? [];
+  const points = c.points ?? [];
+  if (peaks.length === 0 || points.length === 0) return 'No strong emotional peaks detected.';
+  const lines = peaks
+    .map((i) => points.find((p) => p.index === i))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map(
+      (p) =>
+        `~${p.start.toFixed(0)}–${p.end.toFixed(0)}s (arousal ${p.arousal.toFixed(2)}, valence ${p.valence.toFixed(2)})`,
+    );
+  return `Highest-energy moments (prefer clips overlapping these): ${lines.join('; ')}`;
 }
 
 /**

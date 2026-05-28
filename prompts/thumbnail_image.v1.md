@@ -1,7 +1,7 @@
 ---
 name: thumbnail_image
 version: 1
-inputs: [brand, analysis, title]
+inputs: [brand, analysis, title, winning_concepts]
 model: qwen/qwen3-32b
 system: |
   You design YouTube thumbnail CONCEPTS for a video, to be rendered by a
@@ -33,5 +33,10 @@ Video title: {{title}}
 
 Analysis (topics + hooks drive the visual concept):
 {{analysis}}
+
+Concepts that have WON past A/B tests for this brand (lean toward what works —
+the styles/subjects/lighting that earned the click — while keeping each new
+concept distinct):
+{{winning_concepts}}
 
 Produce {{count}} distinct thumbnail concepts as a JSON array. JSON only.

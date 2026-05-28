@@ -37,6 +37,9 @@ export const llmProviders = pgTable(
     isDefault: boolean('is_default').notNull().default(false),
     enabled: boolean('enabled').notNull().default(true),
     purpose: text('purpose').notNull().default('all'),
+    // 0 = unlimited. Caps in-flight requests to this provider across the
+    // worker's N concurrency slots so a rate-limited upstream isn't hammered.
+    maxConcurrent: integer('max_concurrent').notNull().default(0),
     maxTokens: integer('max_tokens').notNull().default(2048),
     temperature: doublePrecision('temperature').notNull().default(0.5),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

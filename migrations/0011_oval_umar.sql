@@ -1,0 +1,1 @@
+ALTER TABLE "llm_providers" ADD COLUMN "max_concurrent" integer DEFAULT 0 NOT NULL;

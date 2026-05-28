@@ -16,6 +16,7 @@ import {
   pipelineProgress,
   pipelineReadyToGenerate,
 } from '@/lib/pipeline';
+import type { SentimentCurve } from '@/lib/sentiment';
 import { youtubeConnectionStatus } from '@workers/integrations/youtube';
 import { networkFor } from '@workers/integrations/zernio';
 import { asc, eq } from 'drizzle-orm';
@@ -113,6 +114,21 @@ export default async function PackageDetailPage({ params }: PageProps) {
   };
 
   const transcript = ((intelligence.transcript ?? {}) as { text?: string }).text ?? '';
+
+  // Emotion curve — produced by the fuse worker since v1.5. Absent on older
+  // packages; the Studio renders nothing in that case. We cast via a structural
+  // check rather than Zod to keep this import-free of the full schema. The type
+  // annotation is load-bearing — tsc enforces the SentimentCurve shape.
+  const rawCurve = intelligence.sentiment_curve;
+  const sentimentCurve: SentimentCurve | null =
+    rawCurve !== null &&
+    typeof rawCurve === 'object' &&
+    'points' in (rawCurve as object) &&
+    'peak_window_indices' in (rawCurve as object) &&
+    Array.isArray((rawCurve as Record<string, unknown>).points) &&
+    Array.isArray((rawCurve as Record<string, unknown>).peak_window_indices)
+      ? (rawCurve as unknown as SentimentCurve)
+      : null;
 
   // ─── Shorts collapsed view ─────────────────────────────────────────────
   // Replace the generic short_clip_plan + rendered_short_clip flat list
@@ -404,6 +420,7 @@ export default async function PackageDetailPage({ params }: PageProps) {
         titleOptions: experimentTitleOptions,
         thumbnailOptions: experimentThumbnailOptions,
       }}
+      sentimentCurve={sentimentCurve}
     />
   );
 }

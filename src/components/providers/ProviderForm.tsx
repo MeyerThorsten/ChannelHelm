@@ -430,6 +430,24 @@ export function ProviderForm({
         )}
       </div>
 
+      <div>
+        <label className={LABEL} htmlFor="maxConcurrent">
+          Max concurrent
+        </label>
+        <input
+          id="maxConcurrent"
+          name="maxConcurrent"
+          type="number"
+          min={0}
+          defaultValue={provider?.maxConcurrent ?? 0}
+          className={INPUT}
+        />
+        <p className={HELP}>
+          Cap simultaneous requests to this provider (0 = unlimited). Prevents 429s when workers run
+          many concurrency slots against a rate-limited upstream.
+        </p>
+      </div>
+
       <div className="flex gap-6 text-sm">
         <label className="flex items-center gap-2">
           <input type="checkbox" name="isDefault" defaultChecked={provider?.isDefault ?? false} />

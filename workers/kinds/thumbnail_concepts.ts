@@ -2,8 +2,8 @@ import { mkdir } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
-import { assets, brands, packages, sources } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { assets, brands, packages, sources, voiceExamples } from '@/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { extractFrameAt, renderThumbnail } from '../integrations/ffmpeg';
 import { downloadImage, getImageProvider } from '../integrations/image/get_image_provider';
@@ -121,6 +121,22 @@ async function generateAiThumbnails(opts: {
 
   const [brand] = await db.select().from(brands).where(eq(brands.id, brandId)).limit(1);
 
+  // F1 feedback loop: thumbnail concepts that won past A/B tests for this brand
+  // (written by experiment_tick on decided thumbnail experiments). Bias new
+  // concepts toward what earns the click.
+  const winners = await db
+    .select({ text: voiceExamples.text, score: voiceExamples.performanceScore })
+    .from(voiceExamples)
+    .where(
+      and(eq(voiceExamples.brandId, brandId), eq(voiceExamples.assetType, 'thumbnail_concept')),
+    )
+    .orderBy(desc(voiceExamples.performanceScore))
+    .limit(5);
+  const winningConcepts =
+    winners.length > 0
+      ? winners.map((w, i) => `${i + 1}. ${w.text}`).join('\n')
+      : 'None yet — no A/B-tested thumbnails for this brand.';
+
   // LLM turns the analysis into N distinct visual concepts + headlines.
   const prompt = await loadPrompt('thumbnail_image', 1);
   const user = render(prompt, {
@@ -130,6 +146,7 @@ async function generateAiThumbnails(opts: {
     analysis: analysis ?? {},
     title,
     count: opts.candidateCount,
+    winning_concepts: winningConcepts,
   });
   const result = await complete({
     profile,

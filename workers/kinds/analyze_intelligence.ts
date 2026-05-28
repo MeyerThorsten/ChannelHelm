@@ -1,9 +1,15 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { db } from '@/db/client';
-import { brands, packages, sources } from '@/db/schema';
+import { brands, packages, signals, sources } from '@/db/schema';
+import {
+  type CalibrationSample,
+  applyCalibration,
+  fitCalibration,
+  predictedRetentionFraction,
+} from '@/lib/retention-calibration';
 import { isAudioOnlyProfile } from '@/lib/schemas';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
 import { complete } from '../integrations/lm_studio';
@@ -122,11 +128,58 @@ export async function produceAnalysis(packageId: string): Promise<void> {
   const parsed = parseJsonStrict(result.text, 'analyze_intelligence');
   const parsedObj =
     parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : { raw: parsed };
+
+  // F3: calibrate the LLM's retention guess against this brand's measured
+  // history. predicted_fraction = share of windows flagged high-retention;
+  // collect_signal accumulates the real average view fraction per published
+  // video. Below the sample threshold the calibration is identity (no-op).
+  const windowCount = Array.isArray((sceneLog as { windows?: unknown[] }).windows)
+    ? (sceneLog as { windows: unknown[] }).windows.length
+    : 0;
+  const retention =
+    parsedObj.retention && typeof parsedObj.retention === 'object'
+      ? (parsedObj.retention as Record<string, unknown>)
+      : {};
+  const hrwCount = Array.isArray(retention.high_retention_windows)
+    ? (retention.high_retention_windows as unknown[]).length
+    : 0;
+  const predictedFraction = predictedRetentionFraction(hrwCount, windowCount);
+  if (predictedFraction != null) {
+    const model = fitCalibration(await loadRetentionSamples(pkg.brandId));
+    parsedObj.retention = {
+      ...retention,
+      predicted_fraction: predictedFraction,
+      calibrated_estimate: applyCalibration(predictedFraction, model),
+      calibration: { a: model.a, b: model.b, n: model.n, fitted: model.fitted },
+    };
+  }
+
   await patchPackageIntelligence(
     packageId,
     { analysis: { ...parsedObj, provenance: result.provenance } },
     { status: 'analyzed' },
   );
+}
+
+/**
+ * Load this brand's (predicted, actual) retention pairs from the signals table.
+ * collect_signal writes a `retention_sample` row per published video with the
+ * measured average view fraction as the value and the predicted fraction in
+ * metadata. These train the per-brand calibration.
+ */
+async function loadRetentionSamples(brandId: string): Promise<CalibrationSample[]> {
+  const rows = await db
+    .select({ value: signals.value, metadata: signals.metadata })
+    .from(signals)
+    .where(and(eq(signals.brandId, brandId), eq(signals.metric, 'retention_sample')));
+  const samples: CalibrationSample[] = [];
+  for (const r of rows) {
+    const predicted = (r.metadata as { predicted?: unknown } | null)?.predicted;
+    if (typeof predicted === 'number' && Number.isFinite(r.value)) {
+      samples.push({ predicted, actual: r.value });
+    }
+  }
+  return samples;
 }
 
 /**

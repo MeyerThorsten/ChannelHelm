@@ -15,6 +15,7 @@ import {
 } from '@/components/ui';
 import type { ScoredItem } from '@/lib/asset-payload';
 import { brandColor } from '@/lib/brand-color';
+import type { SentimentCurve } from '@/lib/sentiment';
 import { publishAsset } from '@/server-actions/publish';
 import { generateSection, regenerateAsset, saveAssetPayload } from '@/server-actions/regenerate';
 import {
@@ -27,6 +28,7 @@ import {
 } from '@/server-actions/studio';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
+import { SentimentSparkline } from './SentimentSparkline';
 import { YoutubeLinkPill } from './YoutubeLinkPill';
 import { YoutubePublishOptions } from './YoutubePublishOptions';
 import {
@@ -127,6 +129,11 @@ export type StudioData = {
     titleOptions: ExperimentTitleOption[];
     thumbnailOptions: ExperimentThumbnailOption[];
   };
+  /**
+   * Emotion-intensity curve produced by the fuse worker. Absent on packages
+   * built before sentiment scoring was introduced — render nothing in that case.
+   */
+  sentimentCurve: SentimentCurve | null;
 };
 
 const PLATFORM_GROUP: Record<string, 'video' | 'editorial' | 'social'> = {
@@ -474,6 +481,16 @@ function PipelinePanel({ data }: { data: StudioData }) {
         <Stat label="Pending" value={data.counts.pending} color="var(--status-analyzing)" />
         <Stat label="Failed" value={data.counts.failed} color="var(--status-failed)" />
       </div>
+      {data.sentimentCurve && (
+        <div
+          style={{
+            paddingTop: 14,
+            borderTop: '1px solid var(--border)',
+          }}
+        >
+          <SentimentSparkline curve={data.sentimentCurve} />
+        </div>
+      )}
     </div>
   );
 }

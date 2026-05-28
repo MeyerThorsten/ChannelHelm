@@ -60,4 +60,8 @@ Scene log windows (use start/end to anchor clip boundaries; the text + visual
 descriptions tell you what's actually happening at each moment):
 {{intelligence.scene_log_summary}}
 
+Emotional energy (a lexicon-derived curve — all else equal, favour clips that
+overlap these high-arousal moments; they tend to travel further as Shorts):
+{{intelligence.sentiment_peaks}}
+
 Write the clip plan JSON. JSON only — no preamble, no closing remarks.

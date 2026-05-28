@@ -36,4 +36,6 @@ export type ProviderConfig = {
   model: string;
   maxTokens: number;
   temperature: number;
+  /** 0 = unlimited. Caps in-flight requests to this provider (v1.5). */
+  maxConcurrent?: number;
 };

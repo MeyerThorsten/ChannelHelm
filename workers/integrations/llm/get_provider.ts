@@ -5,15 +5,39 @@ import { asc, desc, eq } from 'drizzle-orm';
 import { AnthropicProvider } from './anthropic';
 import { CodexCliProvider } from './codex';
 import { OpenAICompatibleProvider } from './openai_compatible';
-import type { LlmProvider, ProviderConfig } from './types';
+import { providerSemaphore } from './semaphore';
+import type { LlmMessage, LlmOptions, LlmProvider, LlmResponse, ProviderConfig } from './types';
 
 type ProviderRecord = typeof llmProviders.$inferSelect;
 
-/** Instantiate the right provider class for a config. */
+/**
+ * Wrap a provider so its `chat()` acquires a per-provider semaphore when
+ * `maxConcurrent > 0`. Keyed by name@baseUrl so two rows pointing at the same
+ * upstream share a limiter. All other methods delegate unchanged.
+ */
+function withConcurrencyLimit(provider: LlmProvider, config: ProviderConfig): LlmProvider {
+  const max = config.maxConcurrent ?? 0;
+  if (max <= 0) return provider;
+  const sem = providerSemaphore(`${config.name}@${config.baseUrl}`, max);
+  return {
+    chat: (messages: LlmMessage[], options?: LlmOptions): Promise<LlmResponse> =>
+      sem.run(() => provider.chat(messages, options)),
+    testConnection: () => provider.testConnection(),
+    getName: () => provider.getName(),
+    getModel: () => provider.getModel(),
+    getType: () => provider.getType(),
+  };
+}
+
+/** Instantiate the right provider class for a config (concurrency-limited). */
 export function providerFromConfig(config: ProviderConfig): LlmProvider {
-  if (config.type === 'anthropic') return new AnthropicProvider(config);
-  if (config.type === 'codex-cli') return new CodexCliProvider(config);
-  return new OpenAICompatibleProvider(config);
+  const base =
+    config.type === 'anthropic'
+      ? new AnthropicProvider(config)
+      : config.type === 'codex-cli'
+        ? new CodexCliProvider(config)
+        : new OpenAICompatibleProvider(config);
+  return withConcurrencyLimit(base, config);
 }
 
 function toConfig(r: ProviderRecord): ProviderConfig {
@@ -25,6 +49,7 @@ function toConfig(r: ProviderRecord): ProviderConfig {
     model: r.model,
     maxTokens: r.maxTokens,
     temperature: r.temperature,
+    maxConcurrent: r.maxConcurrent,
   };
 }
 

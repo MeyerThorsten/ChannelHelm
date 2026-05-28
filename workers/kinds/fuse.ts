@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { db } from '@/db/client';
 import { packages, sources } from '@/db/schema';
+import { computeSentimentCurve } from '@/lib/sentiment';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
@@ -67,7 +68,17 @@ export async function run(job: JobRow): Promise<void> {
 
   const sceneLogPath = join(source.localMediaPath, 'scene_log.json');
   await writeFile(sceneLogPath, JSON.stringify(sceneLog, null, 2), 'utf8');
-  await patchPackageIntelligence(packageId, { scene_log: sceneLog });
+
+  // F2: lexicon emotion curve over the windows (no extra inference). Stored
+  // alongside the scene log; the clip planner prefers its peaks and the Studio
+  // renders it as a sparkline.
+  const sentimentCurve = computeSentimentCurve(
+    sceneLog.windows.map((w) => ({ start: w.start, end: w.end, text: w.text })),
+  );
+  await patchPackageIntelligence(packageId, {
+    scene_log: sceneLog,
+    sentiment_curve: sentimentCurve,
+  });
   await advancePackageStatus(packageId, 'fused');
 
   // Storage lifecycle (Option A): frame_index.json is fully consumed

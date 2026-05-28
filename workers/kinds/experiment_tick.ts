@@ -18,7 +18,7 @@
  * tick within a window is a no-op.
  */
 import { db } from '@/db/client';
-import { type ExperimentObservation, experiments, voiceExamples } from '@/db/schema';
+import { type ExperimentObservation, assets, experiments, voiceExamples } from '@/db/schema';
 import { type DecisionMetric, decideWinner } from '@/lib/ab-decision';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -201,41 +201,64 @@ async function observeWindow(exp: Experiment): Promise<ExperimentObservation> {
 }
 
 /**
- * Close the loop: the winning title becomes a positive voice example (so future
- * generate_asset runs favour it); losing titles get a low score. Thumbnail-only
- * experiments have no text channel in v1, so they record nothing here.
+ * Close the loop. Titles → `youtube_title_set` voice examples (winner positive,
+ * losers negative) so future title generation favours what won. Thumbnails →
+ * `thumbnail_concept` voice examples keyed on the winning concept's
+ * `visual_prompt`, which the thumbnail_concepts worker reads back as guidance
+ * (F1). A variant can feed both channels.
  */
 async function writeFeedback(
   exp: Experiment,
   variants: Experiment['variants'],
   winnerVariant: number,
 ): Promise<void> {
-  const assetType = 'youtube_title_set';
   for (const v of variants) {
-    const title = v.title?.trim();
-    if (!title) continue;
     const score = v.variant_index === winnerVariant ? 0.9 : 0.1;
-    const existing = await db
-      .select({ id: voiceExamples.id })
-      .from(voiceExamples)
-      .where(
-        and(
-          eq(voiceExamples.brandId, exp.brandId),
-          eq(voiceExamples.assetType, assetType),
-          eq(voiceExamples.text, title),
-        ),
-      )
-      .limit(1);
-    if (existing[0]) {
-      await db
-        .update(voiceExamples)
-        .set({ performanceScore: score })
-        .where(eq(voiceExamples.id, existing[0].id));
-    } else {
-      await db
-        .insert(voiceExamples)
-        .values({ brandId: exp.brandId, assetType, text: title, performanceScore: score });
+
+    const title = v.title?.trim();
+    if (title) await upsertVoiceExample(exp.brandId, 'youtube_title_set', title, score);
+
+    // Thumbnail feedback: pull the winning/losing concept's image prompt off the
+    // referenced thumbnail_concept asset (AI variants carry `visual_prompt`).
+    if (v.thumbnail_asset_id) {
+      const [a] = await db
+        .select({ payload: assets.payload })
+        .from(assets)
+        .where(eq(assets.id, v.thumbnail_asset_id))
+        .limit(1);
+      const vp = (a?.payload as { visual_prompt?: unknown } | null)?.visual_prompt;
+      if (typeof vp === 'string' && vp.trim()) {
+        await upsertVoiceExample(exp.brandId, 'thumbnail_concept', vp.trim(), score);
+      }
     }
+  }
+}
+
+/** Insert or update a voice example, matched by (brand, type, exact text). */
+async function upsertVoiceExample(
+  brandId: string,
+  assetType: string,
+  text: string,
+  score: number,
+): Promise<void> {
+  const [existing] = await db
+    .select({ id: voiceExamples.id })
+    .from(voiceExamples)
+    .where(
+      and(
+        eq(voiceExamples.brandId, brandId),
+        eq(voiceExamples.assetType, assetType),
+        eq(voiceExamples.text, text),
+      ),
+    )
+    .limit(1);
+  if (existing) {
+    await db
+      .update(voiceExamples)
+      .set({ performanceScore: score })
+      .where(eq(voiceExamples.id, existing.id));
+  } else {
+    await db.insert(voiceExamples).values({ brandId, assetType, text, performanceScore: score });
   }
 }
 
