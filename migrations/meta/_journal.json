@@ -64,6 +64,13 @@
       "when": 1779974400000,
       "tag": "0008_youtube_oauth_states",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779951401005,
+      "tag": "0009_image_providers",
+      "breakpoints": true
     }
   ]
 }

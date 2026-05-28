@@ -91,7 +91,13 @@ function envDefaultConfig(purpose: string): ProviderConfig {
  * previous env-only setup. Idempotent (no-op once any row exists).
  */
 export async function seedDefaultProviderIfEmpty(): Promise<void> {
-  const [any] = await db.select({ id: llmProviders.id }).from(llmProviders).limit(1);
+  // Only consider TEXT providers — an image-only setup should still get a
+  // seeded LLM default so chat works.
+  const [any] = await db
+    .select({ id: llmProviders.id })
+    .from(llmProviders)
+    .where(eq(llmProviders.category, 'text'))
+    .limit(1);
   if (any) return;
   const cfg = envDefaultConfig('all');
   await db.insert(llmProviders).values({
@@ -127,6 +133,7 @@ export async function getProvider(purposeOrId?: string | number): Promise<LlmPro
   const records = await db
     .select()
     .from(llmProviders)
+    .where(eq(llmProviders.category, 'text')) // image providers never serve chat
     .orderBy(desc(llmProviders.isDefault), asc(llmProviders.id));
 
   if (records.length === 0) {

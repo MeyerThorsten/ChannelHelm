@@ -54,6 +54,28 @@ export default async function ProvidersPage() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</span>
+                  {(() => {
+                    const isImage = p.category === 'image';
+                    return (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontFamily: 'var(--font-mono)',
+                          padding: '1px 6px',
+                          borderRadius: 999,
+                          color: isImage ? 'var(--accent)' : 'var(--text-faint)',
+                          background: isImage
+                            ? 'color-mix(in oklab, var(--accent) 14%, transparent)'
+                            : 'var(--bg-elev-2)',
+                          border: isImage
+                            ? '1px solid color-mix(in oklab, var(--accent) 28%, transparent)'
+                            : '1px solid var(--border)',
+                        }}
+                      >
+                        {isImage ? 'image' : 'LLM'}
+                      </span>
+                    );
+                  })()}
                   {p.isDefault && (
                     <span
                       style={{

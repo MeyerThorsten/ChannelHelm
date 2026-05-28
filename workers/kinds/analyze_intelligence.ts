@@ -2,6 +2,7 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { db } from '@/db/client';
 import { brands, packages, sources } from '@/db/schema';
+import { isAudioOnlyProfile } from '@/lib/schemas';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { patchPackageIntelligence } from '../integrations/db_patch';
@@ -78,7 +79,7 @@ export async function run(job: JobRow): Promise<void> {
   // produced by extracting frames at the hook timestamps the LLM just gave
   // us. fast_audio_only profile has no frame_index to draw from (§5.5), so
   // skip it there. Idempotency key matches the §4 convention.
-  if (profile !== 'fast_audio_only') {
+  if (!isAudioOnlyProfile(profile)) {
     await enqueue({
       kind: 'thumbnail_concepts',
       payload: { sourceId, packageId, processingProfile: profile },

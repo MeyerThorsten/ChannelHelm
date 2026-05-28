@@ -10,6 +10,8 @@ const INPUT = 'ch-input';
 const LABEL = 'ch-label';
 const HELP = 'ch-help';
 
+type Category = 'text' | 'image';
+
 const TYPES = [
   {
     value: 'openai-compatible',
@@ -18,6 +20,8 @@ const TYPES = [
   { value: 'anthropic', label: 'Anthropic (Claude Messages API)' },
   { value: 'codex-cli', label: 'Codex CLI (ChatGPT subscription)' },
 ];
+// Image-generation providers use a disjoint type list so the text TYPES stay clean.
+const IMAGE_TYPES = [{ value: 'runware', label: 'Runware (text-to-image)' }];
 const PURPOSES = ['all', 'fast_audio_only', 'standard_audio_visual', 'premium_multimodal'];
 
 type Preset = { name: string; type: string; baseUrl: string; model: string };
@@ -60,6 +64,15 @@ const PRESETS: Preset[] = [
   },
   { name: 'Codex (ChatGPT subscription)', type: 'codex-cli', baseUrl: '', model: 'gpt-5.5' },
 ];
+// Image-category presets — only shown when Category = Image.
+const IMAGE_PRESETS: Preset[] = [
+  {
+    name: 'Runware',
+    type: 'runware',
+    baseUrl: 'https://api.runware.ai/v1',
+    model: 'runware:z-image@turbo',
+  },
+];
 
 export function ProviderForm({
   provider,
@@ -72,8 +85,12 @@ export function ProviderForm({
   action: (formData: FormData) => Promise<void>;
   submitLabel: string;
 }) {
+  const initialCategory: Category = provider?.category === 'image' ? 'image' : 'text';
+  const [category, setCategoryState] = useState<Category>(initialCategory);
   const [name, setName] = useState(provider?.name ?? '');
-  const [type, setType] = useState(provider?.type ?? 'openai-compatible');
+  const [type, setType] = useState(
+    provider?.type ?? (initialCategory === 'image' ? 'runware' : 'openai-compatible'),
+  );
   const [baseUrl, setBaseUrl] = useState(provider?.baseUrl ?? '');
   // #14: the saved key is never sent to the client; blank means "keep existing".
   const [apiKey, setApiKey] = useState('');
@@ -82,14 +99,34 @@ export function ProviderForm({
   const [modelMsg, setModelMsg] = useState<string | null>(null);
   const [loadingModels, startLoadModels] = useTransition();
 
+  const isImage = category === 'image';
+  const typeOptions = isImage ? IMAGE_TYPES : TYPES;
+  const presets = isImage ? IMAGE_PRESETS : PRESETS;
   const isCodex = type === 'codex-cli';
-  const baseUrlPlaceholder =
-    type === 'anthropic' ? 'https://api.anthropic.com/v1' : 'http://localhost:1234/v1';
-  const modelPlaceholder = isCodex
-    ? 'gpt-5.5'
+  const baseUrlPlaceholder = isImage
+    ? 'https://api.runware.ai/v1'
     : type === 'anthropic'
-      ? 'claude-sonnet-4-6'
-      : 'qwen/qwen3-32b';
+      ? 'https://api.anthropic.com/v1'
+      : 'http://localhost:1234/v1';
+  const modelPlaceholder = isImage
+    ? 'runware:z-image@turbo'
+    : isCodex
+      ? 'gpt-5.5'
+      : type === 'anthropic'
+        ? 'claude-sonnet-4-6'
+        : 'qwen/qwen3-32b';
+  // Live model fetch only makes sense for chat/LLM endpoints, not Runware image gen.
+  const canLoadModels = !isImage && !isCodex;
+
+  // Switching category resets the type (and clears the now-stale model dropdown)
+  // so the form never submits an image type under the text category or vice-versa.
+  function setCategory(next: Category) {
+    if (next === category) return;
+    setCategoryState(next);
+    setType(next === 'image' ? 'runware' : 'openai-compatible');
+    setModels([]);
+    setModelMsg(null);
+  }
 
   function applyPreset(p: Preset) {
     setName(p.name);
@@ -119,11 +156,54 @@ export function ProviderForm({
 
   return (
     <form action={action} className="space-y-4">
+      {/* Category — submitted as the `category` form field (text | image). */}
+      <input type="hidden" name="category" value={category} />
+      <div>
+        <span className={LABEL}>Category</span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {(
+            [
+              { value: 'text', label: 'Text / LLM' },
+              { value: 'image', label: 'Image generation' },
+            ] as { value: Category; label: string }[]
+          ).map((c) => {
+            const active = category === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setCategory(c.value)}
+                aria-pressed={active}
+                style={{
+                  borderRadius: 6,
+                  border: active
+                    ? '1px solid color-mix(in oklab, var(--accent) 50%, transparent)'
+                    : '1px solid var(--border)',
+                  background: active ? 'var(--accent-soft)' : 'var(--bg-elev)',
+                  color: active ? 'var(--accent)' : 'var(--text)',
+                  padding: '5px 12px',
+                  fontSize: 12,
+                  fontWeight: active ? 600 : 400,
+                  cursor: 'pointer',
+                }}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className={HELP}>
+          {isImage
+            ? 'Text-to-image provider for AI thumbnails (e.g. Runware).'
+            : 'Chat / LLM provider used across the generation pipeline.'}
+        </p>
+      </div>
+
       {/* Quick presets */}
       <div>
         <span className={LABEL}>Quick preset</span>
         <div className="mt-1 flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
               key={p.name}
               type="button"
@@ -169,7 +249,7 @@ export function ProviderForm({
             onChange={(e) => setType(e.target.value)}
             className={INPUT}
           >
-            {TYPES.map((t) => (
+            {typeOptions.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
@@ -223,7 +303,7 @@ export function ProviderForm({
             <label className={LABEL} htmlFor="model">
               Model
             </label>
-            {!isCodex && (
+            {canLoadModels && (
               <button
                 type="button"
                 onClick={loadModels}
@@ -234,7 +314,7 @@ export function ProviderForm({
               </button>
             )}
           </div>
-          {!isCodex && models.length > 0 && (
+          {canLoadModels && models.length > 0 && (
             <select
               aria-label="Available models"
               value={models.includes(model) ? model : ''}
@@ -259,10 +339,12 @@ export function ProviderForm({
             className={INPUT}
           />
           <p className={HELP}>
-            {isCodex
-              ? 'ChatGPT-account Codex accepts gpt-5.5 or gpt-5.4. Use “default” to follow ~/.codex/config.toml. (gpt-5-codex / gpt-5 are API-only and will fail.)'
-              : (modelMsg ??
-                'Pick from the list, or type a model id. Click “Load models” to fetch them.')}
+            {isImage
+              ? 'Runware model string, e.g. runware:z-image@turbo or runware:100@1.'
+              : isCodex
+                ? 'ChatGPT-account Codex accepts gpt-5.5 or gpt-5.4. Use “default” to follow ~/.codex/config.toml. (gpt-5-codex / gpt-5 are API-only and will fail.)'
+                : (modelMsg ??
+                  'Pick from the list, or type a model id. Click “Load models” to fetch them.')}
           </p>
         </div>
         {!isCodex && (
@@ -271,6 +353,8 @@ export function ProviderForm({
               API key{' '}
               {hasApiKey ? (
                 <span className="text-zinc-400">(saved — leave blank to keep)</span>
+              ) : isImage ? (
+                <span className="text-zinc-400">(Runware key)</span>
               ) : (
                 type !== 'anthropic' && <span className="text-zinc-400">(blank for local)</span>
               )}
@@ -289,7 +373,7 @@ export function ProviderForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 ${isImage ? 'md:grid-cols-1' : 'md:grid-cols-3'}`}>
         <div>
           <label className={LABEL} htmlFor="purpose">
             Purpose
@@ -308,31 +392,42 @@ export function ProviderForm({
           </select>
           <p className={HELP}>Route a profile to this provider, or “all”.</p>
         </div>
-        <div>
-          <label className={LABEL} htmlFor="maxTokens">
-            Max tokens
-          </label>
-          <input
-            id="maxTokens"
-            name="maxTokens"
-            type="number"
-            defaultValue={provider?.maxTokens ?? 2048}
-            className={INPUT}
-          />
-        </div>
-        <div>
-          <label className={LABEL} htmlFor="temperature">
-            Temperature
-          </label>
-          <input
-            id="temperature"
-            name="temperature"
-            type="number"
-            step="0.05"
-            defaultValue={provider?.temperature ?? 0.5}
-            className={INPUT}
-          />
-        </div>
+        {isImage ? (
+          // maxTokens/temperature are meaningless for image gen — still submit safe
+          // defaults so the server action's num() parsing never sees a missing field.
+          <>
+            <input type="hidden" name="maxTokens" value={provider?.maxTokens ?? 2048} />
+            <input type="hidden" name="temperature" value={provider?.temperature ?? 0.5} />
+          </>
+        ) : (
+          <>
+            <div>
+              <label className={LABEL} htmlFor="maxTokens">
+                Max tokens
+              </label>
+              <input
+                id="maxTokens"
+                name="maxTokens"
+                type="number"
+                defaultValue={provider?.maxTokens ?? 2048}
+                className={INPUT}
+              />
+            </div>
+            <div>
+              <label className={LABEL} htmlFor="temperature">
+                Temperature
+              </label>
+              <input
+                id="temperature"
+                name="temperature"
+                type="number"
+                step="0.05"
+                defaultValue={provider?.temperature ?? 0.5}
+                className={INPUT}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex gap-6 text-sm">

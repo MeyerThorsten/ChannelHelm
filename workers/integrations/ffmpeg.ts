@@ -1,5 +1,5 @@
-import { mkdir, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { runProc } from './_proc';
 
 /**
@@ -209,6 +209,56 @@ export async function extractFrameAt(opts: {
     ],
     { logCommand: true },
   );
+}
+
+/** macOS bold sans that ships on a default install; override via THUMBNAIL_FONT. */
+const DEFAULT_THUMBNAIL_FONT = '/System/Library/Fonts/Supplemental/Arial Bold.ttf';
+
+/**
+ * Render a finished thumbnail from a generated image: scale/crop to the target
+ * size (default 1280×720, YouTube's ratio) and — when a `headline` is given —
+ * burn a centered, boxed headline near the bottom via the `drawtext` filter.
+ *
+ * The headline goes through a temp `textfile` (not `text=`) so arbitrary
+ * punctuation needs no filtergraph escaping. drawtext requires a font file;
+ * if the configured font is missing, drawtext fails — callers treat the
+ * overlay as best-effort and fall back to the plain (no-headline) render.
+ */
+export async function renderThumbnail(opts: {
+  inputPath: string;
+  outputPath: string;
+  width?: number;
+  height?: number;
+  headline?: string;
+  fontPath?: string;
+}): Promise<void> {
+  const w = opts.width ?? 1280;
+  const h = opts.height ?? 720;
+  const filters = [`scale=${w}:${h}:force_original_aspect_ratio=increase`, `crop=${w}:${h}`];
+
+  let textfilePath: string | undefined;
+  const headline = opts.headline?.trim();
+  if (headline) {
+    const font = opts.fontPath ?? process.env.THUMBNAIL_FONT ?? DEFAULT_THUMBNAIL_FONT;
+    textfilePath = join(dirname(opts.outputPath), `.headline_${Date.now()}.txt`);
+    await writeFile(textfilePath, headline, 'utf8');
+    const fontSize = Math.round(h / 10); // ~72px at 720p
+    filters.push(
+      `drawtext=fontfile=${font}:textfile=${textfilePath}:fontcolor=white:fontsize=${fontSize}:` +
+        `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fontSize / 3)}:` +
+        `x=(w-text_w)/2:y=h-text_h-${Math.round(h / 12)}:line_spacing=8:shadowcolor=black@0.8:shadowx=2:shadowy=2`,
+    );
+  }
+
+  try {
+    await runProc(
+      'ffmpeg',
+      ['-y', '-i', opts.inputPath, '-vf', filters.join(','), '-q:v', '2', opts.outputPath],
+      { logCommand: true },
+    );
+  } finally {
+    if (textfilePath) await rm(textfilePath, { force: true });
+  }
 }
 
 /**

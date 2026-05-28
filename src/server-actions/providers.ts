@@ -3,6 +3,7 @@
 import { db } from '@/db/client';
 import { llmProviders } from '@/db/schema';
 import { decryptSecret, encryptSecret } from '@/lib/secret-box';
+import { imageProviderFromConfig } from '@workers/integrations/image/get_image_provider';
 import { providerFromConfig } from '@workers/integrations/llm/get_provider';
 import { fetchAvailableModels } from '@workers/integrations/llm/models';
 import { eq, sql } from 'drizzle-orm';
@@ -35,13 +36,19 @@ export async function createProviderFromForm(formData: FormData): Promise<void> 
     throw new Error('name, model and (for HTTP providers) baseUrl are required');
   }
   const isDefault = formData.get('isDefault') === 'on';
+  const category = String(formData.get('category') ?? 'text') === 'image' ? 'image' : 'text';
 
   await db.transaction(async (tx) => {
     if (isDefault) {
-      await tx.update(llmProviders).set({ isDefault: false });
+      // is_default is scoped per category (one default LLM + one default image).
+      await tx
+        .update(llmProviders)
+        .set({ isDefault: false })
+        .where(eq(llmProviders.category, category));
     }
     await tx.insert(llmProviders).values({
       name,
+      category,
       type,
       baseUrl,
       apiKey: encryptSecret(String(formData.get('apiKey') ?? '')),
@@ -65,14 +72,21 @@ export async function updateProviderFromForm(id: number, formData: FormData): Pr
     throw new Error('name, model and (for HTTP providers) baseUrl are required');
   }
   const isDefault = formData.get('isDefault') === 'on';
+  const category = String(formData.get('category') ?? 'text') === 'image' ? 'image' : 'text';
   // #14: a blank API key on edit PRESERVES the saved one (the form never
   // receives the existing key, so blank == "unchanged"). A new value replaces it.
   const submittedKey = String(formData.get('apiKey') ?? '');
 
   await db.transaction(async (tx) => {
-    if (isDefault) await tx.update(llmProviders).set({ isDefault: false });
+    if (isDefault) {
+      await tx
+        .update(llmProviders)
+        .set({ isDefault: false })
+        .where(eq(llmProviders.category, category));
+    }
     const values: Record<string, unknown> = {
       name,
+      category,
       type,
       baseUrl,
       model,
@@ -109,6 +123,21 @@ export async function setDefaultProvider(id: number): Promise<void> {
 export async function testProvider(id: number): Promise<string> {
   const [rec] = await db.select().from(llmProviders).where(eq(llmProviders.id, id)).limit(1);
   if (!rec) throw new Error('provider not found');
+  if (rec.category === 'image') {
+    // Image providers (Runware) can't be live-tested without spending credits;
+    // confirm an API key is present instead.
+    const img = imageProviderFromConfig({
+      name: rec.name,
+      type: rec.type,
+      baseUrl: rec.baseUrl,
+      apiKey: decryptSecret(rec.apiKey),
+      model: rec.model,
+    });
+    const r = await img.testConnection();
+    if (r.ok)
+      return `✓ ${rec.name} configured (${rec.model}) — image providers aren't live-tested to avoid charges`;
+    throw new Error(r.error ?? 'no API key configured');
+  }
   const provider = providerFromConfig({
     name: rec.name,
     type: rec.type,
