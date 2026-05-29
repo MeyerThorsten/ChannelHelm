@@ -314,6 +314,54 @@ export async function applyVideoVariant(opts: {
   }
 }
 
+/**
+ * Change a video's visibility (e.g. flip a private direct-upload to public).
+ * Fetch-then-patch the status part so we preserve madeForKids / embeddable /
+ * any scheduled publishAt rather than resetting them. Returns the resulting
+ * privacy status as reported by YouTube. Requires the `youtube` scope.
+ */
+export async function setVideoPrivacy(opts: {
+  brandId: string;
+  redirectUri: string;
+  videoId: string;
+  privacyStatus: 'private' | 'unlisted' | 'public';
+}): Promise<{ videoId: string; privacy: string }> {
+  const client = await clientFor(opts.brandId, opts.redirectUri);
+  if (!client) {
+    throw new Error(`youtube: brand ${opts.brandId} has no YouTube connection`);
+  }
+  const yt = google.youtube({ version: 'v3', auth: client });
+
+  const cur = await yt.videos.list({ id: [opts.videoId], part: ['status'] });
+  const status = cur.data.items?.[0]?.status;
+  if (!status) {
+    throw new Error(`youtube: video ${opts.videoId} not found (cannot update privacy)`);
+  }
+
+  const res = await yt.videos.update({
+    part: ['status'],
+    requestBody: {
+      id: opts.videoId,
+      status: {
+        privacyStatus: opts.privacyStatus,
+        selfDeclaredMadeForKids: status.selfDeclaredMadeForKids ?? false,
+        embeddable: status.embeddable ?? true,
+        license: status.license ?? undefined,
+        // Flipping to public clears any pending scheduled publish; only keep
+        // publishAt when we're staying private (scheduling requires private).
+        ...(opts.privacyStatus === 'private' && status.publishAt
+          ? { publishAt: status.publishAt }
+          : {}),
+      },
+    },
+  });
+
+  return {
+    videoId: opts.videoId,
+    privacy: res.data.status?.privacyStatus ?? opts.privacyStatus,
+  };
+}
+
 export type VideoAnalytics = {
   views: number;
   estimatedMinutesWatched: number | null;
