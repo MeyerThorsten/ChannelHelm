@@ -1,7 +1,7 @@
 'use client';
 
 import { setYoutubeDispatchTarget } from '@/server-actions/youtube-brand';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
@@ -37,6 +37,14 @@ export function YoutubeConnectionCard({
   const [target, setTarget] = useState(initialTarget);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // The OAuth routes build redirect_uri from the live request origin
+  // (req.nextUrl.origin), so the URI to register in Google Cloud Console is
+  // whatever origin you're browsing on — not a hardcoded port. Resolve it
+  // client-side to stay correct across port changes (e.g. 3000 → 3002).
+  const [callbackUri, setCallbackUri] = useState('/api/youtube/oauth/callback');
+  useEffect(() => {
+    setCallbackUri(`${window.location.origin}/api/youtube/oauth/callback`);
+  }, []);
 
   function disconnect(): void {
     setError(null);
@@ -152,7 +160,7 @@ export function YoutubeConnectionCard({
           </a>{' '}
           first. The values come from Google Cloud Console → APIs &amp; Services → Credentials
           (Web app OAuth client). Authorized redirect URI:{' '}
-          <code>http://localhost:3000/api/youtube/oauth/callback</code>.
+          <code>{callbackUri}</code>.
         </div>
       ) : status.connected ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
